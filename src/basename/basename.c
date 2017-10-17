@@ -37,16 +37,13 @@
 #include <string.h>
 #include <unistd.h>
 
-static void __dead usage(void);
+static void usage(void);
 
 int
 main(int argc, char *argv[])
 {
 	int ch;
 	char *p;
-
-	if (pledge("stdio", NULL) == -1)
-		err(1, "pledge");
 
 	while ((ch = getopt(argc, argv, "")) != -1) {
 		switch (ch) {
@@ -91,7 +88,7 @@ main(int argc, char *argv[])
 
 extern char *__progname;
 
-static void __dead
+static void
 usage(void)
 {
 
