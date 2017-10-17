@@ -66,7 +66,7 @@ char	*get_line(void);
 void	 handlesig(int);
 FILE	*newfile(void);
 void	 toomuch(FILE *, long);
-static void __dead usage(void);
+static void usage(void);
 
 /*
  * Command line options
@@ -99,9 +99,6 @@ main(int argc, char *argv[])
 	const char *expr;
 	char *ep, *p;
 	FILE *ofp;
-
-	if (pledge("stdio rpath wpath cpath", NULL) == -1)
-		err(1, "pledge");
 
 	kflag = sflag = 0;
 	prefix = "xx";
@@ -208,7 +205,7 @@ main(int argc, char *argv[])
 	return (0);
 }
 
-static void __dead
+static void
 usage(void)
 {
 	extern char *__progname;
@@ -238,7 +235,10 @@ newfile(void)
 
 	if ((size_t)snprintf(currfile, sizeof(currfile), "%s%0*ld", prefix,
 	    (int)sufflen, nfiles) >= sizeof(currfile))
-		errc(1, ENAMETOOLONG, "%s", currfile);
+	{
+		errno = ENAMETOOLONG;
+		err(1, "%s", currfile);
+	}
 	if ((fp = fopen(currfile, "w+")) == NULL)
 		err(1, "%s", currfile);
 	nfiles++;
@@ -376,7 +376,7 @@ do_rexp(const char *expr)
 	} else
 		ofs = 0;
 
-	if (regcomp(&cre, re, REG_BASIC|REG_NOSUB) != 0)
+	if (regcomp(&cre, re, 0|REG_NOSUB) != 0)
 		errx(1, "%s: bad regular expression", re);
 
 	if (*expr == '/')
