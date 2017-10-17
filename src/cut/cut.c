@@ -69,9 +69,6 @@ main(int argc, char *argv[])
 
 	setlocale(LC_CTYPE, "");
 
-	if (pledge("stdio rpath", NULL) == -1)
-		err(1, "pledge");
-
 	dchar[0] = '\t';		/* default delimiter */
 	dchar[1] = '\0';
 	dlen = 1;
@@ -142,9 +139,6 @@ main(int argc, char *argv[])
 			}
 		}
 	else {
-		if (pledge("stdio rpath", NULL) == -1)
-			err(1, "pledge");
-
 		fcn(stdin, "stdin");
 	}
 	exit(rval);
