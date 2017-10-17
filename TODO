@@ -1,0 +1,36 @@
+- The following programs in coreutils are not found in the OpenBSD source tree:
+
+      b2sum
+      base32
+      base64
+      chcon
+      cksum
+      dir
+      dircolors
+      hostid
+      install
+      link
+      md5sum
+      nproc
+      numfmt
+      od
+      pathchk
+      pinky
+      ptx
+      realpath
+      runcon
+      seq
+      sha1sum
+      sha224sum
+      sha256sum
+      sha384sum
+      sha512sum
+      shred
+      shuf
+      stdbuf
+      sum
+      tac
+      timeout
+      truncate
+      unlink
+      vdir
