@@ -1,9 +1,13 @@
+*.o
 .deps
 Makefile
 Makefile.in
 aclocal.m4
 autom4te.cache
 autoscan.log
+basename
+cat
+comm
 compile
 config.guess
 config.h
@@ -13,6 +17,8 @@ config.status
 config.sub
 configure
 configure.scan
+csplit
+cut
 depcomp
 install-sh
 libtool
