@@ -61,9 +61,6 @@ main(int argc, char *argv[])
 
 	setlocale(LC_ALL, "");
 
-	if (pledge("stdio rpath", NULL) == -1)
-		err(1, "pledge");
-
 	flag1 = flag2 = flag3 = 1;
 	compare = strcoll;
 	while ((ch = getopt(argc, argv, "123f")) != -1)
