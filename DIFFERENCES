@@ -1,0 +1,79 @@
+Porting these BSD utilities to non-BSD systems exposes some notable
+differences.  The target platform is Linux and the origin platform is OpenBSD.
+This file attempts to summarize the major differences and what option was taken
+for the port.
+
+
+pledge()
+--------
+
+OpenBSD offers a system call named pledge(2) that forces a process in to a
+restricted operating mode.  This is entirely an OpenBSD thing and not present
+on Linux.  All calls to pledge() have been removed in the bsdutils source.
+
+
+__dead
+------
+
+According to the OpenBSD style(9) man page, they prefer prefixing void
+functions with __dead.  This is defined in their <sys/cdefs.h> header file and
+expands to __volatile or __attribute__((__noreturn__)) depending on C
+preprocessor tests to determine the compiler and options you're using.  Neither
+FreeBSD nor NetBSD do this and feels overly pedantic.  As such, the bsdutils
+port will be removing all instances of __dead from source code.
+
+
+SIGINFO
+-------
+
+If you look at the 'kill -l' output on your Linux system, you will see a lot of
+signal types but SIGINFO (INFO in the kill output) is missing.  Linux has never
+had a SIGINFO signal that functions in the same way as BSD systems.  The idea
+is that you can send SIGINFO to a long running process like cp on a large file
+or dd on a large device and the signal handler will print stats on the process.
+The statistics come from the kernel, so any implementation on Linux would
+require a kernel patch and that doesn't seem likely or really necessary.  All
+signal handlers for SIGINFO and their accompanying functions have been removed
+from the bsdutils source code.
+
+
+errc()
+------
+
+The errc() error message formatting function exists on OpenBSD but not Linux.
+The difference between err() and errc() is that the error code is passed as the
+second argument for errc() whereas the err() function just looks at the global
+errno variable.  We can replace errc() calls with a setting of errno and a call
+to err() with the second parameter removed.
+
+
+S_ISTXT
+-------
+
+The OpenBSD macro to test st_mode to see if the sticky bit is set is named
+S_ISTXT while Linux calls it S_ISVTX.  For our purposes we will just change
+these in the code to S_ISVTX.
+
+
+setmode() and getmode()
+-----------------------
+
+These C library functions on OpenBSD are not present on Linux.  But we can
+import setmode.c and reallocarray.c and build those in our libcompat library.
+
+
+reallocarray()
+--------------
+
+Similar to setmode(), reallocarray() is used in some places and is not in
+glibc.  Copy this over to our libcompat library.
+
+
+DEF_WEAK
+--------
+
+Linux does not have the namespace.h definitions from OpenBSD, which includes
+DEF_WEAK.  This expands to __weak_alias(x, HIDDEN(x)) and HIDDEN renames the
+item with a prefix of __libc_.  We don't need that here since our compat
+library is just a static library used to build this handful of programs.  Where
+DEF_WEAK is present in source, it will be removed.
