@@ -37,9 +37,6 @@
 int
 main(int argc, char *argv[])
 {
-	if (pledge("stdio", NULL) == -1)
-		err(1, "pledge");
-
 	if (argc > 1)
 		for (;;)
 			puts(argv[1]);
