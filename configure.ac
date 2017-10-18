@@ -50,6 +50,7 @@ AC_FUNC_STRTOD
 AC_CHECK_FUNCS([atexit btowc bzero clock_gettime dup2 endpwent ftruncate getcwd getdelim getmntinfo gettimeofday getusershell isascii iswprint lchown localeconv mblen mbrlen memchr memmove memset mkdir mkfifo munmap nl_langinfo realpath regcomp rmdir setenv setlocale strchr strcspn strdup strerror strpbrk strrchr strspn strstr strtol strtoul strtoull uname wcwidth])
 
 AC_CONFIG_FILES([Makefile
+                 compat/Makefile
                  src/Makefile
                  src/arch/Makefile
                  src/basename/Makefile
