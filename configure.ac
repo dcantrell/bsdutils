@@ -59,5 +59,12 @@ AC_CONFIG_FILES([Makefile
                  src/comm/Makefile
                  src/cp/Makefile
                  src/csplit/Makefile
-                 src/cut/Makefile])
+                 src/cut/Makefile
+                 src/dd/Makefile
+                 src/dirname/Makefile
+                 src/expand/Makefile
+                 src/false/Makefile
+                 src/mkdir/Makefile
+                 src/true/Makefile
+                 src/yes/Makefile])
 AC_OUTPUT
