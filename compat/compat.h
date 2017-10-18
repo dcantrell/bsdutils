@@ -1,0 +1,10 @@
+/*
+ * compat.h
+ * Local prototype definitions for functions put together in this library.
+ * We don't have the full OpenBSD system headers, so use this header file
+ * to be a placeholder.
+ */
+
+void *reallocarray(void *, size_t, size_t);
+mode_t getmode(const void *, mode_t);
+void *setmode(const char *);
