@@ -47,6 +47,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "dd.h"
@@ -74,7 +75,6 @@ main(int argc, char *argv[])
 	jcl(argv);
 	setup();
 
-	(void)signal(SIGINFO, summaryx);
 	(void)signal(SIGINT, terminate);
 
 	atexit(summary);
@@ -148,9 +148,6 @@ setup(void)
 		pos_in();
 	if (out.offset)
 		pos_out();
-
-	if (pledge("stdio", NULL) == -1)
-		err(1, "pledge");
 
 	/*
 	 * Truncate the output file; ignore errors because it fails on some

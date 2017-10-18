@@ -49,6 +49,20 @@
 #include "dd.h"
 #include "extern.h"
 
+/*
+ * From <sys/time.h> on OpenBSD.  Not used in any other bsdutils commands,
+ * so just putting it in this file.
+ */
+#define timespecsub(tsp, usp, vsp)                                \
+        do {                                                      \
+                (vsp)->tv_sec = (tsp)->tv_sec - (usp)->tv_sec;    \
+                (vsp)->tv_nsec = (tsp)->tv_nsec - (usp)->tv_nsec; \
+                if ((vsp)->tv_nsec < 0) {                         \
+                        (vsp)->tv_sec--;                          \
+                        (vsp)->tv_nsec += 1000000000L;            \
+                }                                                 \
+        } while (0)
+
 void
 summary(void)
 {
@@ -99,15 +113,6 @@ summary(void)
 	}
 
 	(void)writev(STDERR_FILENO, iov, i);
-}
-
-void
-summaryx(int notused)
-{
-	int save_errno = errno;
-
-	summary();
-	errno = save_errno;
 }
 
 void

@@ -387,7 +387,8 @@ get_bsz(char *val)
 	}
 	return (num);
 erange:
-	errc(1, ERANGE, "%s", oper);
+	errno = ERANGE;
+	err(1, "%s", oper);
 }
 
 /*
@@ -466,5 +467,6 @@ get_off(char *val)
 	}
 	return (num);
 erange:
-	errc(1, ERANGE, "%s", oper);
+	errno = ERANGE;
+	err(1, "%s", oper);
 }

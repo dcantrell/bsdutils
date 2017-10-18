@@ -45,7 +45,6 @@ void jcl(char **);
 void pos_in(void);
 void pos_out(void);
 void summary(void);
-void summaryx(int);
 void terminate(int);
 void unblock(void);
 void unblock_close(void);
