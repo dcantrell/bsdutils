@@ -40,10 +40,12 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "compat.h"
+
 extern char *__progname;
 
 int	mkpath(char *, mode_t, mode_t);
-static void __dead usage(void);
+static void usage(void);
 
 int
 main(int argc, char *argv[])
@@ -78,11 +80,6 @@ main(int argc, char *argv[])
 		}
 	argc -= optind;
 	argv += optind;
-
-	if ((mode & (S_ISUID | S_ISGID | S_ISTXT)) == 0) {
-		if (pledge("stdio rpath cpath fattr", NULL) == -1)
-			err(1, "pledge");
-	}
 
 	if (*argv == NULL)
 		usage();
@@ -166,7 +163,7 @@ mkpath(char *path, mode_t mode, mode_t dir_mode)
 	return (0);
 }
 
-static void __dead
+static void
 usage(void)
 {
 	(void)fprintf(stderr, "usage: %s [-p] [-m mode] directory ...\n",
