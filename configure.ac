@@ -63,8 +63,14 @@ AC_CONFIG_FILES([Makefile
                  src/cut/Makefile
                  src/dd/Makefile
                  src/dirname/Makefile
+                 src/echo/Makefile
+                 src/env/Makefile
                  src/expand/Makefile
+                 src/expr/Makefile
                  src/false/Makefile
+                 src/fmt/Makefile
+                 src/fold/Makefile
+                 src/head/Makefile
                  src/mkdir/Makefile
                  src/true/Makefile
                  src/yes/Makefile])
