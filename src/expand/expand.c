@@ -51,9 +51,6 @@ main(int argc, char *argv[])
 	int c, column;
 	int n;
 
-	if (pledge("stdio rpath", NULL) == -1)
-		err(1, "pledge");
-
 	/* handle obsolete syntax */
 	while (argc > 1 && argv[1][0] == '-' &&
 	    isdigit((unsigned char)argv[1][1])) {
