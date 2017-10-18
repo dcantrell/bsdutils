@@ -18,8 +18,9 @@ fail_exit() {
     exit 1
 }
 
-[ -d ${CWD}/src ] || mkdir -p ${CWD}/src
-[ -d ${CWD}/lib ] || mkdir -p ${CWD}/lib
+for sub in compat lib src ; do
+    [ -d ${CWD}/${sub} ] || mkdir -p ${CWD}/${sub}
+done
 
 cd ${TMPDIR}
 curl -L --retry 3 --ftp-pasv -O ${SRC} || fail_exit
@@ -93,6 +94,10 @@ cp -pr usr.sbin/chroot ${CWD}/src
 
 # We need libutil to build some things
 cp -pr lib/libutil/* ${CWD}/lib
+
+# 'compat' is our static library with a subset of BSD library functions
+cp -p lib/libc/gen/setmode.c ${CWD}/compat
+cp -p lib/libc/stdlib/reallocarray.c ${CWD}/compat
 
 # Dump the trash
 find ${CWD}/src -type d -name CVS | xargs rm -rf
