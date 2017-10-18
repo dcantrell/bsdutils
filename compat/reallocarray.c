@@ -36,4 +36,3 @@ reallocarray(void *optr, size_t nmemb, size_t size)
 	}
 	return realloc(optr, size * nmemb);
 }
-DEF_WEAK(reallocarray);
