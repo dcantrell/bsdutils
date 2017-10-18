@@ -46,6 +46,8 @@
 #include <stdio.h>
 #endif
 
+#include "compat.h"
+
 #define	SET_LEN	6		/* initial # of bitcmd struct to malloc */
 #define	SET_LEN_INCR 4		/* # of bitcmd structs to add as needed */
 
@@ -199,13 +201,13 @@ setmode(const char *p)
 	if (isdigit((unsigned char)*p)) {
 		perml = strtoul(p, &ep, 8);
 		/* The test on perml will also catch overflow. */
-		if (*ep != '\0' || (perml & ~(STANDARD_BITS|S_ISTXT))) {
+		if (*ep != '\0' || (perml & ~(STANDARD_BITS|S_ISVTX))) {
 			free(saveset);
 			errno = ERANGE;
 			return (NULL);
 		}
 		perm = (mode_t)perml;
-		ADDCMD('=', (STANDARD_BITS|S_ISTXT), perm, mask);
+		ADDCMD('=', (STANDARD_BITS|S_ISVTX), perm, mask);
 		set->cmd = 0;
 		return (saveset);
 	}
@@ -243,7 +245,7 @@ getop:		if ((op = *p++) != '+' && op != '-' && op != '=') {
 		if (op == '=')
 			equalopdone = 0;
 
-		who &= ~S_ISTXT;
+		who &= ~S_ISVTX;
 		for (perm = 0, permXbits = 0;; ++p) {
 			switch (*p) {
 			case 'r':
@@ -263,8 +265,8 @@ getop:		if ((op = *p++) != '+' && op != '-' && op != '=') {
 				 * only "other" bits ignore sticky.
 				 */
 				if (who == 0 || (who & ~S_IRWXO)) {
-					who |= S_ISTXT;
-					perm |= S_ISTXT;
+					who |= S_ISVTX;
+					perm |= S_ISVTX;
 				}
 				break;
 			case 'w':
