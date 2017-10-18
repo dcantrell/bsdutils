@@ -1,5 +1,8 @@
+*.la
+*.lo
 *.o
 .deps
+.libs
 Makefile
 Makefile.in
 aclocal.m4
@@ -19,10 +22,17 @@ configure
 configure.scan
 csplit
 cut
+dd
 depcomp
+dirname
+expand
+false
 install-sh
 libtool
 ltmain.sh
 m4
 missing
+mkdir
 stamp-h1
+true
+yes
