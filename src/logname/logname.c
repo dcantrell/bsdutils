@@ -35,7 +35,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-static void __dead
+static void
 usage(void)
 {
 	(void)fprintf(stderr, "usage: logname\n");
@@ -47,9 +47,6 @@ main(int argc, char *argv[])
 {
 	int ch;
 	char *p;
-
-	if (pledge("stdio", NULL) == -1)
-		err(1, "pledge");
 
 	while ((ch = getopt(argc, argv, "")) != -1)
 		switch (ch) {
