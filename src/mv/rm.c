@@ -79,7 +79,8 @@ rm_tree(char **argv)
 			}
 			continue;
 		case FTS_ERR:
-			errc(1, p->fts_errno, "%s", p->fts_path);
+			errno = p->fts_errno;
+			err(1, "%s", p->fts_path);
 		case FTS_D:
 			continue;
 		default:

@@ -64,6 +64,8 @@
 #include <unistd.h>
 #include <limits.h>
 
+#include "compat.h"
+
 #define	fts_dne(_x)	(_x->fts_pointer != NULL)
 
 typedef struct {
@@ -92,7 +94,7 @@ enum op { FILE_TO_FILE, FILE_TO_DIR, DIR_TO_DNE };
 static int copy(char *[], enum op, int);
 static char *find_last_component(char *);
 
-static void __dead
+static void
 usage(void)
 {
 	(void)fprintf(stderr,
@@ -358,8 +360,10 @@ copy(char *argv[], enum op type, int fts_options)
 				if (mkdir(to.p_path,
 				    curr->fts_statp->st_mode | S_IRWXU) < 0)
 					err(1, "%s", to.p_path);
-			} else if (!S_ISDIR(to_stat.st_mode))
-				errc(1, ENOTDIR, "%s", to.p_path);
+			} else if (!S_ISDIR(to_stat.st_mode)) {
+				errno = ENOTDIR;
+				err(1, "%s", to.p_path);
+			}
 			break;
 		case S_IFBLK:
 		case S_IFCHR:
@@ -371,7 +375,8 @@ copy(char *argv[], enum op type, int fts_options)
 					rval = 1;
 			break;
 		case S_IFSOCK:
-			warnc(EOPNOTSUPP, "%s", curr->fts_path);
+			errno = EOPNOTSUPP;
+			warn("%s", curr->fts_path);
 			break;
 		default:
 			if (copy_file(curr, fts_dne(curr)))
@@ -418,7 +423,6 @@ copy(char *argv[], enum op type, int fts_options)
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>		/* MAXBSIZE */
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <sys/time.h>
@@ -432,6 +436,18 @@ copy(char *argv[], enum op type, int fts_options)
 #include <string.h>
 #include <unistd.h>
 #include <limits.h>
+
+/*
+ * MAXBSIZE does not exist on Linux because filesystem block size
+ * limits are per filesystem and not consistently enforced across
+ * the different filesystems.  If you look at e2fsprogs and its
+ * header files, you'll see the max block size is defined as 65536
+ * via (1 << EXT2_MAX_BLOCK_LOG_SIZE) where EXT2_MAX_BLOCK_LOG_SIZE
+ * is 16.  On OpenBSD, MAXBSIZE is simply (64 * 1024), which is
+ * 65536.  So we'll just define that here so as to avoid having
+ * bsdutils depend on e2fsprogs to compile.
+ */
+#define MAXBSIZE (64 * 1024)
 
 static int
 copy_file(FTSENT *entp, int dne)
@@ -491,7 +507,7 @@ copy_file(FTSENT *entp, int dne)
 		to_fd = open(to.p_path, O_WRONLY | O_TRUNC, 0);
 	} else
 		to_fd = open(to.p_path, O_WRONLY | O_TRUNC | O_CREAT,
-		    fs->st_mode & ~(S_ISTXT | S_ISUID | S_ISGID));
+		    fs->st_mode & ~(S_ISVTX | S_ISUID | S_ISGID));
 
 	if (to_fd == -1) {
 		warn("%s", to.p_path);
@@ -625,7 +641,7 @@ setfile(struct stat *fs, int fd)
 	int rval;
 
 	rval = 0;
-	fs->st_mode &= S_ISTXT | S_ISUID | S_ISGID | S_IRWXU | S_IRWXG | S_IRWXO;
+	fs->st_mode &= S_ISVTX | S_ISUID | S_ISGID | S_IRWXU | S_IRWXG | S_IRWXO;
 
 	ts[0] = fs->st_atim;
 	ts[1] = fs->st_mtim;
@@ -646,7 +662,7 @@ setfile(struct stat *fs, int fd)
 			warn("chown: %s", to.p_path);
 			rval = 1;
 		}
-		fs->st_mode &= ~(S_ISTXT | S_ISUID | S_ISGID);
+		fs->st_mode &= ~(S_ISVTX | S_ISUID | S_ISGID);
 	}
 	if (fd >= 0 ? fchmod(fd, fs->st_mode) :
 	    fchmodat(AT_FDCWD, to.p_path, fs->st_mode, AT_SYMLINK_NOFOLLOW)) {
@@ -654,19 +670,5 @@ setfile(struct stat *fs, int fd)
 		rval = 1;
 	}
 
-	/*
-	 * XXX
-	 * NFS doesn't support chflags; ignore errors unless there's reason
-	 * to believe we're losing bits.  (Note, this still won't be right
-	 * if the server supports flags and we were trying to *remove* flags
-	 * on a file that we copied, i.e., that we didn't create.)
-	 */
-	errno = 0;
-	if (fd >= 0 ? fchflags(fd, fs->st_flags) :
-	    chflagsat(AT_FDCWD, to.p_path, fs->st_flags, AT_SYMLINK_NOFOLLOW))
-		if (errno != EOPNOTSUPP || fs->st_flags != 0) {
-			warn("chflags: %s", to.p_path);
-			rval = 1;
-		}
 	return (rval);
 }

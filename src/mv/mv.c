@@ -37,6 +37,7 @@
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <sys/mount.h>
+#include <sys/vfs.h>
 
 #include <err.h>
 #include <errno.h>
@@ -48,6 +49,8 @@
 #include <limits.h>
 #include <pwd.h>
 #include <grp.h>
+
+#include "compat.h"
 
 extern char *__progname;
 
@@ -231,7 +234,7 @@ do_move(char *from, char *to)
 			warnx("cannot resolve %s", from);
 			return (1);
 		}
-		if (!statfs(path, &sfs) && !strcmp(path, sfs.f_mntonname)) {
+		if (!statfs(path, &sfs)) {
 			warnx("cannot rename a mount point");
 			return (1);
 		}
@@ -309,27 +312,16 @@ err:		if (unlink(to))
 
 	if (badchown) {
 		if ((sbp->st_mode & (S_ISUID|S_ISGID)))  {
-			warnc(serrno,
-			    "%s: set owner/group; not setting setuid/setgid",
-			    to);
+			errno = serrno;
+			warn("%s: set owner/group; not setting setuid/setgid", to);
 			sbp->st_mode &= ~(S_ISUID|S_ISGID);
-		} else if (!fflg)
-			warnc(serrno, "%s: set owner/group", to);
+		} else if (!fflg) {
+			errno = serrno;
+			warn("%s: set owner/group", to);
+		}
 	}
 	if (fchmod(to_fd, sbp->st_mode))
 		warn("%s: set mode", to);
-
-	/*
-	 * XXX
-	 * NFS doesn't support chflags; ignore errors unless there's reason
-	 * to believe we're losing bits.  (Note, this still won't be right
-	 * if the server supports flags and we were trying to *remove* flags
-	 * on a file that we copied, i.e., that we didn't create.)
-	 */
-	errno = 0;
-	if (fchflags(to_fd, sbp->st_flags))
-		if (errno != EOPNOTSUPP || sbp->st_flags != 0)
-			warn("%s: set flags", to);
 
 	ts[0] = sbp->st_atim;
 	ts[1] = sbp->st_mtim;
