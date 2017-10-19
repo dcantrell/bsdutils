@@ -20,3 +20,10 @@ size_t strlcat(char *, const char *, size_t);
 
 /* strlcpy.c */
 size_t strlcpy(char *, const char *, size_t);
+
+/* strmode.c */
+void strmode(int, char *);
+
+/* pwcache.c */
+char *user_from_uid(uid_t, int);
+char *group_from_gid(gid_t, int);

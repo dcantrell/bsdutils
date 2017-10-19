@@ -96,6 +96,7 @@ cp -pr usr.sbin/chroot ${CWD}/src
 cp -pr lib/libutil/* ${CWD}/lib
 
 # 'compat' is our static library with a subset of BSD library functions
+cp -p lib/libc/gen/pwcache.c ${CWD}/compat
 cp -p lib/libc/gen/setmode.c ${CWD}/compat
 cp -p lib/libc/stdlib/reallocarray.c ${CWD}/compat
 cp -p lib/libc/stdlib/strtonum.c ${CWD}/compat
