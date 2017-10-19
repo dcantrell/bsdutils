@@ -37,14 +37,17 @@ signal handlers for SIGINFO and their accompanying functions have been removed
 from the bsdutils source code.
 
 
-errc()
-------
+errc() and warnc()
+------------------
 
 The errc() error message formatting function exists on OpenBSD but not Linux.
 The difference between err() and errc() is that the error code is passed as the
 second argument for errc() whereas the err() function just looks at the global
 errno variable.  We can replace errc() calls with a setting of errno and a call
 to err() with the second parameter removed.
+
+All of the previous paragraph applies to warnc() as well where we replace it
+with a call to warn() in the same manner.
 
 
 S_ISTXT
@@ -77,3 +80,85 @@ DEF_WEAK.  This expands to __weak_alias(x, HIDDEN(x)) and HIDDEN renames the
 item with a prefix of __libc_.  We don't need that here since our compat
 library is just a static library used to build this handful of programs.  Where
 DEF_WEAK is present in source, it will be removed.
+
+
+NL_TEXTMAX
+----------
+
+Linux has this when __USE_XOPEN is defined.  You can get this through
+_GNU_SOURCE or _XOPEN_SOURCE or _POSIX_C_SOURCE.  For us, _GNU_SOURCE tends to
+be the better option so we don't accidentally turn off other definitions.
+
+
+getline()
+---------
+
+glibc has this if you define _GNU_SOURCE when building.
+
+
+4.4BSD __progname
+-----------------
+
+This is a thing present on BSD systems and OpenBSD provides the getprogname()
+and setprogname() convenience functions.  Linux and glibc do not have this, so
+we replace the calls to these functions with argv[0] usage that is appropriate.
+Most of the time this is defining a new const char * and setting it to
+basename(argv[0]) in main() and passing that around as appropriate.
+
+
+fgetln()
+--------
+
+The BSD function to read a line of input from a file stream is not portable,
+except to other BSD variants.  On glibc and defined by POSIX we have getline(),
+which is similar but slightly different.  We can't easily port the BSD fgetln()
+function because of the way it works.  It's easier to just rewrite code to use
+getline() instead, which is what we will do.
+
+
+struct passwd
+-------------
+
+As defined in pwd.h, this is mostly similar on Linux from OpenBSD but OpenBSD
+does include some things beyond what a standard Unix system has.  Notably their
+pw_class attribute which defines the user class.  This is a thing specific to
+OpenBSD and is not present on other systems.  At least it's not present on
+Linux.  For our port, we are removing the pw_class support in code that uses
+it.
+
+
+strmode()
+---------
+
+This convenience function is in the OpenBSD libc and has been copied over to
+our libcompat.  It is not available in glibc.
+
+
+user_from_uid() and group_from_gid()
+------------------------------------
+
+These come from pwcache.c in the OpenBSD libc source.  These use macro limits
+defined in the OpenBSD pwd.h and grp.h header files, but those definitions do
+not exist on Linux.  Our build will just copy in the OpenBSD limits for now.
+
+
+fchflags() and related things
+-----------------------------
+
+Files in BSD have various flags that can be set.  Make it immutable, for
+instance.  In Linux we have the chattr and lsattr commands for the same type
+functionality.  These are filesystem-specific.  In BSD, everything is
+implemented in the same source tree and they only have the one main filesystem,
+so this is implemented in the main API for the operating system.
+
+Linux doesn't have a generic way to do this, so the functionality has been
+removed from commands that try to use it.
+
+
+MAXBSIZE
+--------
+
+Defined in sys/param.h on OpenBSD, but filesystem specific.  Similar to
+fchflags(), we don't have a generic definition for this in Linux.  The OpenBSD
+definition is the same as the definition that comes with e2fsprogs, which seems
+like a reasonable default.  So we define this one as-is in the source.
