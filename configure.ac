@@ -49,6 +49,19 @@ AC_FUNC_STRCOLL
 AC_FUNC_STRTOD
 AC_CHECK_FUNCS([atexit btowc bzero clock_gettime dup2 endpwent ftruncate getcwd getdelim getmntinfo gettimeofday getusershell isascii iswprint lchown localeconv mblen mbrlen memchr memmove memset mkdir mkfifo munmap nl_langinfo realpath regcomp rmdir setenv setlocale strchr strcspn strdup strerror strpbrk strrchr strspn strstr strtol strtoul strtoull uname wcwidth])
 
+# Define UID_MAX from either user-supplied value or /etc/login.defs value.
+uid_max=60000
+if [ -f /etc/login.defs ]; then
+    new_uid_max="$(grep UID_MAX /etc/login.defs | awk '{ print $2; }')"
+    [ -z "$new_uid_max" ] || uid_max=$new_uid_max
+fi
+AC_ARG_WITH([uid_max],
+            AS_HELP_STRING([--with-uid_max=VAL],
+            [the UID_MAX value for the id command]))
+AS_IF([test "x$with_uid_max" != "x"],
+      AC_SUBST([UID_MAX], ["$with_uid_max"]),
+      AC_SUBST([UID_MAX], ["$uid_max"]))
+
 AC_CONFIG_FILES([Makefile
                  compat/Makefile
                  src/Makefile
