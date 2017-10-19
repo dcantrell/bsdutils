@@ -19,7 +19,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <sys/types.h>
+#include <sys/sysmacros.h>
 #include <sys/stat.h>
 
 #include <err.h>
@@ -29,6 +29,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
+#include "compat.h"
 
 extern char *__progname;
 
@@ -41,7 +43,7 @@ struct node {
 
 static int domakenodes(struct node *, int);
 static dev_t compute_device(int, char **);
-__dead static void usage(int);
+static void usage(int);
 
 int
 main(int argc, char *argv[])
@@ -53,9 +55,6 @@ main(int argc, char *argv[])
 	int mflag = 0;
 	void *set;
 	int ch;
-
-	if (pledge("stdio dpath", NULL) == -1)
-		err(1, "pledge");
 
 	node = reallocarray(NULL, sizeof(struct node), argc);
 	if (!node)
@@ -133,7 +132,6 @@ common:
 			n++;
 		}
 		optind = 1;
-		optreset = 1;
 	}
 
 	if (n == 0)
@@ -206,7 +204,7 @@ domakenodes(struct node *node, int n)
 	return rv;
 }
 
-__dead static void
+static void
 usage(int ismkfifo)
 {
 
