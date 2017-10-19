@@ -36,7 +36,7 @@
 #include <string.h>
 #include <unistd.h>
 
-static void __dead usage(void);
+static void usage(void);
 
 int
 main(int argc, char *argv[])
@@ -45,9 +45,6 @@ main(int argc, char *argv[])
 	extern int optind;
 	char **ep, *p;
 	int ch;
-
-	if (pledge("stdio exec", NULL) == -1)
-		err(1, "pledge");
 
 	while ((ch = getopt(argc, argv, "i-")) != -1)
 		switch(ch) {
@@ -86,7 +83,7 @@ main(int argc, char *argv[])
 	return 0;
 }
 
-static void __dead
+static void
 usage(void)
 {
 	extern char *__progname;
