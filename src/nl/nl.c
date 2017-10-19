@@ -32,6 +32,7 @@
 
 #include <err.h>
 #include <errno.h>
+#include <libgen.h>
 #include <limits.h>
 #include <locale.h>
 #include <regex.h>
@@ -40,6 +41,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <wchar.h>
+#include "compat.h"
 
 typedef enum {
 	number_all,		/* number all lines */
@@ -72,7 +74,7 @@ static struct numbering_property numbering_properties[NP_LAST + 1] = {
 
 void		filter(void);
 void		parse_numbering(const char *, int);
-__dead void	usage(void);
+void	usage(const char *);
 
 /*
  * Delimiter characters that indicate the start of a logical page section.
@@ -115,11 +117,9 @@ main(int argc, char *argv[])
 	char delim1[MB_LEN_MAX] = { '\\' }, delim2[MB_LEN_MAX] = { ':' };
 	size_t delim1len = 1, delim2len = 1;
 	const char *errstr;
+	const char *progname = basename(argv[0]);
 
 	(void)setlocale(LC_ALL, "");
-
-	if (pledge("stdio rpath", NULL) == -1)
-		err(1, "pledge");
 
 	while ((c = getopt(argc, argv, "pb:d:f:h:i:l:n:s:v:w:")) != -1) {
 		switch (c) {
@@ -131,14 +131,18 @@ main(int argc, char *argv[])
 			break;
 		case 'd':
 			clen = mbrlen(optarg, MB_CUR_MAX, NULL);
-			if (clen == (size_t)-1 || clen == (size_t)-2)
-				errc(EXIT_FAILURE, EILSEQ, NULL);
+			if (clen == (size_t)-1 || clen == (size_t)-2) {
+				errno = EILSEQ;
+				err(EXIT_FAILURE, NULL);
+			}
 			if (clen != 0) {
 				memcpy(delim1, optarg, delim1len = clen);
 				clen = mbrlen(optarg + delim1len,
 				    MB_CUR_MAX, NULL);
-				if (clen == (size_t)-1 || clen == (size_t)-2)
-					errc(EXIT_FAILURE, EILSEQ, NULL);
+				if (clen == (size_t)-1 || clen == (size_t)-2) {
+					errno = EILSEQ;
+					err(EXIT_FAILURE, NULL);
+				}
 				if (clen != 0) {
 					memcpy(delim2, optarg + delim1len,
 					    delim2len = clen);
@@ -198,7 +202,7 @@ main(int argc, char *argv[])
 			break;
 		case '?':
 		default:
-			usage();
+			usage(progname);
 			/* NOTREACHED */
 		}
 	}
@@ -214,7 +218,7 @@ main(int argc, char *argv[])
 			err(EXIT_FAILURE, "%s", argv[0]);
 		break;
 	default:
-		usage();
+		usage(progname);
 		/* NOTREACHED */
 	}
 
@@ -356,11 +360,11 @@ parse_numbering(const char *argstr, int section)
 	}
 }
 
-__dead void
-usage(void)
+void
+usage(const char *progname)
 {
 	(void)fprintf(stderr, "usage: %s [-p] [-b type] [-d delim] [-f type] "
 	    "[-h type] [-i incr] [-l num]\n\t[-n format] [-s sep] "
-	    "[-v startnum] [-w width] [file]\n", getprogname());
+	    "[-v startnum] [-w width] [file]\n", progname);
 	exit(EXIT_FAILURE);
 }
