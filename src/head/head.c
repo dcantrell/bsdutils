@@ -37,6 +37,8 @@
 #include <errno.h>
 #include <unistd.h>
 
+#include "compat.h"
+
 static void usage(void);
 
 /*
@@ -54,9 +56,6 @@ main(int argc, char *argv[])
 	long	linecnt = 10;
 	char	*p = NULL;
 	int	status = 0;
-
-	if (pledge("stdio rpath", NULL) == -1)
-		err(1, "pledge");
 
 	/* handle obsolete -number syntax */
 	if (argc > 1 && argv[1][0] == '-' &&
@@ -90,8 +89,6 @@ main(int argc, char *argv[])
 			if (!firsttime)
 				exit(status);
 			fp = stdin;
-			if (pledge("stdio", NULL) == -1)
-				err(1, "pledge");
 		} else {
 			if ((fp = fopen(*argv, "r")) == NULL) {
 				warn("%s", *argv++);
