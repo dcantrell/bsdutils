@@ -5,6 +5,12 @@
  * to be a placeholder.
  */
 
+/* reallocarray.c */
 void *reallocarray(void *, size_t, size_t);
+
+/* setmode.c */
 mode_t getmode(const void *, mode_t);
 void *setmode(const char *);
+
+/* strtonum.c */
+long long strtonum(const char *, long long, long long, const char **);
