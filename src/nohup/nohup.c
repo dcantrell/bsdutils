@@ -41,9 +41,10 @@
 #include <errno.h>
 #include <limits.h>
 #include <err.h>
+#include "compat.h"
 
 static void dofile(void);
-__dead static void usage(void);
+static void usage(void);
 
 /*
  * nohup shall exit with one of the following values:
@@ -73,17 +74,11 @@ main(int argc, char *argv[])
 {
 	int exit_status;
 
-	if (pledge("stdio rpath wpath cpath exec", NULL) == -1)
-		err(1, "pledge");
-
 	if (argc < 2)
 		usage();
 
 	if (isatty(STDOUT_FILENO))
 		dofile();
-
-	if (pledge("stdio exec", NULL) == -1)
-		err(1, "pledge");
 
 	if (isatty(STDERR_FILENO) && dup2(STDOUT_FILENO, STDERR_FILENO) == -1) {
 		/* may have just closed stderr */
@@ -129,7 +124,7 @@ dupit:
 	(void)fprintf(stderr, "sending output to %s\n", p);
 }
 
-__dead static void
+static void
 usage(void)
 {
 	(void)fprintf(stderr, "usage: nohup utility [arg ...]\n");
