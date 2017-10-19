@@ -71,7 +71,18 @@ AC_CONFIG_FILES([Makefile
                  src/fmt/Makefile
                  src/fold/Makefile
                  src/head/Makefile
+                 src/id/Makefile
+                 src/join/Makefile
+                 src/ln/Makefile
+                 src/logname/Makefile
                  src/mkdir/Makefile
+                 src/mknod/Makefile
+                 src/mktemp/Makefile
+                 src/mv/Makefile
+                 src/nice/Makefile
+                 src/nl/Makefile
+                 src/nohup/Makefile
+                 src/paste/Makefile
                  src/true/Makefile
                  src/yes/Makefile])
 AC_OUTPUT
