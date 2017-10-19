@@ -99,6 +99,8 @@ cp -pr lib/libutil/* ${CWD}/lib
 cp -p lib/libc/gen/setmode.c ${CWD}/compat
 cp -p lib/libc/stdlib/reallocarray.c ${CWD}/compat
 cp -p lib/libc/stdlib/strtonum.c ${CWD}/compat
+cp -p lib/libc/string/strlcat.c ${CWD}/compat
+cp -p lib/libc/string/strlcpy.c ${CWD}/compat
 
 # Dump the trash
 find ${CWD}/src -type d -name CVS | xargs rm -rf
