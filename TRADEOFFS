@@ -1,0 +1,30 @@
+Using bsdutils in place of GNU coreutils does come with some tradeoffs.  The
+list below highlights some of these that you should consider before making the
+switch:
+
+
+Lack of long options
+--------------------
+
+This is a usability thing, but if you have a lot of scripts that use the long
+options for GNU coreutils commands, you will have to change those to short
+options with bsdutils.
+
+
+No support for SELinux
+----------------------
+
+The ls(1) command from GNU coreutils can display SELinux information in file
+listings.  Since this is Linux-specific, the bsdutils do not have support for
+it.  If you don't need this or don't care about SELinux, then the bsdutils
+should be functionally equivalent for you.
+
+
+No translations
+---------------
+
+The bsdutils commands come with very simple untranslated help output and an
+English language man page.  There may be translated man pages in the OpenBSD
+source tree (we should look for those), but the commands themselves don't
+output text in other languages.  However, text manipulation commands and things
+like ls(1) do work with UTF-8 encodings and wide characters.
