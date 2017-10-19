@@ -2,6 +2,8 @@ bin_PROGRAMS = id
 man_MANS = id.1 groups.1 whoami.1
 
 id_SOURCES = id.c
+id_CFLAGS = -DUID_MAX=$(UID_MAX) -I$(top_srcdir)/compat
+id_LDADD = $(top_builddir)/compat/libcompat.la
 
 install-exec-local:
 	ln -s id $(DESTDIR)$(bindir)/groups

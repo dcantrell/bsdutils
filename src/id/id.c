@@ -35,18 +35,19 @@
 #include <err.h>
 #include <errno.h>
 #include <grp.h>
+#include <libgen.h>
 #include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <limits.h>
-#include <login_cap.h>
+#include "compat.h"
 
 void	current(void);
 void	pretty(struct passwd *);
 void	group(struct passwd *, int);
-void	usage(void);
+void	usage(const char *);
 void	user(struct passwd *);
 struct passwd *
 	who(char *);
@@ -56,36 +57,31 @@ main(int argc, char *argv[])
 {
 	struct group *gr;
 	struct passwd *pw;
-	int ch, cflag, Gflag, gflag, nflag, pflag, Rflag, rflag, uflag;
+	int ch, Gflag, gflag, nflag, pflag, rflag, uflag;
 	uid_t uid;
 	gid_t gid;
 	const char *opts;
+	const char *progname = basename(argv[0]);
 
-	if (pledge("stdio getpw", NULL) == -1)
-		err(1, "pledge");
+	Gflag = gflag = nflag = pflag = rflag = uflag = 0;
 
-	cflag = Gflag = gflag = nflag = pflag = Rflag = rflag = uflag = 0;
-
-	if (strcmp(getprogname(), "groups") == 0) {
+	if (strcmp(progname, "groups") == 0) {
 		Gflag = 1;
 		nflag = 1;
 		opts = "";
 		if (argc > 2)
-			usage();
-	} else if (strcmp(getprogname(), "whoami") == 0) {
+			usage(progname);
+	} else if (strcmp(progname, "whoami") == 0) {
 		uflag = 1;
 		nflag = 1;
 		opts = "";
 		if (argc > 1)
-			usage();
+			usage(progname);
 	} else
 		opts = "cGgnpRru";
 
 	while ((ch = getopt(argc, argv, opts)) != -1)
 		switch(ch) {
-		case 'c':
-			cflag = 1;
-			break;
 		case 'G':
 			Gflag = 1;
 			break;
@@ -98,9 +94,6 @@ main(int argc, char *argv[])
 		case 'p':
 			pflag = 1;
 			break;
-		case 'R':
-			Rflag = 1;
-			break;
 		case 'r':
 			rflag = 1;
 			break;
@@ -109,12 +102,12 @@ main(int argc, char *argv[])
 			break;
 		case '?':
 		default:
-			usage();
+			usage(progname);
 		}
 	argc -= optind;
 	argv += optind;
 
-	switch (cflag + Gflag + gflag + pflag + Rflag + uflag) {
+	switch (Gflag + gflag + pflag + uflag) {
 	case 1:
 		break;
 	case 0:
@@ -122,28 +115,13 @@ main(int argc, char *argv[])
 			break;
 		/* FALLTHROUGH */
 	default:
-		usage();
+		usage(progname);
 	}
 
 	if (strcmp(opts, "") != 0 && argc > 1)
-		usage();
-
-	if (Rflag) {
-		printf("%d\n", getrtable());
-		exit(0);
-	}
+		usage(progname);
 
 	pw = *argv ? who(*argv) : NULL;
-
-	if (cflag) {
-		if (pw == NULL)
-			pw = getpwuid(getuid());
-		if (pw != NULL && pw->pw_class != NULL && *pw->pw_class != '\0')
-			(void)printf("%s\n", pw->pw_class);
-		else
-			(void)printf("%s\n", LOGIN_DEFCLASS);
-		exit(0);
-	}
 
 	if (gflag) {
 		gid = pw ? pw->pw_gid : rflag ? getgid() : getegid();
@@ -218,8 +196,6 @@ pretty(struct passwd *pw)
 		(void)printf("groups\t");
 		group(NULL, 1);
 	}
-	if (pw != NULL && pw->pw_class != NULL && *pw->pw_class != '\0')
-		(void)printf("class\t%s\n", pw->pw_class);
 }
 
 void
@@ -349,19 +325,17 @@ who(char *u)
 }
 
 void
-usage(void)
+usage(const char *progname)
 {
-	if (strcmp(getprogname(), "groups") == 0) {
+	if (strcmp(progname, "groups") == 0) {
 		(void)fprintf(stderr, "usage: groups [user]\n");
-	} else if (strcmp(getprogname(), "whoami") == 0) {
+	} else if (strcmp(progname, "whoami") == 0) {
 		(void)fprintf(stderr, "usage: whoami\n");
 	} else {
 		(void)fprintf(stderr, "usage: id [user]\n");
-		(void)fprintf(stderr, "       id -c [user]\n");
 		(void)fprintf(stderr, "       id -G [-n] [user]\n");
 		(void)fprintf(stderr, "       id -g [-nr] [user]\n");
 		(void)fprintf(stderr, "       id -p [user]\n");
-		(void)fprintf(stderr, "       id -R\n");
 		(void)fprintf(stderr, "       id -u [-nr] [user]\n");
 	}
 	exit(1);

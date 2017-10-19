@@ -43,9 +43,6 @@
 .Nm id
 .Op Ar user
 .Nm id
-.Fl c
-.Op Ar user
-.Nm id
 .Fl G Op Fl n
 .Op Ar user
 .Nm id
@@ -54,8 +51,6 @@
 .Nm id
 .Fl p
 .Op Ar user
-.Nm id
-.Fl R
 .Nm id
 .Fl u Op Fl nr
 .Op Ar user
@@ -75,9 +70,6 @@ In this case, the real and effective IDs are assumed to be the same.
 .Pp
 The options are as follows:
 .Bl -tag -width Ds
-.It Fl c
-Display the login class of the real user ID or the specified
-.Ar user .
 .It Fl G
 Display the different group IDs (effective, real and supplementary)
 as whitespace separated numbers, in no particular order.
@@ -117,8 +109,6 @@ If there is a login class specified for the user in the
 database, it is displayed, preceded by the keyword
 .Dq class .
 Each display is on a separate line.
-.It Fl R
-Display the routing table of the current process.
 .It Fl r
 Display the real ID for the
 .Fl g
@@ -140,9 +130,10 @@ utility is compliant with the
 .St -p1003.1-2008
 specification.
 .Pp
-The flags
-.Op Fl cpR
-are extensions to that specification.
+The
+.Op Fl p
+flag
+is an extension to that specification.
 .Sh HISTORY
 The
 historic
