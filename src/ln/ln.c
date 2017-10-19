@@ -49,7 +49,7 @@ int	Pflag;				/* Hard link to symlink. */
 int	sflag;				/* Symbolic, not hard, link. */
 
 int	linkit(char *, char *, int);
-void	usage(void) __dead;
+void	usage(void);
 
 int
 main(int argc, char *argv[])
@@ -57,9 +57,6 @@ main(int argc, char *argv[])
 	struct stat sb;
 	int ch, exitval;
 	char *sourcedir;
-
-	if (pledge("stdio rpath cpath", NULL) == -1)
-		err(1, "pledge");
 
 	while ((ch = getopt(argc, argv, "fhLnPs")) != -1)
 		switch (ch) {
@@ -128,7 +125,8 @@ linkit(char *target, char *source, int isdir)
 		}
 		/* Only symbolic links to directories. */
 		if (S_ISDIR(sb.st_mode)) {
-			warnc(EISDIR, "%s", target);
+			errno = EISDIR;
+			warn("%s", target);
 			return (1);
 		}
 	}
@@ -143,7 +141,8 @@ linkit(char *target, char *source, int isdir)
 		}
 		n = snprintf(path, sizeof(path), "%s/%s", source, p);
 		if (n < 0 || n >= sizeof(path)) {
-			warnc(ENAMETOOLONG, "%s/%s", source, p);
+			errno = ENAMETOOLONG;
+			warn("%s/%s", source, p);
 			return (1);
 		}
 		source = path;
