@@ -40,14 +40,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <wchar.h>
+#include "compat.h"
 
 #define	DEFLINEWIDTH	80
 
 static void fold(unsigned int);
 static int isu8cont(unsigned char);
-static __dead void usage(void);
+static void usage(void);
 
 int count_bytes = 0;
 int split_words = 0;
@@ -60,9 +63,6 @@ main(int argc, char *argv[])
 	const char *errstr;
 
 	setlocale(LC_CTYPE, "");
-
-	if (pledge("stdio rpath", NULL) == -1)
-		err(1, "pledge");
 
 	width = 0;
 	lastch = '\0';
@@ -108,8 +108,6 @@ main(int argc, char *argv[])
 		width = DEFLINEWIDTH;
 
 	if (!*argv) {
-		if (pledge("stdio", NULL) == -1)
-			err(1, "pledge");
 		fold(width);
 	} else {
 		for (; *argv; ++argv) {
@@ -265,7 +263,7 @@ isu8cont(unsigned char c)
 	return MB_CUR_MAX > 1 && (c & (0x80 | 0x40)) == 0x80;
 }
 
-static __dead void
+static void
 usage(void)
 {
 	(void)fprintf(stderr, "usage: fold [-bs] [-w width] [file ...]\n");
