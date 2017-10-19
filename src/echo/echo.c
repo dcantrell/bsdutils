@@ -41,9 +41,6 @@ main(int argc, char *argv[])
 {
 	int nflag;
 
-	if (pledge("stdio", NULL) == -1)
-		err(1, "pledge");
-
 	/* This utility may NOT do getopt(3) option parsing. */
 	if (*++argv && !strcmp(*argv, "-n")) {
 		++argv;
