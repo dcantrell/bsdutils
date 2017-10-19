@@ -39,9 +39,11 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "compat.h"
+
 #define	DEFNICE	10
 
-static void __dead usage(void);
+static void usage(void);
 
 int
 main(int argc, char *argv[])
@@ -49,9 +51,6 @@ main(int argc, char *argv[])
 	const char *errstr;
 	int prio = DEFNICE;
 	int c;
-
-	if (pledge("stdio exec proc", NULL) == -1)
-		err(1, "pledge");
 
 	/* handle obsolete -number syntax */
 	if (argc > 1 && argv[1][0] == '-' &&
@@ -87,14 +86,11 @@ main(int argc, char *argv[])
 	if (setpriority(PRIO_PROCESS, 0, prio))
 		warn("setpriority");
 
-	if (pledge("stdio exec", NULL) == -1)
-		err(1, "pledge");
-
 	execvp(argv[0], &argv[0]);
 	err((errno == ENOENT) ? 127 : 126, "%s", argv[0]);
 }
 
-static void __dead
+static void
 usage(void)
 {
 	extern char *__progname;
