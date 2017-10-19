@@ -25,9 +25,9 @@
 #include <string.h>
 #include <unistd.h>
 
-__dead void usage(void);
-__dead void fatal(const char *, ...) __attribute__((__format__(printf, 1, 2)));
-__dead void fatalx(const char *, ...) __attribute__((__format__(printf, 1, 2)));
+void usage(void);
+void fatal(const char *, ...) __attribute__((__format__(printf, 1, 2)));
+void fatalx(const char *, ...) __attribute__((__format__(printf, 1, 2)));
 
 static int quiet;
 
@@ -37,9 +37,6 @@ main(int argc, char *argv[])
 	int ch, fd, uflag = 0, tflag = 0, makedir = 0;
 	char *cp, *template, *tempfile, *prefix = _PATH_TMP;
 	size_t len;
-
-	if (pledge("stdio rpath wpath cpath", NULL) == -1)
-		err(1, "pledge");
 
 	while ((ch = getopt(argc, argv, "dp:qtu")) != -1)
 		switch(ch) {
@@ -121,7 +118,7 @@ main(int argc, char *argv[])
 	exit(EXIT_SUCCESS);
 }
 
-__dead void
+void
 fatal(const char *fmt, ...)
 {
 	if (!quiet) {
@@ -134,7 +131,7 @@ fatal(const char *fmt, ...)
 	exit(EXIT_FAILURE);
 }
 
-__dead void
+void
 fatalx(const char *fmt, ...)
 {
 	if (!quiet) {
@@ -147,7 +144,7 @@ fatalx(const char *fmt, ...)
 	exit(EXIT_FAILURE);
 }
 
-__dead void
+void
 usage(void)
 {
 	extern char *__progname;
