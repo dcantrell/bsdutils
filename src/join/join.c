@@ -38,6 +38,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include "compat.h"
 
 #define MAXIMUM(a, b)	(((a) > (b)) ? (a) : (b))
 
@@ -103,9 +104,6 @@ main(int argc, char *argv[])
 	INPUT *F1, *F2;
 	int aflag, ch, cval, vflag;
 	char *end;
-
-	if (pledge("stdio rpath", NULL) == -1)
-		err(1, "pledge");
 
 	F1 = &input1;
 	F2 = &input2;
@@ -210,9 +208,6 @@ main(int argc, char *argv[])
 		err(1, "%s", *argv);
 	if (F1->fp == stdin && F2->fp == stdin)
 		errx(1, "only one input file may be stdin");
-
-	if (pledge("stdio", NULL) == -1)
-		err(1, "pledge");
 
 	F1->setusedc = 0;
 	F2->setusedc = 0;
@@ -343,7 +338,7 @@ slurpit(INPUT *F)
 			F->pushbool = 0;
 			continue;
 		}
-		if ((bp = fgetln(F->fp, &len)) == NULL)
+		if (getline(&bp, &len, F->fp) == -1)
 			return;
 		/*
 		 * we depend on knowing on what field we are, one safe way is
