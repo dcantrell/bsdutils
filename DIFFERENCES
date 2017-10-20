@@ -18,9 +18,9 @@ __dead
 According to the OpenBSD style(9) man page, they prefer prefixing void
 functions with __dead.  This is defined in their <sys/cdefs.h> header file and
 expands to __volatile or __attribute__((__noreturn__)) depending on C
-preprocessor tests to determine the compiler and options you're using.  Neither
-FreeBSD nor NetBSD do this and feels overly pedantic.  As such, the bsdutils
-port will be removing all instances of __dead from source code.
+preprocessor tests to determine the compiler and options you're using.  It
+feels overly pedantic.  As such, the bsdutils port will be removing all
+instances of __dead from source code.
 
 
 SIGINFO
