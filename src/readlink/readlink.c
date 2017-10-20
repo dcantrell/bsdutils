@@ -44,9 +44,6 @@ main(int argc, char *argv[])
 	int n, ch, nflag = 0, fflag = 0;
 	extern int optind;
 
-	if (pledge("stdio rpath", NULL) == -1)
-		err(1, "pledge");
-
 	while ((ch = getopt(argc, argv, "fn")) != -1)
 		switch (ch) {
 		case 'f':
