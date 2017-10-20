@@ -106,7 +106,11 @@ cp -p lib/libc/string/strmode.c ${CWD}/compat
 cp -p lib/libutil/logwtmp.c ${CWD}/compat
 cp -p lib/libutil/ohash.c ${CWD}/compat
 cp -p lib/libutil/ohash.h ${CWD}/compat
-cp -p games/primes/primes.h ${CWD}/compat
+
+# These files are needed for the factor command
+cp -p games/primes/primes.h ${CWD}/src/factor
+cp -p games/primes/pattern.c ${CWD}/src/factor
+cp -p games/primes/pr_tbl.c ${CWD}/src/factor
 
 # Dump the trash
 find ${CWD}/src -type d -name CVS | xargs rm -rf

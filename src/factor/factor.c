@@ -76,7 +76,7 @@ extern const int pattern_size;
 static void		pr_fact(u_int64_t);	/* print factors of a value */
 static void		pr_bigfact(u_int64_t);
 static u_int64_t	usqrt(u_int64_t);
-static void __dead	usage(void);
+static void	usage(void);
 
 int
 main(int argc, char *argv[])
@@ -84,9 +84,6 @@ main(int argc, char *argv[])
 	u_int64_t val;
 	int ch;
 	char *p, buf[100];		/* > max number of digits. */
-
-	if (pledge("stdio", NULL) == -1)
-		err(1, "pledge");
 
 	while ((ch = getopt(argc, argv, "h")) != -1) {
 		switch (ch) {
@@ -302,9 +299,10 @@ usqrt(u_int64_t n)
 	return x;
 }
 
-static void __dead
+static void
 usage(void)
 {
-	(void)fprintf(stderr, "usage: %s [number ...]\n", getprogname());
+	extern char *__progname;
+	(void)fprintf(stderr, "usage: %s [number ...]\n", __progname);
 	exit (1);
 }
