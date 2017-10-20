@@ -204,7 +204,7 @@ who_am_i(FILE *ufp)
 
 	pw = getpwuid(getuid());
 	(void)strncpy(usr.ut_name, pw ? pw->pw_name : "?", UT_NAMESIZE);
-	(void)time(&usr.ut_time);
+	(void)time((time_t *) &usr.ut_time);
 	*usr.ut_host = '\0';
 	output(&usr);
 }
@@ -243,7 +243,7 @@ output(struct utmp *up)
 	}
 
 	(void)printf("%-*.*s ", UT_LINESIZE, UT_LINESIZE, up->ut_line);
-	(void)printf("%.12s ", ctime(&up->ut_time) + 4);
+	(void)printf("%.12s ", ctime((long int *) &up->ut_time) + 4);
 
 	if (show_idle) {
 		if (idle < 60) 
