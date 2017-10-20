@@ -39,6 +39,8 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "compat.h"
+
 char	genbuf[BUFSIZ];
 char	linebuf[BUFSIZ];
 
@@ -49,11 +51,6 @@ main(int argc, char *argv[])
 {
 	bool all = false;
 	char *cp;
-
-	if (pledge("stdio rpath", NULL) == -1) {
-		perror("pledge");
-		exit(1);
-	}
 
 	argc--, argv++;
 	if (argc > 0 && argv[0][0] == '-') {
