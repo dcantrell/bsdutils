@@ -51,9 +51,11 @@ AC_CHECK_FUNCS([atexit btowc bzero clock_gettime dup2 endpwent ftruncate getcwd 
 
 # Define UID_MAX from either user-supplied value or /etc/login.defs value.
 uid_max=60000
-if [ -f /etc/login.defs ]; then
+if test -f /etc/login.defs ; then
     new_uid_max="$(grep UID_MAX /etc/login.defs | awk '{ print $2; }')"
-    [ -z "$new_uid_max" ] || uid_max=$new_uid_max
+    if test ! -z "$new_uid_max" ; then
+        uid_max=$new_uid_max
+    fi
 fi
 AC_ARG_WITH([uid_max],
             AS_HELP_STRING([--with-uid_max=VAL],
