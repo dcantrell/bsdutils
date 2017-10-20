@@ -26,7 +26,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <ohash.h>
+#include "ohash.h"
+#include "compat.h"
 
 /* The complexity of topological sorting is O(e), where e is the
  * size of input.  While reading input, vertices have to be identified,
@@ -113,7 +114,7 @@ struct array {
 
 static void nodes_init(struct ohash *);
 static struct node *node_lookup(struct ohash *, const char *, const char *);
-static __dead void usage(void);
+static void usage(void);
 static struct node *new_node(const char *, const char *);
 
 static unsigned int read_pairs(FILE *, struct ohash *, int,
@@ -205,7 +206,7 @@ ereallocarray(void *p, size_t n, size_t s)
  ***/
 
 /* Inserting and finding nodes in the hash structure.
- * We handle interval strings for efficiency wrt fgetln.  */
+ * We handle interval strings for efficiency wrt getline.  */
 static struct node *
 new_node(const char *start, const char *end)
 {
@@ -305,12 +306,15 @@ read_pairs(FILE *f, struct ohash *h, int reverse, const char *name,
 	int 		toggle;
 	struct node 	*a;
 	size_t 		size;
+	ssize_t		slen;
 	char 		*str;
 
 	toggle = 1;
 	a = NULL;
+	str = NULL;
+	slen = 0;
 
-	while ((str = fgetln(f, &size)) != NULL) {
+	while ((slen = getline(&str, &size, f)) != -1) {
 		char *sentinel;
 
 		sentinel = str + size;
@@ -358,8 +362,12 @@ read_hints(FILE *f, struct ohash *h, int quiet, const char *name,
 {
 	char 		*str;
 	size_t 		size;
+	ssize_t		slen;
 
-	while ((str = fgetln(f, &size)) != NULL) {
+	str = NULL;
+	slen = 0;
+
+	while ((slen = getline(&str, &size, f)) != -1) {
 		char *sentinel;
 
 		sentinel = str + size;
@@ -879,10 +887,6 @@ parse_args(int argc, char *argv[], struct ohash *pairs)
 
 	files[i] = NULL;
 
-/*	if (pledge("stdio rpath", files) == -1) */
-	if (pledge("stdio rpath", NULL) == -1)
-		err(1, "pledge");
-
 	nodes_init(pairs);
 	order = 0;
 		
@@ -910,9 +914,6 @@ parse_args(int argc, char *argv[], struct ohash *pairs)
 		order = read_pairs(stdin, pairs, reverse_flag, "stdin",
 		    order, hints_flag == 2);
 	}
-
-	if (pledge("stdio", NULL) == -1)
-		err(1, "pledge");
 }
 
 static int
@@ -998,9 +999,6 @@ int
 main(int argc, char *argv[])
 {
 	struct ohash 	pairs;
-
-	if (pledge("stdio rpath", NULL) == -1)
-		err(1, "pledge");
 
 	parse_args(argc, argv, &pairs);
 	return tsort(&pairs);
