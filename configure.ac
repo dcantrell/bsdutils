@@ -96,6 +96,30 @@ AC_CONFIG_FILES([Makefile
                  src/nl/Makefile
                  src/nohup/Makefile
                  src/paste/Makefile
+                 src/pr/Makefile
+                 src/printenv/Makefile
+                 src/printf/Makefile
+                 src/pwd/Makefile
+                 src/readlink/Makefile
+                 src/rm/Makefile
+                 src/rmdir/Makefile
+                 src/sleep/Makefile
+                 src/sort/Makefile
+                 src/split/Makefile
+                 src/stat/Makefile
+                 src/stty/Makefile
+                 src/sync/Makefile
+                 src/tail/Makefile
+                 src/tee/Makefile
+                 src/test/Makefile
+                 src/touch/Makefile
+                 src/tr/Makefile
                  src/true/Makefile
+                 src/tty/Makefile
+                 src/uname/Makefile
+                 src/unexpand/Makefile
+                 src/uniq/Makefile
+                 src/users/Makefile
+                 src/who/Makefile
                  src/yes/Makefile])
 AC_OUTPUT
