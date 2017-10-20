@@ -54,9 +54,6 @@ main(int argc, char *argv[])
 	struct timespec rqtp;
 	int i;
 
-	if (pledge("stdio", NULL) == -1)
-		err(1, "pledge");
-
 	signal(SIGALRM, alarmh);
 
 	while ((ch = getopt(argc, argv, "")) != -1)
