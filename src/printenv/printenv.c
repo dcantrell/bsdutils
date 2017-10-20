@@ -48,9 +48,6 @@ main(int argc, char *argv[])
 	char *cp, **ep;
 	int len;
 
-	if (pledge("stdio", NULL) == -1)
-		err(1, "pledge");
-
 	if (argc < 2) {
 		for (ep = environ; *ep; ep++)
 			puts(*ep);
