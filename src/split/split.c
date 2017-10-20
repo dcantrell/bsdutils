@@ -58,7 +58,7 @@ int	 sufflen = 2;			/* File name suffix length. */
 void newfile(void);
 void split1(void);
 void split2(void);
-__dead void usage(void);
+void usage(void);
 
 int
 main(int argc, char *argv[])
@@ -66,9 +66,6 @@ main(int argc, char *argv[])
 	int ch, scale;
 	char *ep, *p;
 	const char *errstr;
-
-	if (pledge("stdio rpath wpath cpath", NULL) == -1)
-		err(1, "pledge");
 
 	while ((ch = getopt(argc, argv, "0123456789a:b:l:p:-")) != -1)
 		switch (ch) {
@@ -306,7 +303,7 @@ newfile(void)
 	file_open = 1;
 }
 
-__dead void
+void
 usage(void)
 {
 	extern char *__progname;

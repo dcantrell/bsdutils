@@ -57,9 +57,6 @@ main(int argc, char *argv[])
 	extern int optind;
 	int ch, seq;
 
-	if (pledge("stdio rpath", NULL) == -1)
-		err(1, "pledge");
-
 	seq = 0;
 	while ((ch = getopt(argc, argv, "d:s")) != -1) {
 		switch (ch) {

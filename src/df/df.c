@@ -37,6 +37,7 @@
 
 #include <sys/stat.h>
 #include <sys/mount.h>
+#include <sys/vfs.h>
 
 #include <err.h>
 #include <errno.h>
@@ -45,7 +46,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <util.h>
 
 int		 bread(int, off_t, void *, int);
 static void	 bsdprint(struct statfs *, long, int);
@@ -57,7 +57,7 @@ static void	 prthumanval(long long);
 static void	 prtstat(struct statfs *, int, int, int);
 static long	 regetmntinfo(struct statfs **, long);
 static int	 selected(const char *);
-static __dead void usage(void);
+static void usage(void);
 
 extern int	 e2fs_df(int, char *, struct statfs *);
 extern int	 ffs_df(int, char *, struct statfs *);
@@ -65,6 +65,7 @@ static int	 raw_df(char *, struct statfs *);
 
 int	hflag, iflag, kflag, lflag, nflag, Pflag;
 char	**typelist = NULL;
+extern char *__progname;
 
 int
 main(int argc, char *argv[])
@@ -75,9 +76,6 @@ main(int argc, char *argv[])
 	int ch, i;
 	int width, maxwidth;
 	char *mntpt;
-
-	if (pledge("stdio rpath", NULL) == -1)
-		err(1, "pledge");
 
 	while ((ch = getopt(argc, argv, "hiklnPt:")) != -1)
 		switch (ch) {
@@ -451,11 +449,11 @@ bread(int rfd, off_t off, void *buf, int cnt)
 	return (1);
 }
 
-static __dead void
+static void
 usage(void)
 {
 	(void)fprintf(stderr,
 	    "usage: %s [-hiklnP] [-t type] [[file | file_system] ...]\n",
-	    getprogname());
+	    __progname);
 	exit(1);
 }
