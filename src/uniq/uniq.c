@@ -45,6 +45,8 @@
 #include <wchar.h>
 #include <wctype.h>
 
+#include "compat.h"
+
 #define	MAXLINELEN	(8 * 1024)
 
 int cflag, dflag, uflag;
@@ -54,7 +56,7 @@ FILE	*file(char *, char *);
 void	 show(FILE *, char *);
 char	*skip(char *);
 void	 obsolete(char *[]);
-__dead void	usage(void);
+void	usage(void);
 
 int
 main(int argc, char *argv[])
@@ -65,9 +67,6 @@ main(int argc, char *argv[])
 	char *prevline, *thisline;
 
 	setlocale(LC_CTYPE, "");
-
-	if (pledge("stdio rpath wpath cpath", NULL) == -1)
-		err(1, "pledge");
 
 	obsolete(argv);
 	while ((ch = getopt(argc, argv, "cdf:s:u")) != -1) {
@@ -126,9 +125,6 @@ main(int argc, char *argv[])
 	default:
 		usage();
 	}
-
-	if (pledge("stdio", NULL) == -1)
-		err(1, "pledge");
 
 	prevline = malloc(MAXLINELEN);
 	thisline = malloc(MAXLINELEN);
@@ -251,7 +247,7 @@ obsolete(char *argv[])
 	}
 }
 
-__dead void
+void
 usage(void)
 {
 	extern char *__progname;
