@@ -45,12 +45,14 @@
 #include <string.h>
 #include <unistd.h>
 
-int ischflags, ischown, ischgrp, ischmod;
+#include "compat.h"
+
+int ischown, ischgrp, ischmod;
 extern char *__progname;
 
 gid_t a_gid(const char *);
 uid_t a_uid(const char *, int);
-static void __dead usage(void);
+static void usage(void);
 
 int
 main(int argc, char *argv[])
@@ -71,7 +73,6 @@ main(int argc, char *argv[])
 		ischown = __progname[2] == 'o';
 		ischgrp = __progname[2] == 'g';
 		ischmod = __progname[2] == 'm';
-		ischflags = __progname[2] == 'f';
 	}
 
 	uid = (uid_t)-1;
@@ -151,29 +152,7 @@ done:
 		atflags = 0;
 	}
 
-	if (ischflags) {
-		if (pledge("stdio rpath fattr", NULL) == -1)
-			err(1, "pledge");
-
-		flags = *argv;
-		if (*flags >= '0' && *flags <= '7') {
-			errno = 0;
-			val = strtoul(flags, &ep, 8);
-			if (val > UINT_MAX)
-				errno = ERANGE;
-			if (errno)
-				err(1, "invalid flags: %s", flags);
-			if (*ep)
-				errx(1, "invalid flags: %s", flags);
-			fset = val;
-			oct = 1;
-		} else {
-			if (strtofflags(&flags, &fset, &fclear))
-				errx(1, "invalid flag: %s", flags);
-			fclear = ~fclear;
-			oct = 0;
-		}
-	} else if (ischmod) {
+	if (ischmod) {
 		mode = *argv;
 		if (*mode >= '0' && *mode <= '7') {
 			errno = 0;
@@ -224,7 +203,8 @@ done:
 			else
 				continue;
 		case FTS_DNR:			/* Warn, chmod, continue. */
-			warnc(p->fts_errno, "%s", p->fts_path);
+			errno = p->fts_errno;
+			warn("%s", p->fts_path);
 			rval = 1;
 			break;
 		case FTS_DP:			/* Already changed at FTS_D. */
@@ -234,7 +214,8 @@ done:
 				break;
 		case FTS_ERR:			/* Warn, continue. */
 		case FTS_NS:
-			warnc(p->fts_errno, "%s", p->fts_path);
+			errno = p->fts_errno;
+			warn("%s", p->fts_path);
 			rval = 1;
 			continue;
 		case FTS_SL:			/* Ignore. */
@@ -265,13 +246,9 @@ done:
 			    getmode(set, p->fts_statp->st_mode), atflags)
 			    || fflag)
 				continue;
-		} else if (!ischflags) {
+		} else if (ischown) {
 			if (!fchownat(AT_FDCWD, p->fts_accpath, uid, gid,
 			    atflags) || fflag)
-				continue;
-		} else {
-			if (!chflagsat(AT_FDCWD, p->fts_accpath, oct ? fset :
-			    (p->fts_statp->st_flags | fset) & fclear, atflags))
 				continue;
 		}
 
@@ -305,7 +282,7 @@ a_uid(const char *s, int silent)
 		return (pw->pw_uid);
 
 	/* UID was given. */
-	uid = (uid_t)strtonum(s, 0, UID_MAX, &errstr);
+	uid = (uid_t)strtonum(s, 0, INT_MAX, &errstr);
 	if (errstr) {
 		if (silent)
 			return ((uid_t)-1);
@@ -335,20 +312,19 @@ a_gid(const char *s)
 		return (gr->gr_gid);
 
 	/* GID was given. */
-	gid = (gid_t)strtonum(s, 0, GID_MAX, &errstr);
+	gid = (gid_t)strtonum(s, 0, INT_MAX, &errstr);
 	if (errstr)
 		errx(1, "group is %s: %s", errstr, s);
 
 	return (gid);
 }
 
-static void __dead
+static void
 usage(void)
 {
 	fprintf(stderr,
 	    "usage: %s [-h] [-R [-H | -L | -P]] %s file ...\n",
-	    __progname, ischmod ? "mode" : ischflags ? "flags" :
-	    ischown ? "owner[:group]" : "group");
+	    __progname, ischmod ? "mode" : ischown ? "owner[:group]" : "group");
 	if (ischown)
 		fprintf(stderr,
 		    "       %s [-h] [-R [-H | -L | -P]] :group file ...\n",
