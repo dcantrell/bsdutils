@@ -5,17 +5,10 @@
       base64
       chcon
       cksum
-      dir
-      dircolors
-      hostid
       install
       link
       md5sum
-      nproc
       numfmt
-      od
-      pathchk
-      pinky
       ptx
       realpath
       runcon
@@ -33,4 +26,3 @@
       timeout
       truncate
       unlink
-      vdir

@@ -3,6 +3,28 @@ list below highlights some of these that you should consider before making the
 switch:
 
 
+Some commands do not exist
+--------------------------
+
+The following commands are specific to GNU coreutils and are not part of a BSD
+base system but have alternatives:
+
+    COMMAND    DESCRIPTION                    ALTERNATIVE
+    dir        list directory contents        ls
+    dircolors  color setup for ls             N/A - color ls not supported
+    vdir       list directory contents        ls
+    hostid     print numeric host identifier  none - dropped in 4.4BSD
+
+The following commands are specific to GNU coreutils and have no alternative provided by a BSD system:
+
+    COMMAND    DESCRIPTION
+    od         dump files in octal and other formats
+    pathchk    check whether file names are valid or portable
+    nproc      print number of processing units available
+    pinky      lightweight finger
+ 
+
+
 No color support in ls(1)
 -------------------------
 
