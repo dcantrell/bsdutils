@@ -96,16 +96,6 @@ getline()
 glibc has this if you define _GNU_SOURCE when building.
 
 
-4.4BSD __progname
------------------
-
-This is a thing present on BSD systems and OpenBSD provides the getprogname()
-and setprogname() convenience functions.  Linux and glibc do not have this, so
-we replace the calls to these functions with argv[0] usage that is appropriate.
-Most of the time this is defining a new const char * and setting it to
-basename(argv[0]) in main() and passing that around as appropriate.
-
-
 fgetln()
 --------
 
@@ -162,3 +152,21 @@ Defined in sys/param.h on OpenBSD, but filesystem specific.  Similar to
 fchflags(), we don't have a generic definition for this in Linux.  The OpenBSD
 definition is the same as the definition that comes with e2fsprogs, which seems
 like a reasonable default.  So we define this one as-is in the source.
+
+
+arc4random() and related things
+-------------------------------
+
+Linux has the standard C library random functions and does not include anything
+named arc4random from the BSD world.  There is a getrandom() call that appeared
+starting with the 3.17 kernel.  This is more useful than the pseudo random
+number generator functions provided by the C library so whenever we can, we'll
+replace arc4random stuff with getrandom() calls.
+
+
+struct statfs
+-------------
+
+This is available on Linux in the <sys/vfs.h> header.  Not all of the struct
+members are the same as the ones in BSD.  For instance, Linux has .f_bsize
+whereas BSD has .f_iosize.  These changes are made in the source as necessary.
