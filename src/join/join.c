@@ -293,9 +293,10 @@ void
 slurpit(INPUT *F)
 {
 	LINE *lp, *lastlp, tmp;
-	size_t len;
+	size_t len = 0;
+	ssize_t slen;
 	u_long cnt;
-	char *bp, *fieldp;
+	char *bp = NULL, *fieldp;
 	long fpos;
 	/*
 	 * Read all of the lines from an input file that have the same
@@ -338,7 +339,8 @@ slurpit(INPUT *F)
 			F->pushbool = 0;
 			continue;
 		}
-		if (getline(&bp, &len, F->fp) == -1)
+		bp = NULL;
+		if ((slen = getline(&bp, &len, F->fp)) == -1)
 			return;
 		/*
 		 * we depend on knowing on what field we are, one safe way is
@@ -356,12 +358,13 @@ slurpit(INPUT *F)
 		}
 		F->setusedc++;
 		memmove(lp->line, bp, len);
+		free(bp);
 		lp->fpos = fpos;
 		/* Replace trailing newline, if it exists. */
-		if (bp[len - 1] == '\n')
-			lp->line[len - 1] = '\0';
+		if (bp[slen - 1] == '\n')
+			lp->line[slen - 1] = '\0';
 		else
-			lp->line[len] = '\0';
+			lp->line[slen] = '\0';
 		bp = lp->line;
 
 		/* Split the line into fields, allocate space as necessary. */
