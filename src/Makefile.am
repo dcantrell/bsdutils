@@ -1,7 +1,7 @@
 # Start with an empty list and conditionally expand it below.
 SUBDIRS =
 
-#SUBDIRS += arch
+SUBDIRS += arch
 SUBDIRS += basename
 SUBDIRS += cat
 #SUBDIRS += chmod
