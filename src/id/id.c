@@ -44,10 +44,12 @@
 #include <limits.h>
 #include "compat.h"
 
+extern char *__progname;
+
 void	current(void);
 void	pretty(struct passwd *);
 void	group(struct passwd *, int);
-void	usage(const char *);
+void	usage(void);
 void	user(struct passwd *);
 struct passwd *
 	who(char *);
@@ -61,22 +63,21 @@ main(int argc, char *argv[])
 	uid_t uid;
 	gid_t gid;
 	const char *opts;
-	const char *progname = basename(argv[0]);
 
 	Gflag = gflag = nflag = pflag = rflag = uflag = 0;
 
-	if (strcmp(progname, "groups") == 0) {
+	if (strcmp(__progname, "groups") == 0) {
 		Gflag = 1;
 		nflag = 1;
 		opts = "";
 		if (argc > 2)
-			usage(progname);
-	} else if (strcmp(progname, "whoami") == 0) {
+			usage();
+	} else if (strcmp(__progname, "whoami") == 0) {
 		uflag = 1;
 		nflag = 1;
 		opts = "";
 		if (argc > 1)
-			usage(progname);
+			usage();
 	} else
 		opts = "cGgnpRru";
 
@@ -102,7 +103,7 @@ main(int argc, char *argv[])
 			break;
 		case '?':
 		default:
-			usage(progname);
+			usage();
 		}
 	argc -= optind;
 	argv += optind;
@@ -115,11 +116,11 @@ main(int argc, char *argv[])
 			break;
 		/* FALLTHROUGH */
 	default:
-		usage(progname);
+		usage();
 	}
 
 	if (strcmp(opts, "") != 0 && argc > 1)
-		usage(progname);
+		usage();
 
 	pw = *argv ? who(*argv) : NULL;
 
@@ -325,11 +326,11 @@ who(char *u)
 }
 
 void
-usage(const char *progname)
+usage()
 {
-	if (strcmp(progname, "groups") == 0) {
+	if (strcmp(__progname, "groups") == 0) {
 		(void)fprintf(stderr, "usage: groups [user]\n");
-	} else if (strcmp(progname, "whoami") == 0) {
+	} else if (strcmp(__progname, "whoami") == 0) {
 		(void)fprintf(stderr, "usage: whoami\n");
 	} else {
 		(void)fprintf(stderr, "usage: id [user]\n");
