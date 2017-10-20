@@ -31,7 +31,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/param.h>	/* MACHINE_ARCH */
 #include <sys/utsname.h>
 
 #include <err.h>
@@ -39,7 +38,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-static void __dead usage(void);
+static void usage(void);
 
 #define	PRINT_SYSNAME		0x01
 #define	PRINT_NODENAME		0x02
@@ -56,9 +55,6 @@ main(int argc, char *argv[])
 	int c;
 	int space = 0;
 	int print_mask = 0;
-
-	if (pledge("stdio", NULL) == -1)
-		err(1, "pledge");
 
 	while ((c = getopt(argc, argv, "amnrsvp")) != -1 ) {
 		switch (c) {
@@ -129,14 +125,14 @@ main(int argc, char *argv[])
 		if (space++)
 			putchar(' ');
 
-		fputs(MACHINE_ARCH, stdout);
+		fputs(u.machine, stdout);
 	}
 	putchar('\n');
 
 	return 0;
 }
 
-static void __dead
+static void
 usage(void)
 {
 	fprintf(stderr, "usage: uname [-amnprsv]\n");
