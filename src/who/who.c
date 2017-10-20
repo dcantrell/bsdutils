@@ -46,6 +46,8 @@
 #include <err.h>
 #include <locale.h>
 
+#include "compat.h"
+
 void  output(struct utmp *);
 void  output_labels(void);
 void  who_am_i(FILE *);
@@ -73,9 +75,6 @@ main(int argc, char *argv[])
 	int c;
 
 	setlocale(LC_ALL, "");
-
-	if (pledge("stdio rpath getpw", NULL) == -1)
-		err(1, "pledge");
 
 	if ((mytty = ttyname(0))) {
 		/* strip any directory component */
@@ -289,13 +288,6 @@ file(char *name)
 	if (!(ufp = fopen(name, "r"))) {
 		err(1, "%s", name);
 		/* NOTREACHED */
-	}
-	if (show_term || show_idle) {
-		if (pledge("stdio rpath getpw", NULL) == -1)
-			err(1, "pledge");
-	} else {
-		if (pledge("stdio getpw", NULL) == -1)
-			err(1, "pledge");
 	}
 	return(ufp);
 }
