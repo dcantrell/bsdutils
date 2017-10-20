@@ -24,7 +24,6 @@
  */
 
 #include <err.h>
-#include <libgen.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -38,12 +37,12 @@ static int machine;
 int
 main(int argc, char *argv[])
 {
-	const char *progname = basename(argv[0]);
+	extern char *__progname;
 	int short_form = 0, c;
 	char *arch, *opts;
 	struct utsname utsbuf;
 
-	machine = strcmp(progname, "machine") == 0;
+	machine = strcmp(__progname, "machine") == 0;
 
 	if (uname(&utsbuf) == -1)
 		err(1, "uname(2)");
