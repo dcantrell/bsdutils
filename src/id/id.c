@@ -318,7 +318,7 @@ who(char *u)
 	 */
 	if ((pw = getpwnam(u)))
 		return(pw);
-	uid = strtonum(u, 0, UID_MAX, &errstr);
+	uid = strtonum(u, 0, INT_MAX, &errstr);
 	if (!errstr && (pw = getpwuid(uid)))
 		return(pw);
 	errx(1, "%s: No such user", u);
