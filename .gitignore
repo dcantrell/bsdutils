@@ -12,6 +12,7 @@ autom4te.cache
 autoscan.log
 basename
 cat
+chmod
 comm
 compile
 config.guess
@@ -22,8 +23,10 @@ config.status
 config.sub
 configure
 configure.scan
+cp
 csplit
 cut
+date
 dd
 depcomp
 dirname
