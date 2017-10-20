@@ -43,9 +43,6 @@ main(int argc, char *argv[])
 	int ch, sflag;
 	char *t;
 
-	if (pledge("stdio rpath", NULL) == -1)
-		err(1, "pledge");
-
 	sflag = 0;
 	while ((ch = getopt(argc, argv, "s")) != -1) {
 		switch(ch) {
