@@ -42,7 +42,8 @@
 #include <syslog.h>
 #include <time.h>
 #include <unistd.h>
-#include <util.h>
+
+#include "compat.h"
 
 extern	char *__progname;
 
@@ -52,7 +53,7 @@ int slidetime;
 
 static void setthetime(char *);
 static void badformat(void);
-static void __dead usage(void);
+static void usage(void);
 
 int
 main(int argc, char *argv[])
@@ -123,9 +124,6 @@ main(int argc, char *argv[])
 		argv++;
 		argc--;
 	}
-
-	if (pledge("stdio rpath wpath", NULL) == -1)
-		err(1, "pledge");
 
 	if (*argv && **argv == '+') {
 		format = *argv + 1;
@@ -259,7 +257,7 @@ badformat(void)
 	usage();
 }
 
-static void __dead
+static void
 usage(void)
 {
 	(void)fprintf(stderr,
