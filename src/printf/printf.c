@@ -49,7 +49,7 @@ static unsigned long getulong(void);
 static char	*getstr(void);
 static char	*mklong(const char *, int); 
 static void      check_conversion(const char *, const char *);
-static void __dead usage(void);
+static void usage(void);
      
 static int	rval;
 static char  **gargv;
@@ -78,9 +78,6 @@ main(int argc, char *argv[])
 	int fieldwidth, precision;
 	char convch, nextch;
 	char *format;
-
-	if (pledge("stdio", NULL) == -1)
-		err(1, "pledge");
 
 	/* Need to accept/ignore "--" option. */
 	if (argc > 1 && strcmp(argv[1], "--") == 0) {
@@ -488,12 +485,13 @@ check_conversion(const char *s, const char *ep)
 			warnx ("%s: not completely converted", s);
 		rval = 1;
 	} else if (errno == ERANGE) {
-		warnc(ERANGE, "%s", s);
+		errno = ERANGE;
+		warn("%s", s);
 		rval = 1;
 	}
 }
 
-static void __dead
+static void
 usage(void)
 {
 	(void)fprintf(stderr, "usage: printf format [argument ...]\n");
