@@ -84,6 +84,7 @@ AC_CONFIG_FILES([Makefile
                  src/env/Makefile
                  src/expand/Makefile
                  src/expr/Makefile
+                 src/factor/Makefile
                  src/false/Makefile
                  src/fmt/Makefile
                  src/fold/Makefile
