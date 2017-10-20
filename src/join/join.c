@@ -358,7 +358,6 @@ slurpit(INPUT *F)
 		}
 		F->setusedc++;
 		memmove(lp->line, bp, len);
-		free(bp);
 		lp->fpos = fpos;
 		/* Replace trailing newline, if it exists. */
 		if (bp[slen - 1] == '\n')
