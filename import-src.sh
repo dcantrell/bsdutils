@@ -104,6 +104,8 @@ cp -p lib/libc/string/strlcat.c ${CWD}/compat
 cp -p lib/libc/string/strlcpy.c ${CWD}/compat
 cp -p lib/libc/string/strmode.c ${CWD}/compat
 cp -p lib/libutil/logwtmp.c ${CWD}/compat
+cp -p lib/libutil/ohash.c ${CWD}/compat
+cp -p lib/libutil/ohash.h ${CWD}/compat
 
 # Dump the trash
 find ${CWD}/src -type d -name CVS | xargs rm -rf
