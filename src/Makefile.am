@@ -63,5 +63,5 @@ SUBDIRS += unexpand
 SUBDIRS += uniq
 SUBDIRS += users
 #SUBDIRS += wc
-#SUBDIRS += who
+SUBDIRS += who
 SUBDIRS += yes
