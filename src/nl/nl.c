@@ -32,7 +32,6 @@
 
 #include <err.h>
 #include <errno.h>
-#include <libgen.h>
 #include <limits.h>
 #include <locale.h>
 #include <regex.h>
@@ -74,7 +73,7 @@ static struct numbering_property numbering_properties[NP_LAST + 1] = {
 
 void		filter(void);
 void		parse_numbering(const char *, int);
-void	usage(const char *);
+void	usage(void);
 
 /*
  * Delimiter characters that indicate the start of a logical page section.
@@ -108,6 +107,7 @@ static int startnum = 1;
 /* should be unsigned but required signed by `*' precision conversion */
 static int width = 6;
 
+extern char *__progname;
 
 int
 main(int argc, char *argv[])
@@ -117,7 +117,6 @@ main(int argc, char *argv[])
 	char delim1[MB_LEN_MAX] = { '\\' }, delim2[MB_LEN_MAX] = { ':' };
 	size_t delim1len = 1, delim2len = 1;
 	const char *errstr;
-	const char *progname = basename(argv[0]);
 
 	(void)setlocale(LC_ALL, "");
 
@@ -202,7 +201,7 @@ main(int argc, char *argv[])
 			break;
 		case '?':
 		default:
-			usage(progname);
+			usage();
 			/* NOTREACHED */
 		}
 	}
@@ -218,7 +217,7 @@ main(int argc, char *argv[])
 			err(EXIT_FAILURE, "%s", argv[0]);
 		break;
 	default:
-		usage(progname);
+		usage();
 		/* NOTREACHED */
 	}
 
@@ -361,10 +360,10 @@ parse_numbering(const char *argstr, int section)
 }
 
 void
-usage(const char *progname)
+usage()
 {
 	(void)fprintf(stderr, "usage: %s [-p] [-b type] [-d delim] [-f type] "
 	    "[-h type] [-i incr] [-l num]\n\t[-n format] [-s sep] "
-	    "[-v startnum] [-w width] [file]\n", progname);
+	    "[-v startnum] [-w width] [file]\n", __progname);
 	exit(EXIT_FAILURE);
 }
