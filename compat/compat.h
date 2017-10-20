@@ -27,3 +27,15 @@ void strmode(int, char *);
 /* pwcache.c */
 char *user_from_uid(uid_t, int);
 char *group_from_gid(gid_t, int);
+
+/*
+ * MAXBSIZE does not exist on Linux because filesystem block size
+ * limits are per filesystem and not consistently enforced across
+ * the different filesystems.  If you look at e2fsprogs and its
+ * header files, you'll see the max block size is defined as 65536
+ * via (1 << EXT2_MAX_BLOCK_LOG_SIZE) where EXT2_MAX_BLOCK_LOG_SIZE
+ * is 16.  On OpenBSD, MAXBSIZE is simply (64 * 1024), which is
+ * 65536.  So we'll just define that here so as to avoid having
+ * bsdutils depend on e2fsprogs to compile.
+ */
+#define MAXBSIZE (64 * 1024)
