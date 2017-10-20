@@ -49,7 +49,7 @@ void		stime_arg1(char *, struct timespec *);
 void		stime_arg2(char *, int, struct timespec *);
 void		stime_argd(char *, struct timespec *);
 void		stime_file(char *, struct timespec *);
-__dead void	usage(void);
+void	usage(void);
 
 int
 main(int argc, char *argv[])
@@ -59,9 +59,6 @@ main(int argc, char *argv[])
 	char		*p;
 
 	(void)setlocale(LC_ALL, "");
-
-	if (pledge("stdio rpath wpath cpath fattr", NULL) == -1)
-		err(1, "pledge");
 
 	aflag = cflag = mflag = timeset = 0;
 	while ((ch = getopt(argc, argv, "acd:fmr:t:")) != -1)
@@ -324,7 +321,7 @@ terr:		errx(1,
 	tsp[1] = tsp[0];
 }
 
-__dead void
+void
 usage(void)
 {
 	(void)fprintf(stderr,
