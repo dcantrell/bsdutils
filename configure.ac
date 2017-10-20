@@ -76,6 +76,7 @@ AC_CONFIG_FILES([Makefile
                  src/cp/Makefile
                  src/csplit/Makefile
                  src/cut/Makefile
+                 src/date/Makefile
                  src/dd/Makefile
                  src/dirname/Makefile
                  src/echo/Makefile
