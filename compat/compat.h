@@ -28,6 +28,9 @@ void strmode(int, char *);
 char *user_from_uid(uid_t, int);
 char *group_from_gid(gid_t, int);
 
+/* logwtmp.c */
+void logwtmp(const char *, const char *, const char *);
+
 /*
  * MAXBSIZE does not exist on Linux because filesystem block size
  * limits are per filesystem and not consistently enforced across
