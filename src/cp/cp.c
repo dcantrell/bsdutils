@@ -66,6 +66,8 @@
 
 #include "extern.h"
 
+#include "compat.h"
+
 #define	fts_dne(_x)	(_x->fts_pointer != NULL)
 
 PATH_T to = { to.p_path, "" };
@@ -128,14 +130,6 @@ main(int argc, char *argv[])
 		}
 	argc -= optind;
 	argv += optind;
-
-	/*
-	 * Unfortunately, -R will use mkfifo & mknod;
-	 * -p will use fchown, fchmod, lchown, fchflags..
-	 */
-	if (Rflag == 0 && pflag == 0)
-		if (pledge("stdio rpath wpath cpath fattr", NULL) == -1)
-			err(1, "pledge");
 
 	if (argc < 2)
 		usage();
@@ -425,7 +419,8 @@ copy(char *argv[], enum op type, int fts_options)
 					(void)fprintf(stdout, "%s -> %s\n",
 					    curr->fts_path, to.p_path);
 			} else if (!S_ISDIR(to_stat.st_mode))
-				errc(1, ENOTDIR, "%s", to.p_path);
+				errno = ENOTDIR;
+				err(1, "%s", to.p_path);
 			break;
 		case S_IFBLK:
 		case S_IFCHR:
@@ -452,7 +447,8 @@ copy(char *argv[], enum op type, int fts_options)
 				    curr->fts_path, to.p_path);
 			break;
 		case S_IFSOCK:
-			warnc(EOPNOTSUPP, "%s", curr->fts_path);
+			errno = EOPNOTSUPP;
+			warn("%s", curr->fts_path);
 			break;
 		default:
 			if (copy_file(curr, fts_dne(curr)))

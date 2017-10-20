@@ -47,6 +47,8 @@
 
 #include "extern.h"
 
+#include "compat.h"
+
 int
 copy_file(FTSENT *entp, int dne)
 {
@@ -105,7 +107,7 @@ copy_file(FTSENT *entp, int dne)
 		to_fd = open(to.p_path, O_WRONLY | O_TRUNC, 0);
 	} else
 		to_fd = open(to.p_path, O_WRONLY | O_TRUNC | O_CREAT,
-		    fs->st_mode & ~(S_ISTXT | S_ISUID | S_ISGID));
+		    fs->st_mode & ~(S_ISVTX | S_ISUID | S_ISGID));
 
 	if (to_fd == -1) {
 		warn("%s", to.p_path);
@@ -256,7 +258,7 @@ setfile(struct stat *fs, int fd)
 	int rval;
 
 	rval = 0;
-	fs->st_mode &= S_ISTXT | S_ISUID | S_ISGID | S_IRWXU | S_IRWXG | S_IRWXO;
+	fs->st_mode &= S_ISVTX | S_ISUID | S_ISGID | S_IRWXU | S_IRWXG | S_IRWXO;
 
 	ts[0] = fs->st_atim;
 	ts[1] = fs->st_mtim;
@@ -277,29 +279,13 @@ setfile(struct stat *fs, int fd)
 			warn("chown: %s", to.p_path);
 			rval = 1;
 		}
-		fs->st_mode &= ~(S_ISTXT | S_ISUID | S_ISGID);
+		fs->st_mode &= ~(S_ISVTX | S_ISUID | S_ISGID);
 	}
 	if (fd >= 0 ? fchmod(fd, fs->st_mode) :
 	    fchmodat(AT_FDCWD, to.p_path, fs->st_mode, AT_SYMLINK_NOFOLLOW)) {
 		warn("chmod: %s", to.p_path);
 		rval = 1;
 	}
-
-	/*
-	 * XXX
-	 * NFS doesn't support chflags; ignore errors unless there's reason
-	 * to believe we're losing bits.  (Note, this still won't be right
-	 * if the server supports flags and we were trying to *remove* flags
-	 * on a file that we copied, i.e., that we didn't create.)
-	 */
-	errno = 0;
-	if (fd >= 0 ? fchflags(fd, fs->st_flags) :
-	    chflagsat(AT_FDCWD, to.p_path, fs->st_flags, AT_SYMLINK_NOFOLLOW))
-		if (errno != EOPNOTSUPP || fs->st_flags != 0) {
-			warn("chflags: %s", to.p_path);
-			rval = 1;
-		}
-	return (rval);
 }
 
 
