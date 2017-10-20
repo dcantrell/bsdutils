@@ -45,10 +45,12 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "pr.h"
 #include "extern.h"
+#include "compat.h"
 
 /*
  * pr:	a printing and pagination filter. If multiple input files
@@ -139,11 +141,6 @@ int
 main(int argc, char *argv[])
 {
     int ret_val;
-
-    if (pledge("stdio rpath", NULL) == -1) {
-	perror("pledge");
-	exit(1);
-    }
 
     if (signal(SIGINT, SIG_IGN) != SIG_IGN)
 	(void)signal(SIGINT, terminate);
