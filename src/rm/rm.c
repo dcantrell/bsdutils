@@ -33,6 +33,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/mount.h>
+#include <sys/random.h>
+#include <sys/vfs.h>
 
 #include <err.h>
 #include <errno.h>
@@ -45,6 +47,8 @@
 #include <limits.h>
 #include <pwd.h>
 #include <grp.h>
+
+#include "compat.h"
 
 #define MAXIMUM(a, b)	(((a) > (b)) ? (a) : (b))
 
@@ -102,14 +106,6 @@ main(int argc, char *argv[])
 	argc -= optind;
 	argv += optind;
 
-	if (Pflag) {
-		if (pledge("stdio rpath wpath cpath getpw", NULL) == -1)
-			err(1, "pledge");
-	} else {
-		if (pledge("stdio rpath cpath getpw", NULL) == -1)
-			err(1, "pledge");
-	}
-
 	if (argc < 1 && fflag == 0)
 		usage();
 
@@ -162,7 +158,8 @@ rm_tree(char **argv)
 			}
 			continue;
 		case FTS_ERR:
-			errc(1, p->fts_errno, "%s", p->fts_path);
+			errno = p->fts_errno;
+			err(1, "%s", p->fts_path);
 		case FTS_NS:
 			/*
 			 * FTS_NS: assume that if can't stat the file, it
@@ -321,7 +318,7 @@ rm_overwrite(char *file, struct stat *sbp)
 	}
 	if (fstatfs(fd, &fsb) == -1)
 		goto err;
-	bsize = MAXIMUM(fsb.f_iosize, 1024U);
+	bsize = MAXIMUM(fsb.f_bsize, 1024U);
 	if ((buf = malloc(bsize)) == NULL)
 		err(1, "%s: malloc", file);
 
@@ -348,7 +345,8 @@ pass(int fd, off_t len, char *buf, size_t bsize)
 
 	for (; len > 0; len -= wlen) {
 		wlen = len < bsize ? len : bsize;
-		arc4random_buf(buf, wlen);
+		if (getrandom(buf, wlen, GRND_RANDOM|GRND_NONBLOCK) == -1)
+			err(1, "getrandom()");
 		if (write(fd, buf, wlen) != wlen)
 			return (0);
 	}
