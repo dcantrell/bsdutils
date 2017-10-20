@@ -72,9 +72,6 @@ main(int argc, char *argv[])
 	int append, ch, exitval;
 	char buf[8192];
 
-	if (pledge("stdio wpath cpath", NULL) == -1)
-		err(1, "pledge");
-
 	SLIST_INIT(&head);
 
 	append = 0;
@@ -106,9 +103,6 @@ main(int argc, char *argv[])
 			add(fd, *argv);
 		argv++;
 	}
-
-	if (pledge("stdio", NULL) == -1)
-		err(1, "pledge");
 
 	while ((rval = read(STDIN_FILENO, buf, sizeof(buf))) > 0) {
 		SLIST_FOREACH(p, &head, next) {
