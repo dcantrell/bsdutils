@@ -6,5 +6,6 @@ chmod_CFLAGS = -I$(top_srcdir)/compat
 chmod_LDADD = $(top_builddir)/compat/libcompat.la
 
 install-exec-local:
-	ln -s chmod $(DESTDIR)$(bindir)/chgrp
-	ln -s chmod $(DESTDIR)$(sbindir)/chown
+	ln -sf chmod $(DESTDIR)$(bindir)/chgrp
+	mkdir -p $(DESTDIR)$(sbindir)
+	ln -sf chmod $(DESTDIR)$(sbindir)/chown
