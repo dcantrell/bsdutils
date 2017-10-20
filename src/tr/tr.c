@@ -87,9 +87,6 @@ main(int argc, char *argv[])
 	int ch, cnt, lastch, *p;
 	int cflag, dflag, sflag, isstring2;
 
-	if (pledge("stdio", NULL) == -1)
-		err(1, "pledge");
-
 	cflag = dflag = sflag = 0;
 	while ((ch = getopt(argc, argv, "Ccds")) != -1)
 		switch(ch) {
