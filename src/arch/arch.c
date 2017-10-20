@@ -23,40 +23,46 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/param.h>	/* MACHINE MACHINE_ARCH */
-
+#include <err.h>
+#include <libgen.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/utsname.h>
 #include <unistd.h>
 
-static void __dead usage(void);
+static void usage(void);
 
 static int machine;
 
 int
 main(int argc, char *argv[])
 {
-	extern char *__progname;
+	const char *progname = basename(argv[0]);
 	int short_form = 0, c;
 	char *arch, *opts;
+	struct utsname utsbuf;
 
-	machine = strcmp(__progname, "machine") == 0;
+	machine = strcmp(progname, "machine") == 0;
+
+	if (uname(&utsbuf) == -1)
+		err(1, "uname(2)");
+
 	if (machine) {
-		arch = MACHINE;
+		arch = utsbuf.machine;
 		opts = "a";
 		short_form = 1;
 	} else {
-		arch = MACHINE_ARCH;
+		arch = utsbuf.machine;
 		opts = "ks";
 	}
 	while ((c = getopt(argc, argv, opts)) != -1) {
 		switch (c) {
 		case 'a':
-			arch = MACHINE_ARCH;
+			arch = utsbuf.machine;
 			break;
 		case 'k':
-			arch = MACHINE;
+			arch = utsbuf.machine;
 			break;
 		case 's':
 			short_form = 1;
@@ -68,11 +74,14 @@ main(int argc, char *argv[])
 	if (optind != argc)
 		usage();
 
-	printf("%s%s\n", short_form ? "" : "OpenBSD.", arch);
+	if (!short_form)
+		printf("%s.", utsbuf.sysname);
+
+	printf("%s\n", arch);
 	return (0);
 }
 
-static void __dead
+static void
 usage(void)
 {
 	if (machine)
