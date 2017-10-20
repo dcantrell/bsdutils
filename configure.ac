@@ -78,6 +78,7 @@ AC_CONFIG_FILES([Makefile
                  src/cut/Makefile
                  src/date/Makefile
                  src/dd/Makefile
+                 src/df/Makefile
                  src/dirname/Makefile
                  src/echo/Makefile
                  src/env/Makefile
@@ -118,6 +119,7 @@ AC_CONFIG_FILES([Makefile
                  src/touch/Makefile
                  src/tr/Makefile
                  src/true/Makefile
+                 src/tsort/Makefile
                  src/tty/Makefile
                  src/uname/Makefile
                  src/unexpand/Makefile
