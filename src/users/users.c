@@ -39,6 +39,8 @@
 #include <unistd.h>
 #include <utmp.h>
 
+#include "compat.h"
+
 typedef char	namebuf[UT_NAMESIZE];
 
 int scmp(const void *, const void *);
@@ -52,9 +54,6 @@ main(int argc, char *argv[])
 	int cnt;
 	struct utmp utmp;
 	int ch;
-
-	if (pledge("stdio rpath", NULL) == -1)
-		err(1, "pledge");
 
 	while ((ch = getopt(argc, argv, "")) != -1)
 		switch(ch) {
