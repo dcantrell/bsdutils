@@ -38,9 +38,9 @@
 #include <ctype.h>
 #include <err.h>
 #include <unistd.h>
-#include <util.h>
 #include <wchar.h>
 #include <wctype.h>
+#include "compat.h"
 
 int64_t	tlinect, twordct, tcharct;
 int	doline, doword, dochar, humanchar, multibyte;
@@ -57,9 +57,6 @@ main(int argc, char *argv[])
 	int ch;
 
 	setlocale(LC_CTYPE, "");
-
-	if (pledge("stdio rpath", NULL) == -1)
-		err(1, "pledge");
 
 	while ((ch = getopt(argc, argv, "lwchm")) != -1)
 		switch(ch) {
