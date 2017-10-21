@@ -106,6 +106,7 @@ cp -p lib/libc/string/strmode.c ${CWD}/compat
 cp -p lib/libutil/logwtmp.c ${CWD}/compat
 cp -p lib/libutil/ohash.c ${CWD}/compat
 cp -p lib/libutil/ohash.h ${CWD}/compat
+cp -p lib/libutil/fmt_scaled.h ${CWD}/compat
 
 # These files are needed for the factor command
 cp -p games/primes/primes.h ${CWD}/src/factor

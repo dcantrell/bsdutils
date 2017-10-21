@@ -31,6 +31,11 @@ char *group_from_gid(gid_t, int);
 /* logwtmp.c */
 void logwtmp(const char *, const char *, const char *);
 
+/* fmt_scaled.c */
+int scan_scaled(char *, long long *);
+int fmt_scaled(long long, char *);
+
+
 /*
  * MAXBSIZE does not exist on Linux because filesystem block size
  * limits are per filesystem and not consistently enforced across
@@ -42,3 +47,9 @@ void logwtmp(const char *, const char *, const char *);
  * bsdutils depend on e2fsprogs to compile.
  */
 #define MAXBSIZE (64 * 1024)
+
+/*
+ * fmt_scaled(3) specific flags.
+ * This comes from lib/libutil/util.h in the OpenBSD source.
+ */
+#define	FMT_SCALED_STRSIZE	7	/* minus sign, 4 digits, suffix, null byte */
