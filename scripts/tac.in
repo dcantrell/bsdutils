@@ -1,0 +1,2 @@
+#!/bin/sh
+[ -x @bindir@/tail ] && @bindir@/tail -r $*
