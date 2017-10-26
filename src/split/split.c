@@ -43,6 +43,8 @@
 #include <unistd.h>
 #include <regex.h>
 
+#include "compat.h"
+
 #define DEFLINE	1000			/* Default num lines per file. */
 
 ssize_t	 bytecnt;			/* Byte count to split on. */
