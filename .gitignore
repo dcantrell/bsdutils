@@ -63,6 +63,7 @@ readlink
 rm
 rmdir
 sleep
+split
 stamp-h1
 sync
 tee
@@ -76,5 +77,6 @@ uname
 unexpand
 uniq
 users
+wc
 who
 yes
