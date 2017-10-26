@@ -111,6 +111,7 @@ AC_CONFIG_FILES([Makefile
                  src/unexpand/Makefile
                  src/uniq/Makefile
                  src/users/Makefile
+                 src/wc/Makefile
                  src/who/Makefile
                  src/yes/Makefile])
 AC_OUTPUT
