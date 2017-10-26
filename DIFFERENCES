@@ -62,14 +62,14 @@ setmode() and getmode()
 -----------------------
 
 These C library functions on OpenBSD are not present on Linux.  But we can
-import setmode.c and reallocarray.c and build those in our libcompat library.
+import setmode.c to our libcompat library.
 
 
 reallocarray()
 --------------
 
 Similar to setmode(), reallocarray() is used in some places and is not in
-glibc.  Copy this over to our libcompat library.
+glibc.  Copy reallocarray.c over to our libcompat library.
 
 
 DEF_WEAK

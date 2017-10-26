@@ -22,6 +22,11 @@ The following commands are specific to GNU coreutils and have no alternative pro
     pathchk    check whether file names are valid or portable
     nproc      print number of processing units available
     pinky      lightweight finger
+
+Some of these commands can be implemented with simple scripts.  The ones we
+have done that for are available in the scripts/ subdirectory.  Note that these
+deviate from the standard BSD offering, but are an attempt to bridge the
+BSD-GNU command set gap.
  
 
 
@@ -50,6 +55,9 @@ The ls(1) command from GNU coreutils can display SELinux information in file
 listings.  Since this is Linux-specific, the bsdutils do not have support for
 it.  If you don't need this or don't care about SELinux, then the bsdutils
 should be functionally equivalent for you.
+
+We are open to extending these utilities with SELinux functionality if enough
+people want it.
 
 
 No translations
