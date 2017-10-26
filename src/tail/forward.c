@@ -35,7 +35,6 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/event.h>
 
 #include <err.h>
 #include <errno.h>
@@ -45,6 +44,8 @@
 #include <unistd.h>
 
 #include "extern.h"
+
+#include "compat.h"
 
 static int rlines(struct tailfile *, off_t);
 static inline void tfprint(FILE *fp);
