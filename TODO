@@ -26,3 +26,6 @@
       timeout
       truncate
       unlink
+
+- Explore alternative build systems, like meson+ninja?  autotools helps keep
+  things portable across a wide range of Linux distributions for now though.

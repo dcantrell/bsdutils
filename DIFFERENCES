@@ -170,3 +170,22 @@ struct statfs
 This is available on Linux in the <sys/vfs.h> header.  Not all of the struct
 members are the same as the ones in BSD.  For instance, Linux has .f_bsize
 whereas BSD has .f_iosize.  These changes are made in the source as necessary.
+
+
+struct stat
+-----------
+
+There are a number of differences between the stat structures on Linux and
+OpenBSD.  Linux does not have the st_mtimensec member.  Linux has st_atim,
+st_mtim, and st_ctim (note the lack of the trailing 'e') which are all struct
+timespec structures.  There is st_atime, st_mtime, and st_ctime which are the
+.tv_sec members of the timespec structures.
+
+
+getbsize()
+----------
+The OpenBSD standard C library includes the getbsize() function which returns a
+formatted string based on the value in the BLOCKSIZE environment variable.
+This appears to be a standard BSD thing as it claims to have originated with
+4.4 BSD.  We take the one from the OpenBSD source tree and put it in our compat
+library.

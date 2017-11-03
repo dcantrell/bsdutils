@@ -12,7 +12,7 @@ base system but have alternatives:
     COMMAND    DESCRIPTION                    ALTERNATIVE
     dir        list directory contents        ls
     dircolors  color setup for ls             N/A - color ls not supported
-    vdir       list directory contents        ls
+    vdir       vertical 'dir' command         ls
     hostid     print numeric host identifier  none - dropped in 4.4BSD
 
 The following commands are specific to GNU coreutils and have no alternative provided by a BSD system:
