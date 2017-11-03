@@ -27,70 +27,86 @@ curl -L --retry 3 --ftp-pasv -O ${SRC} || fail_exit
 gzip -dc src.tar.gz | tar -xvf -
 
 # copy in the source for all coreutils programs
-cp -pr bin/test ${CWD}/src
-cp -pr usr.bin/arch ${CWD}/src
-cp -pr usr.bin/basename ${CWD}/src
-cp -pr bin/cat ${CWD}/src
-cp -pr bin/chmod ${CWD}/src
-cp -pr usr.bin/comm ${CWD}/src
-cp -pr bin/cp ${CWD}/src
-cp -pr usr.bin/csplit ${CWD}/src
-cp -pr usr.bin/cut ${CWD}/src
-cp -pr bin/date ${CWD}/src
-cp -pr bin/dd ${CWD}/src
-cp -pr bin/df ${CWD}/src
-cp -pr usr.bin/dirname ${CWD}/src
-cp -pr usr.bin/du ${CWD}/src
-cp -pr bin/echo ${CWD}/src
-cp -pr usr.bin/env ${CWD}/src
-cp -pr usr.bin/expand ${CWD}/src
-cp -pr bin/expr ${CWD}/src
-cp -pr games/factor ${CWD}/src
-cp -pr usr.bin/false ${CWD}/src
-cp -pr usr.bin/fmt ${CWD}/src
-cp -pr usr.bin/fold ${CWD}/src
-cp -pr usr.bin/head ${CWD}/src
-cp -pr usr.bin/id ${CWD}/src
-cp -pr usr.bin/join ${CWD}/src
-cp -pr bin/ln ${CWD}/src
-cp -pr usr.bin/logname ${CWD}/src
-cp -pr bin/ls ${CWD}/src
-cp -pr bin/mkdir ${CWD}/src
-cp -pr sbin/mknod ${CWD}/src
-cp -pr usr.bin/mktemp ${CWD}/src
-cp -pr bin/mv ${CWD}/src
-cp -pr usr.bin/nice ${CWD}/src
-cp -pr usr.bin/nl ${CWD}/src
-cp -pr usr.bin/nohup ${CWD}/src
-cp -pr usr.bin/paste ${CWD}/src
-cp -pr usr.bin/pr ${CWD}/src
-cp -pr usr.bin/printenv ${CWD}/src
-cp -pr usr.bin/printf ${CWD}/src
-cp -pr bin/pwd ${CWD}/src
-cp -pr usr.bin/readlink ${CWD}/src
-cp -pr bin/rm ${CWD}/src
-cp -pr bin/rmdir ${CWD}/src
-cp -pr bin/sleep ${CWD}/src
-cp -pr usr.bin/sort ${CWD}/src
-cp -pr usr.bin/split ${CWD}/src
-cp -pr usr.bin/stat ${CWD}/src
-cp -pr bin/stty ${CWD}/src
-cp -pr bin/sync ${CWD}/src
-cp -pr usr.bin/tail ${CWD}/src
-cp -pr usr.bin/tee ${CWD}/src
-cp -pr usr.bin/touch ${CWD}/src
-cp -pr usr.bin/tr ${CWD}/src
-cp -pr usr.bin/true ${CWD}/src
-cp -pr usr.bin/tsort ${CWD}/src
-cp -pr usr.bin/tty ${CWD}/src
-cp -pr usr.bin/uname ${CWD}/src
-cp -pr usr.bin/unexpand ${CWD}/src
-cp -pr usr.bin/uniq ${CWD}/src
-cp -pr usr.bin/users ${CWD}/src
-cp -pr usr.bin/wc ${CWD}/src
-cp -pr usr.bin/who ${CWD}/src
-cp -pr usr.bin/yes ${CWD}/src
-cp -pr usr.sbin/chroot ${CWD}/src
+CMDS="bin/test
+      usr.bin/arch
+      usr.bin/basename
+      bin/cat
+      bin/chmod
+      usr.bin/comm
+      bin/cp
+      usr.bin/csplit
+      usr.bin/cut
+      bin/date
+      bin/dd
+      bin/df
+      usr.bin/dirname
+      usr.bin/du
+      bin/echo
+      usr.bin/env
+      usr.bin/expand
+      bin/expr
+      games/factor
+      usr.bin/false
+      usr.bin/fmt
+      usr.bin/fold
+      usr.bin/head
+      usr.bin/id
+      usr.bin/join
+      bin/ln
+      usr.bin/logname
+      bin/ls
+      bin/mkdir
+      sbin/mknod
+      usr.bin/mktemp
+      bin/mv
+      usr.bin/nice
+      usr.bin/nl
+      usr.bin/nohup
+      usr.bin/paste
+      usr.bin/pr
+      usr.bin/printenv
+      usr.bin/printf
+      bin/pwd
+      usr.bin/readlink
+      bin/rm
+      bin/rmdir
+      bin/sleep
+      usr.bin/sort
+      usr.bin/split
+      usr.bin/stat
+      bin/stty
+      bin/sync
+      usr.bin/tail
+      usr.bin/tee
+      usr.bin/touch
+      usr.bin/tr
+      usr.bin/true
+      usr.bin/tsort
+      usr.bin/tty
+      usr.bin/uname
+      usr.bin/unexpand
+      usr.bin/uniq
+      usr.bin/users
+      usr.bin/wc
+      usr.bin/who
+      usr.bin/yes
+      usr.sbin/chroot"
+for p in ${CMDS} ; do
+    sp="$(basename ${p})"
+    find ${p} -type d -name CVS | xargs rm -rf
+
+    # Rename the upstream Makefile for later manual checking.  We don't
+    # commit these to our tree, but just look at them when rebasing and
+    # pick up any rule changes to put in our Makefile.am files.
+    if [ -f "${p}/Makefile" ]; then
+        mv ${p}/Makefile ${p}/Makefile.bsd
+    fi
+
+    # Copy in the upstream files
+    [ -d ${CWD}/src/${sp} ] || mkdir -p ${CWD}/src/${sp}
+    cp -pr ${p}/* ${CWD}/src/${sp}
+done
+exit 0
 
 # We need libutil to build some things
 cp -pr lib/libutil/* ${CWD}/lib
@@ -112,10 +128,6 @@ cp -p lib/libutil/fmt_scaled.h ${CWD}/compat
 cp -p games/primes/primes.h ${CWD}/src/factor
 cp -p games/primes/pattern.c ${CWD}/src/factor
 cp -p games/primes/pr_tbl.c ${CWD}/src/factor
-
-# Dump the trash
-find ${CWD}/src -type d -name CVS | xargs rm -rf
-find ${CWD}/src -type f -name Makefile | xargs rm -f
 
 # Clean up
 rm -rf ${TMPDIR}
