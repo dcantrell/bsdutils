@@ -127,7 +127,7 @@ parallel(char **argv)
 					putchar(ch);
 				continue;
 			}
-			if (!(buf = fgetln(lp->fp, &len))) {
+			if (getline(&buf, &len, lp->fp) == -1) {
 				if (!--opencnt)
 					break;
 				if (lp->fp != stdin)
@@ -184,7 +184,7 @@ sequential(char **argv)
 			warn("%s", p);
 			continue;
 		}
-		if ((buf = fgetln(fp, &len))) {
+		if (getline(&buf, &len, fp) == -1) {
 			for (cnt = 0, dp = delim;;) {
 				if (buf[len - 1] == '\n')
 					buf[len - 1] = '\0';
@@ -196,7 +196,7 @@ sequential(char **argv)
 					buf = lbuf;
 				}
 				(void)printf("%s", buf);
-				if (!(buf = fgetln(fp, &len)))
+				if (getline(&buf, &len, fp) == -1)
 					break;
 				if ((ch = *dp++))
 					putchar(ch);
