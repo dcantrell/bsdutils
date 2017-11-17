@@ -35,6 +35,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/sysmacros.h>
 
 #include <err.h>
 #include <errno.h>
@@ -47,10 +48,11 @@
 #include <time.h>
 #include <unistd.h>
 #include <limits.h>
-#include <util.h>
 
 #include "ls.h"
 #include "extern.h"
+
+#include "compat.h"
 
 static int	printaname(FTSENT *, int, int);
 static void	printlink(FTSENT *);
@@ -65,6 +67,9 @@ static int	compute_columns(DISPLAY *, int *);
 
 #define	SECSPERDAY	(24 * 60 * 60)
 #define	SIXMONTHS	(SECSPERDAY * 365 / 2)
+
+/* This is from the OpenBSD kernel headers */
+#define	howmany(x, y)	(((x)+((y)-1))/(y))
 
 void
 printscol(DISPLAY *dp)
@@ -106,8 +111,6 @@ printlong(DISPLAY *dp)
 		if (!f_grouponly)
 			(void)printf("%-*s  ", dp->s_user, np->user);
 		(void)printf("%-*s  ", dp->s_group, np->group);
-		if (f_flags)
-			(void)printf("%-*s ", dp->s_flags, np->flags);
 		if (S_ISCHR(sp->st_mode) || S_ISBLK(sp->st_mode))
 			(void)printf("%3d, %3d ",
 			    major(sp->st_rdev), minor(sp->st_rdev));

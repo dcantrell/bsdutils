@@ -61,10 +61,6 @@ modcmp(const FTSENT *a, const FTSENT *b)
 		return (1);
 	else if (b->fts_statp->st_mtime < a->fts_statp->st_mtime)
 		return (-1);
-	else if (b->fts_statp->st_mtimensec > a->fts_statp->st_mtimensec)
-		return (1);
-	else if (b->fts_statp->st_mtimensec < a->fts_statp->st_mtimensec)
-		return (-1);
 	else
 		return (namecmp(a, b));
 }
@@ -75,10 +71,6 @@ revmodcmp(const FTSENT *a, const FTSENT *b)
 	if (b->fts_statp->st_mtime > a->fts_statp->st_mtime)
 		return (-1);
 	else if (b->fts_statp->st_mtime < a->fts_statp->st_mtime)
-		return (1);
-	else if (b->fts_statp->st_mtimensec > a->fts_statp->st_mtimensec)
-		return (-1);
-	else if (b->fts_statp->st_mtimensec < a->fts_statp->st_mtimensec)
 		return (1);
 	else
 		return (revnamecmp(a, b));
@@ -91,10 +83,6 @@ acccmp(const FTSENT *a, const FTSENT *b)
 		return (1);
 	else if (b->fts_statp->st_atime < a->fts_statp->st_atime)
 		return (-1);
-	else if (b->fts_statp->st_atimensec > a->fts_statp->st_atimensec)
-		return (1);
-	else if (b->fts_statp->st_atimensec < a->fts_statp->st_atimensec)
-		return (-1);
 	else
 		return (namecmp(a, b));
 }
@@ -105,10 +93,6 @@ revacccmp(const FTSENT *a, const FTSENT *b)
 	if (b->fts_statp->st_atime > a->fts_statp->st_atime)
 		return (-1);
 	else if (b->fts_statp->st_atime < a->fts_statp->st_atime)
-		return (1);
-	else if (b->fts_statp->st_atimensec > a->fts_statp->st_atimensec)
-		return (-1);
-	else if (b->fts_statp->st_atimensec < a->fts_statp->st_atimensec)
 		return (1);
 	else
 		return (revnamecmp(a, b));
@@ -121,10 +105,6 @@ statcmp(const FTSENT *a, const FTSENT *b)
 		return (1);
 	else if (b->fts_statp->st_ctime < a->fts_statp->st_ctime)
 		return (-1);
-	else if (b->fts_statp->st_ctimensec > a->fts_statp->st_ctimensec)
-		return (1);
-	else if (b->fts_statp->st_ctimensec < a->fts_statp->st_ctimensec)
-		return (-1);
 	else
 		return (namecmp(a, b));
 }
@@ -135,10 +115,6 @@ revstatcmp(const FTSENT *a, const FTSENT *b)
 	if (b->fts_statp->st_ctime > a->fts_statp->st_ctime)
 		return (-1);
 	else if (b->fts_statp->st_ctime < a->fts_statp->st_ctime)
-		return (1);
-	else if (b->fts_statp->st_ctimensec > a->fts_statp->st_ctimensec)
-		return (-1);
-	else if (b->fts_statp->st_ctimensec < a->fts_statp->st_ctimensec)
 		return (1);
 	else
 		return (revnamecmp(a, b));

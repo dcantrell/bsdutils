@@ -180,12 +180,6 @@ and
 .Fl \&nl
 is identical:
 a long listing with numerical group and user ID.
-.It Fl o
-Include the file flags in a long format
-.Pf ( Fl g , l ,
-or
-.Fl n )
-output.
 .It Fl p
 Display a slash
 .Pq Sq /
@@ -400,29 +394,6 @@ or
 .Xr sticky 8 ) .
 .El
 .El
-.Pp
-In addition, if the
-.Fl o
-option is specified, the file flags (see
-.Xr chflags 1 )
-are displayed as comma-separated strings in front of the file size,
-abbreviated as follows:
-.Pp
-.Bl -tag -width 8n -offset indent -compact
-.It \&-
-no flags
-.It arch
-archived
-.It nodump
-do not dump
-.It sappnd
-system append-only
-.It schg
-system immutable
-.It uappnd
-user append-only
-.It uchg
-user immutable
 .El
 .Sh ENVIRONMENT
 .Bl -tag -width BLOCKSIZE
@@ -464,8 +435,7 @@ List the contents of the current working directory in long format:
 .Dl $ ls -l
 .Pp
 In addition to listing the contents of the current working directory in
-long format, show inode numbers, file flags (see
-.Xr chflags 1 ) ,
+long format, show inode numbers,
 and suffix each filename with a symbol representing its file type:
 .Pp
 .Dl $ ls -lioF
@@ -477,7 +447,6 @@ printed first:
 .Pp
 .Dl $ ls -lt /var/log
 .Sh SEE ALSO
-.Xr chflags 1 ,
 .Xr chmod 1 ,
 .Xr symlink 7 ,
 .Xr sticky 8
@@ -486,10 +455,7 @@ The
 .Nm
 utility is compliant with the
 .St -p1003.1-2008
-specification,
-except behaviour for the
-.Fl o
-flag differs.
+specification.
 .Pp
 The flags
 .Op Fl hT ,
@@ -499,7 +465,7 @@ environment variable,
 are extensions to that specification.
 .Pp
 The flags
-.Op Fl go
+.Op Fl g
 are marked by
 .St -p1003.1-2008
 as being an X/Open System Interfaces option.

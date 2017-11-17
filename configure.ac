@@ -78,6 +78,7 @@ AC_CONFIG_FILES([Makefile
                  src/join/Makefile
                  src/ln/Makefile
                  src/logname/Makefile
+                 src/ls/Makefile
                  src/mkdir/Makefile
                  src/mknod/Makefile
                  src/mktemp/Makefile

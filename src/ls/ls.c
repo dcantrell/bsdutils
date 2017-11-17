@@ -49,10 +49,11 @@
 #include <unistd.h>
 #include <limits.h>
 #include <locale.h>
-#include <util.h>
 
 #include "ls.h"
 #include "extern.h"
+
+#include "compat.h"
 
 static void	 display(FTSENT *, FTSENT *);
 static int	 mastercmp(const FTSENT **, const FTSENT **);
@@ -73,7 +74,6 @@ int sortkey = BY_NAME;
 int f_accesstime;		/* use time of last access */
 int f_column;			/* columnated format */
 int f_columnacross;		/* columnated format, sorted across */
-int f_flags;			/* show flags associated with a file */
 int f_grouponly;		/* long listing format without owner */
 int f_humanval;			/* show human-readable file sizes */
 int f_inode;			/* print inode */
@@ -123,9 +123,6 @@ ls_main(int argc, char *argv[])
 		termwidth = win.ws_col;
 	if (termwidth == 0)
 		termwidth = 80;
-
-	if (pledge("stdio rpath getpw", NULL) == -1)
-		err(1, "pledge");
 
 	/* Root is -A automatically. */
 	if (!getuid())
@@ -219,9 +216,6 @@ ls_main(int argc, char *argv[])
 		case 'k':
 			blocksize = 1024;
 			kflag = 1;
-			break;
-		case 'o':
-			f_flags = 1;
 			break;
 		case 'p':
 			f_typedir = 1;
@@ -428,7 +422,7 @@ display(FTSENT *p, FTSENT *list)
 	unsigned long long btotal;
 	blkcnt_t maxblock;
 	ino_t maxinode;
-	int bcfile, flen, glen, ulen, maxflags, maxgroup, maxuser, maxlen;
+	int bcfile, glen, ulen, maxflags, maxgroup, maxuser, maxlen;
 	int entries, needstats;
 	int width;
 	char *user, *group, buf[21];	/* 64 bits == 20 digits */
@@ -446,7 +440,6 @@ display(FTSENT *p, FTSENT *list)
 		return;
 
 	needstats = f_inode || f_longform || f_size;
-	flen = 0;
 	btotal = maxblock = maxinode = maxlen = maxnlink = 0;
 	bcfile = 0;
 	maxuser = maxgroup = maxflags = 0;
@@ -505,17 +498,9 @@ display(FTSENT *p, FTSENT *list)
 					maxuser = ulen;
 				if ((glen = strlen(group)) > maxgroup)
 					maxgroup = glen;
-				if (f_flags) {
-					flags = fflagstostr(sp->st_flags);
-					if (*flags == '\0')
-						flags = "-";
-					if ((flen = strlen(flags)) > maxflags)
-						maxflags = flen;
-				} else
-					flen = 0;
 
 				if ((np = malloc(sizeof(NAMES) +
-				    ulen + 1 + glen + 1 + flen + 1)) == NULL)
+				    ulen + 1 + glen + 1)) == NULL)
 					err(1, NULL);
 
 				np->user = &np->data[0];
@@ -527,12 +512,6 @@ display(FTSENT *p, FTSENT *list)
 				    S_ISBLK(sp->st_mode))
 					bcfile = 1;
 
-				if (f_flags) {
-					np->flags = &np->data[ulen + 1 + glen + 1];
-					(void)strlcpy(np->flags, flags, flen + 1);
-					if (*flags != '-')
-						free(flags);
-				}
 				cur->fts_pointer = np;
 			}
 		}
