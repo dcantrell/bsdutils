@@ -45,6 +45,7 @@ join
 libtool
 ln
 logname
+ls
 ltmain.sh
 m4
 missing
@@ -80,3 +81,4 @@ users
 wc
 who
 yes
+paste
