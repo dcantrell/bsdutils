@@ -35,6 +35,9 @@ void logwtmp(const char *, const char *, const char *);
 int scan_scaled(char *, long long *);
 int fmt_scaled(long long, char *);
 
+/* getbsize.c */
+char *getbsize(int *, long *);
+
 
 /*
  * MAXBSIZE does not exist on Linux because filesystem block size
