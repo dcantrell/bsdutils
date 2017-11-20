@@ -129,7 +129,7 @@ ls_main(int argc, char *argv[])
 		f_listdot = 1;
 
 	fts_options = FTS_PHYSICAL;
-	while ((ch = getopt(argc, argv, "1ACFHLRSTacdfghiklmnopqrstux")) != -1) {
+	while ((ch = getopt(argc, argv, "1ACFHLRSTacdfghiklmnpqrstux")) != -1) {
 		switch (ch) {
 		/*
 		 * The -1, -C and -l, -m, -n and -x options all override each
