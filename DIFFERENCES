@@ -250,3 +250,13 @@ Missing Control Modes
 ---------------------
 Some modes for stty(1) just don't exist on Linux.  These are mdmbuf, kerninfo,
 and onoeot.  In those cases, the support for them is removed from stty(1).
+
+
+login_cap.h and setlogin()
+--------------------------
+Linux doesn't have any of this.  The chroot command's -u option has been
+removed as a result as well as the other checks in the program and the setsid()
+call based on the login.  The coreutils one claims to do this, but I'm not sure
+I believe it.  coreutils is generic and can work on BSD, so the man page might
+be saying that while it really doesn't work on Linux.  If that functionality
+actually worked on Linux, then the fakechroot program wouldn't need to exist.

@@ -35,7 +35,6 @@
 #include <errno.h>
 #include <grp.h>
 #include <limits.h>
-#include <login_cap.h>
 #include <paths.h>
 #include <pwd.h>
 #include <stdio.h>
@@ -44,31 +43,23 @@
 #include <unistd.h>
 
 int		main(int, char **);
-__dead void	usage(void);
+void	usage(void);
 
 int
 main(int argc, char **argv)
 {
 	struct group	*grp;
 	struct passwd	*pwd;
-	login_cap_t	*lc;
 	const char	*shell;
-	char		*user, *group, *grouplist;
+	char		*group, *grouplist;
 	gid_t		gidlist[NGROUPS_MAX];
 	int		ch, ngids;
-	int		flags = LOGIN_SETALL & ~(LOGIN_SETLOGIN|LOGIN_SETUSER);
 
-	lc = NULL;
 	ngids = 0;
 	pwd = NULL;
-	user = grouplist = NULL;
-	while ((ch = getopt(argc, argv, "g:u:")) != -1) {
+	grouplist = NULL;
+	while ((ch = getopt(argc, argv, "g:")) != -1) {
 		switch(ch) {
-		case 'u':
-			user = optarg;
-			if (*user == '\0')
-				usage();
-			break;
 		case 'g':
 			grouplist = optarg;
 			if (*grouplist == '\0')
@@ -83,13 +74,6 @@ main(int argc, char **argv)
 
 	if (argc < 1)
 		usage();
-
-	if (user != NULL) {
-		if ((pwd = getpwnam(user)) == NULL)
-			errx(1, "no such user `%s'", user);
-		if ((lc = login_getclass(pwd->pw_class)) == NULL)
-			err(1, "unable to get login class for `%s'", user);
-	}
 
 	while ((group = strsep(&grouplist, ",")) != NULL) {
 		if (*group == '\0')
@@ -107,20 +91,12 @@ main(int argc, char **argv)
 			err(1, "setgid");
 		if (setgroups(ngids, gidlist) != 0)
 			err(1, "setgroups");
-		flags &= ~LOGIN_SETGROUP;
-	}
-	if (lc != NULL) {
-		if (setusercontext(lc, pwd, pwd->pw_uid, flags) == -1)
-			err(1, "setusercontext");
 	}
 
 	if (chroot(argv[0]) != 0 || chdir("/") != 0)
 		err(1, "%s", argv[0]);
 
 	if (pwd != NULL) {
-		/* only set login name if we are/can be a session leader */
-		if (getsid(0) == getpid() || setsid() != -1)
-			setlogin(pwd->pw_name);
 		if (setuid(pwd->pw_uid) != 0)
 			err(1, "setuid");
 	}
@@ -137,12 +113,12 @@ main(int argc, char **argv)
 	/* NOTREACHED */
 }
 
-__dead void
+void
 usage(void)
 {
 	extern char *__progname;
 
-	(void)fprintf(stderr, "usage: %s [-g group,group,...] [-u user] "
+	(void)fprintf(stderr, "usage: %s [-g group,group,...] "
 	    "newroot [command]\n", __progname);
 	exit(1);
 }
