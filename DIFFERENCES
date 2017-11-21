@@ -189,3 +189,64 @@ formatted string based on the value in the BLOCKSIZE environment variable.
 This appears to be a standard BSD thing as it claims to have originated with
 4.4 BSD.  We take the one from the OpenBSD source tree and put it in our compat
 library.
+
+
+VDSUSP
+------
+This is called CDSUSP on Linux.  In fact, on OpenBSD the VDSUSP name appears to
+be legacy.  Linux doesn't carry the old name, only the new name.
+
+
+VSTATUS
+-------
+Terminal control sequence only available on BSD systems.  This displays kernel
+information on the terminal, which the Linux kernel lacks support for.  This is
+removed from stty(1) and other commands that use it.
+
+
+tty headers
+-----------
+Fortunately Linux and BSD systems do things very differently here.  On Linux,
+you generally want to include termios.h and pty.h.  BSD doesn't have the
+latter.  Avoid directly including sys or linux headers because those are pulled
+in by the glibc headers.
+
+
+TIOCSTART and TIOCSTOP
+----------------------
+These are not implemented on Linux, so they have been removed from stty(1).
+
+
+TIOCEXT
+-------
+This is handled via tcgetattr() and tcsetattr() on Linux, whereas it's an ioctl
+on BSD.  The f_extproc function in stty.c has been altered to do things the
+Linux way.
+
+
+ALTWERASE
+---------
+Alternate word erase is a BSD thing.  glibc offers WERASE and VWERASE and has
+inconsistent documentation alluding to VWERASE being ALTWERASE as you expect on
+BSD.  Our patches use VWERASE where ALTWERASE was used.
+
+
+TTYDISC and other *DISC macros
+------------------------------
+tty line discipline macro names are entirely different between Linux and BSD.
+TTTYDISC is '0' and that maps to N_TTY on Linux.  The Linux names tend to be
+N_*, so PPPDISC is N_PPP.  OpenBSD has some that Linux doesn't have, like
+NMEADISC, and in those cases the OpenBSD-specific code is removed.
+
+
+OXTABS
+------
+This is another stty thing, which does exist on Linux under the name XTABS.
+It's actually under several macro names, but XTABS is the closest to what BSD
+calls it, so we'll go with that.
+
+
+Missing Control Modes
+---------------------
+Some modes for stty(1) just don't exist on Linux.  These are mdmbuf, kerninfo,
+and onoeot.  In those cases, the support for them is removed from stty(1).

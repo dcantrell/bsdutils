@@ -36,6 +36,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <termios.h>
+#include <pty.h>
 
 #include "stty.h"
 #include "extern.h"
@@ -56,13 +57,10 @@ print(struct termios *tp, struct winsize *wp, int ldisc, enum FMT fmt)
 	cnt = 0;
 
 	/* Line discipline. */
-	if (ldisc != TTYDISC) {
+	if (ldisc != N_TTY) {
 		switch(ldisc) {
-		case PPPDISC:
+		case N_PPP:
 			cnt += printf("ppp disc; ");
-			break;
-		case NMEADISC:
-			cnt += printf("nmea disc; ");
 			break;
 		default:
 			cnt += printf("#%d disc; ", ldisc);
@@ -101,12 +99,11 @@ print(struct termios *tp, struct winsize *wp, int ldisc, enum FMT fmt)
 	put("-echonl", ECHONL, 0);
 	put("-echoctl", ECHOCTL, 0);
 	put("-echoprt", ECHOPRT, 0);
-	put("-altwerase", ALTWERASE, 0);
+	put("-altwerase", VWERASE, 0);
 	put("-noflsh", NOFLSH, 0);
 	put("-tostop", TOSTOP, 0);
 	put("-flusho", FLUSHO, 0);
 	put("-pendin", PENDIN, 0);
-	put("-nokerninfo", NOKERNINFO, 0);
 	put("-extproc", EXTPROC, 0);
 	put("-xcase", XCASE, 0);
 
@@ -137,8 +134,7 @@ print(struct termios *tp, struct winsize *wp, int ldisc, enum FMT fmt)
 	put("-onocr", ONOCR, 0);
 	put("-onlret", ONLRET, 0);
 	put("-olcuc", OLCUC, 0);
-	put("-oxtabs", OXTABS, 1);
-	put("-onoeot", ONOEOT, 0);
+	put("-oxtabs", XTABS, 1);
 
 	/* control flags (hardware state) */
 	tmp = tp->c_cflag;
@@ -164,7 +160,6 @@ print(struct termios *tp, struct winsize *wp, int ldisc, enum FMT fmt)
 	put("-clocal", CLOCAL, 0);
 	put("-cstopb", CSTOPB, 0);
 	put("-crtscts", CRTSCTS, 0);
-	put("-mdmbuf", MDMBUF, 0);
 
 	/* special control characters */
 	cc = tp->c_cc;

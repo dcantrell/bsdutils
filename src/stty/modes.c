@@ -35,6 +35,7 @@
 #include <stddef.h>
 #include <string.h>
 #include <termios.h>
+#include <pty.h>
 
 #include "stty.h"
 #include "extern.h"
@@ -78,8 +79,6 @@ const struct modes cmodes[] = {
 	{ "-clocal",	0, CLOCAL },
 	{ "crtscts",	CRTSCTS, 0 },
 	{ "-crtscts",	0, CRTSCTS },
-	{ "mdmbuf",	MDMBUF, 0 },
-	{ "-mdmbuf",	0, MDMBUF },
 	{ NULL },
 };
 
@@ -136,8 +135,8 @@ const struct modes lmodes[] = {
 	{ "-echoke",	0, ECHOKE },
 	{ "crtkill",	ECHOKE, 0 },
 	{ "-crtkill",	0, ECHOKE },
-	{ "altwerase",	ALTWERASE, 0 },
-	{ "-altwerase",	0, ALTWERASE },
+	{ "altwerase",	VWERASE, 0 },
+	{ "-altwerase",	0, VWERASE },
 	{ "iexten",	IEXTEN, 0 },
 	{ "-iexten",	0, IEXTEN },
 	{ "echonl",	ECHONL, 0 },
@@ -166,10 +165,6 @@ const struct modes lmodes[] = {
 	{ "-crt",	ECHOK, ECHOE|ECHOKE|ECHOCTL },
 	{ "newcrt",	ECHOE|ECHOKE|ECHOCTL, ECHOK|ECHOPRT },
 	{ "-newcrt",	ECHOK, ECHOE|ECHOKE|ECHOCTL },
-	{ "nokerninfo",	NOKERNINFO, 0 },
-	{ "-nokerninfo",0, NOKERNINFO },
-	{ "kerninfo",	0, NOKERNINFO },
-	{ "-kerninfo",	NOKERNINFO, 0 },
 	{ "xcase",	XCASE, 0 },
 	{ "-xcase",	0, XCASE },
 	{ NULL },
@@ -190,12 +185,10 @@ const struct modes omodes[] = {
 	{ "-onlret",	0, ONLRET },
 	{ "onocr",	ONOCR, 0 },
 	{ "-onocr",	0, ONOCR },
-	{ "tabs",	0, OXTABS },		/* "preserve" tabs */
-	{ "-tabs",	OXTABS, 0 },
-	{ "oxtabs",	OXTABS, 0 },
-	{ "-oxtabs",	0, OXTABS },
-	{ "onoeot",	ONOEOT, 0 },
-	{ "-onoeot",	0, ONOEOT },
+	{ "tabs",	0, XTABS },		/* "preserve" tabs */
+	{ "-tabs",	XTABS, 0 },
+	{ "oxtabs",	XTABS, 0 },
+	{ "-oxtabs",	0, XTABS },
 	{ NULL },
 };
 

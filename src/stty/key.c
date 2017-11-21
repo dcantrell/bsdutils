@@ -40,9 +40,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <termios.h>
+#include <pty.h>
 
 #include "stty.h"
 #include "extern.h"
+
+#include "compat.h"
 
 __BEGIN_DECLS
 void	f_all(struct info *);
@@ -61,8 +64,6 @@ void	f_rows(struct info *);
 void	f_sane(struct info *);
 void	f_size(struct info *);
 void	f_speed(struct info *);
-void	f_ostart(struct info *);
-void	f_ostop(struct info *);
 void	f_tty(struct info *);
 __END_DECLS
 
@@ -88,8 +89,6 @@ static struct key {
 	{ "nl",		f_nl,		F_OFFOK },
 	{ "old",	f_tty,		0 },
 	{ "ospeed",	f_ospeed,	F_NEEDARG },
-	{ "ostart",	f_ostart,	0 },
-	{ "ostop",	f_ostop,	0 },
 	{ "raw",	f_raw,		F_OFFOK },
 	{ "rows",	f_rows,		F_NEEDARG },
 	{ "sane",	f_sane,		0 },
@@ -198,14 +197,25 @@ f_everything(struct info *ip)
 void
 f_extproc(struct info *ip)
 {
+	struct termios tio;
+	errno = 0;
+
+	if (tcgetattr(ip->fd, &tio) == -1) {
+		err(1, "extproc %s", strerror(errno));
+		return;
+	}
 
 	if (ip->off) {
-		int tmp = 0;
-		(void)ioctl(ip->fd, TIOCEXT, &tmp);
+		tio.c_lflag &= ~EXTPROC;
 	} else {
-		int tmp = 1;
-		(void)ioctl(ip->fd, TIOCEXT, &tmp);
+		tio.c_lflag |= EXTPROC;
 	}
+
+	if (tcsetattr(ip->fd, TCSANOW, &tio) == -1) {
+		err(1, "extproc %s", strerror(errno));
+		return;
+	}
+
 	ip->set = 1;
 }
 
@@ -297,7 +307,7 @@ f_sane(struct info *ip)
 	ip->t.c_iflag = TTYDEF_IFLAG;
 	ip->t.c_iflag |= ICRNL;
 	/* preserve user-preference flags in lflag */
-#define	LKEEP	(ECHOKE|ECHOE|ECHOK|ECHOPRT|ECHOCTL|ALTWERASE|TOSTOP|NOFLSH)
+#define	LKEEP	(ECHOKE|ECHOE|ECHOK|ECHOPRT|ECHOCTL|VWERASE|TOSTOP|NOFLSH)
 	ip->t.c_lflag = TTYDEF_LFLAG | (ip->t.c_lflag & LKEEP);
 	ip->t.c_oflag = TTYDEF_OFLAG;
 	ip->set = 1;
@@ -322,21 +332,7 @@ f_tty(struct info *ip)
 {
 	int tmp;
 
-	tmp = TTYDISC;
+	tmp = N_TTY;
 	if (ioctl(ip->fd, TIOCSETD, &tmp) < 0)
 		err(1, "TIOCSETD");
-}
-
-void
-f_ostart(struct info *ip)
-{
-	if (ioctl(ip->fd, TIOCSTART) < 0)
-		err(1, "TIOCSTART");
-}
-
-void
-f_ostop(struct info *ip)
-{
-	if (ioctl(ip->fd, TIOCSTOP) < 0)
-		err(1, "TIOCSTOP");
 }

@@ -52,7 +52,7 @@
  */
 const struct cchar cchars1[] = {
 	{ "discard",	VDISCARD, 	CDISCARD },
-	{ "dsusp", 	VDSUSP,		CDSUSP },
+	{ "dsusp",	CDSUSP,		CDSUSP },
 	{ "eof",	VEOF,		CEOF },
 	{ "eol",	VEOL,		CEOL },
 	{ "eol2",	VEOL2,		CEOL },
@@ -64,7 +64,6 @@ const struct cchar cchars1[] = {
 	{ "quit",	VQUIT,		CQUIT },
 	{ "reprint",	VREPRINT, 	CREPRINT },
 	{ "start",	VSTART,		CSTART },
-	{ "status",	VSTATUS, 	CSTATUS },
 	{ "stop",	VSTOP,		CSTOP },
 	{ "susp",	VSUSP,		CSUSP },
 	{ "time",	VTIME,		CTIME },
