@@ -13,6 +13,7 @@ autoscan.log
 basename
 cat
 chmod
+chroot
 comm
 compile
 config.guess
