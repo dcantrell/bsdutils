@@ -56,3 +56,6 @@ char *getbsize(int *, long *);
  * This comes from lib/libutil/util.h in the OpenBSD source.
  */
 #define	FMT_SCALED_STRSIZE	7	/* minus sign, 4 digits, suffix, null byte */
+
+/* This is from the OpenBSD kernel headers */
+#define	howmany(x, y)	(((x)+((y)-1))/(y))

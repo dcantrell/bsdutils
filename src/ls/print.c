@@ -68,9 +68,6 @@ static int	compute_columns(DISPLAY *, int *);
 #define	SECSPERDAY	(24 * 60 * 60)
 #define	SIXMONTHS	(SECSPERDAY * 365 / 2)
 
-/* This is from the OpenBSD kernel headers */
-#define	howmany(x, y)	(((x)+((y)-1))/(y))
-
 void
 printscol(DISPLAY *dp)
 {
