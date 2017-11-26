@@ -30,6 +30,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <sys/sysmacros.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
@@ -45,6 +46,8 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "compat.h"
+
 #define DEF_FORMAT \
 	"%d %i %Sp %l %Su %Sg %r %z \"%Sa\" \"%Sm\" \"%Sc\" " \
 	"%k %b %#Xf %N"
@@ -56,7 +59,7 @@
 	"st_dev=%d st_ino=%i st_mode=%#p st_nlink=%l " \
 	"st_uid=%u st_gid=%g st_rdev=%r st_size=%z " \
 	"st_atime=%a st_mtime=%m st_ctime=%c " \
-	"st_blksize=%k st_blocks=%b st_flags=%f"
+	"st_blksize=%k st_blocks=%b"
 #define LINUX_FORMAT \
 	"  File: \"%N\"%n" \
 	"  Size: %-11z  FileType: %HT%n" \
@@ -119,12 +122,9 @@
 #define SHOW_st_atime	'a'
 #define SHOW_st_mtime	'm'
 #define SHOW_st_ctime	'c'
-#define SHOW_st_btime	'B'
 #define SHOW_st_size	'z'
 #define SHOW_st_blocks	'b'
 #define SHOW_st_blksize	'k'
-#define SHOW_st_flags	'f'
-#define SHOW_st_gen	'v'
 #define SHOW_symlink	'Y'
 #define SHOW_filetype	'T'
 #define SHOW_filename	'N'
@@ -157,9 +157,6 @@ main(int argc, char *argv[])
 	int ch, rc, errs;
 	int lsF, fmtchar, usestat, fn, nonl, quiet;
 	char *statfmt, *options, *synopsis;
-
-	if (pledge("stdio rpath getpw", NULL) == -1)
-		err(1, "pledge");
 
 	lsF = 0;
 	fmtchar = '\0';
@@ -444,12 +441,9 @@ output(const struct stat *st, const char *file,
 			fmtcase(what, SHOW_st_atime);
 			fmtcase(what, SHOW_st_mtime);
 			fmtcase(what, SHOW_st_ctime);
-			fmtcase(what, SHOW_st_btime);
 			fmtcase(what, SHOW_st_size);
 			fmtcase(what, SHOW_st_blocks);
 			fmtcase(what, SHOW_st_blksize);
-			fmtcase(what, SHOW_st_flags);
-			fmtcase(what, SHOW_st_gen);
 			fmtcase(what, SHOW_symlink);
 			fmtcase(what, SHOW_filetype);
 			fmtcase(what, SHOW_filename);
@@ -609,40 +603,23 @@ format1(const struct stat *st,
 		break;
 	case SHOW_st_atime:
 		gottime = 1;
-		secs = st->st_atime;
-		nsecs = st->st_atimensec;
+		secs = st->st_atim.tv_sec;
+		nsecs = st->st_atim.tv_nsec;
 		/* FALLTHROUGH */
 	case SHOW_st_mtime:
 		if (!gottime) {
 			gottime = 1;
-			secs = st->st_mtime;
-			nsecs = st->st_mtimensec;
+			secs = st->st_mtim.tv_sec;
+			nsecs = st->st_mtim.tv_nsec;
 		}
 		/* FALLTHROUGH */
 	case SHOW_st_ctime:
 		if (!gottime) {
 			gottime = 1;
-			secs = st->st_ctime;
-			nsecs = st->st_ctimensec;
+			secs = st->st_ctim.tv_sec;
+			nsecs = st->st_ctim.tv_nsec;
 		}
 		/* FALLTHROUGH */
-	case SHOW_st_btime:
-		if (!gottime) {
-			gottime = 1;
-			secs = st->__st_birthtimespec.tv_sec;
-			nsecs = st->__st_birthtimespec.tv_nsec;
-		}
-		small = (sizeof(secs) == 4);
-		data = secs;
-		small = 1;
-		tm = localtime(&secs);
-		(void)strftime(path, sizeof(path), timefmt, tm);
-		sdata = path;
-		formats = FMTF_DECIMAL | FMTF_OCTAL | FMTF_UNSIGNED | FMTF_HEX |
-		    FMTF_FLOAT | FMTF_STRING;
-		if (ofmt == 0)
-			ofmt = FMTF_DECIMAL;
-		break;
 	case SHOW_st_size:
 		small = (sizeof(st->st_size) == 4);
 		data = st->st_size;
@@ -662,22 +639,6 @@ format1(const struct stat *st,
 	case SHOW_st_blksize:
 		small = (sizeof(st->st_blksize) == 4);
 		data = st->st_blksize;
-		sdata = NULL;
-		formats = FMTF_DECIMAL | FMTF_OCTAL | FMTF_UNSIGNED | FMTF_HEX;
-		if (ofmt == 0)
-			ofmt = FMTF_UNSIGNED;
-		break;
-	case SHOW_st_flags:
-		small = (sizeof(st->st_flags) == 4);
-		data = st->st_flags;
-		sdata = NULL;
-		formats = FMTF_DECIMAL | FMTF_OCTAL | FMTF_UNSIGNED | FMTF_HEX;
-		if (ofmt == 0)
-			ofmt = FMTF_UNSIGNED;
-		break;
-	case SHOW_st_gen:
-		small = (sizeof(st->st_gen) == 4);
-		data = st->st_gen;
 		sdata = NULL;
 		formats = FMTF_DECIMAL | FMTF_OCTAL | FMTF_UNSIGNED | FMTF_HEX;
 		if (ofmt == 0)
