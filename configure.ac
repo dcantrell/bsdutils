@@ -65,6 +65,7 @@ AC_CONFIG_FILES([Makefile
                  src/dd/Makefile
                  src/df/Makefile
                  src/dirname/Makefile
+                 src/du/Makefile
                  src/echo/Makefile
                  src/env/Makefile
                  src/expand/Makefile
