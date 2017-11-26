@@ -31,6 +31,7 @@ date
 dd
 depcomp
 dirname
+du
 echo
 env
 expand
@@ -67,6 +68,7 @@ rmdir
 sleep
 split
 stamp-h1
+stat
 stty
 sync
 tee
