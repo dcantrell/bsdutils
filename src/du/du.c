@@ -44,10 +44,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/tree.h>
 #include <unistd.h>
-#include <util.h>
+#include <linux/rbtree.h>
 
+#include "compat.h"
 
 int	 linkchk(FTSENT *);
 void	 prtout(int64_t, char *, int);
@@ -65,9 +65,6 @@ main(int argc, char *argv[])
 	int ch, notused, rval;
 	char **save;
 	const char *errstr;
-
-	if (pledge("stdio rpath", NULL) == -1)
-		err(1, "pledge");
 
 	save = argv;
 	Hflag = Lflag = cflag = hflag = kflag = listfiles = 0;
@@ -186,7 +183,8 @@ main(int argc, char *argv[])
 		case FTS_DNR:			/* Warn, continue. */
 		case FTS_ERR:
 		case FTS_NS:
-			warnc(p->fts_errno, "%s", p->fts_path);
+			errno = p->fts_errno;
+			warn("%s", p->fts_path);
 			rval = 1;
 			break;
 		default:
