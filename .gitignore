@@ -66,6 +66,7 @@ readlink
 rm
 rmdir
 sleep
+sort
 split
 stamp-h1
 stat
