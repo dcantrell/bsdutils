@@ -37,7 +37,7 @@
 #include <getopt.h>
 #include <limits.h>
 #include <locale.h>
-#include <md5.h>
+#include <openssl/md5.h>
 #include <regex.h>
 #include <signal.h>
 #include <stdbool.h>
@@ -52,6 +52,8 @@
 #include "coll.h"
 #include "file.h"
 #include "sort.h"
+
+#include "compat.h"
 
 #ifdef GNUSORT_COMPATIBILITY
 # define PERMUTE	""
@@ -156,7 +158,7 @@ sort_modifier_empty(struct sort_mods *sm)
 /*
  * Print out usage text.
  */
-static __dead void
+static void
 usage(int exit_val)
 {
 	fprintf(exit_val ? stderr : stdout,
@@ -381,7 +383,8 @@ parse_memory_buffer_value(const char *value)
 		    100;
 		break;
 	default:
-		warnc(EINVAL, "%s", optarg);
+		errno = EINVAL;
+		warn("%s", optarg);
 		membuf = available_free_memory;
 	}
 	if (membuf > SIZE_MAX)
@@ -395,7 +398,7 @@ invalid:
  * Signal handler that clears the temporary files.
  */
 static void
-sig_handler(int sig __unused)
+sig_handler(int sig)
 {
 	clear_tmp_files();
 	_exit(2);
@@ -834,7 +837,7 @@ set_random_seed(void)
 	if (!need_random)
 		return;
 
-	MD5Init(&md5_ctx);
+	MD5_Init(&md5_ctx);
 	if (random_source != NULL) {
 		unsigned char buf[BUFSIZ];
 		size_t nr;
@@ -843,7 +846,7 @@ set_random_seed(void)
 		if ((fp = fopen(random_source, "r")) == NULL)
 			err(2, "%s", random_source);
 		while ((nr = fread(buf, 1, sizeof(buf), fp)) != 0)
-			MD5Update(&md5_ctx, buf, nr);
+			MD5_Update(&md5_ctx, buf, nr);
 		if (ferror(fp))
 			err(2, "%s", random_source);
 		fclose(fp);
@@ -851,7 +854,7 @@ set_random_seed(void)
 		unsigned char rsd[1024];
 
 		arc4random_buf(rsd, sizeof(rsd));
-		MD5Update(&md5_ctx, rsd, sizeof(rsd));
+		MD5_Update(&md5_ctx, rsd, sizeof(rsd));
 	}
 }
 
@@ -869,9 +872,6 @@ main(int argc, char *argv[])
 	    { false, false, false, false, false, false };
 
 	set_hw_params();
-
-	if (pledge("stdio rpath wpath cpath fattr chown proc exec", NULL) == -1)
-		err(2, "pledge");
 
 	outfile = "-";
 	real_outfile = NULL;
@@ -926,8 +926,10 @@ main(int argc, char *argv[])
 				keys[keys_num].pos2b = default_sort_mods->bflag;
 #endif
 
-				if (parse_k(optarg, &(keys[keys_num++])) < 0)
-					errc(2, EINVAL, "-k %s", optarg);
+				if (parse_k(optarg, &(keys[keys_num++])) < 0) {
+					errno = EINVAL;
+					err(2, "-k %s", optarg);
+				}
 
 				break;
 			}
@@ -949,7 +951,8 @@ main(int argc, char *argv[])
 			case 't':
 				while (strlen(optarg) > 1) {
 					if (optarg[0] != '\\') {
-						errc(2, EINVAL, "%s", optarg);
+						errno = EINVAL;
+						err(2, "%s", optarg);
 					}
 					optarg += 1;
 					if (*optarg == '0') {

@@ -92,7 +92,7 @@ int bwscmp(const struct bwstring *bws1, const struct bwstring *bws2, size_t offs
 int bwsncmp(const struct bwstring *bws1, const struct bwstring *bws2, size_t offset, size_t len);
 int bwscoll(const struct bwstring *bws1, const struct bwstring *bws2, size_t offset);
 size_t bwsfwrite(struct bwstring *bws, FILE *f, bool zero_ended);
-struct bwstring *bwsfgetln(FILE *file, size_t *len, bool zero_ended, struct reader_buffer *rb);
+struct bwstring *bwsfgetln(FILE *file, ssize_t *len, bool zero_ended, struct reader_buffer *rb);
 
 static inline bwstring_iterator
 bws_begin(struct bwstring *bws)

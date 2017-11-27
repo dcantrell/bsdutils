@@ -36,7 +36,7 @@
 #include <wchar.h>
 
 #include <sys/types.h>
-#include <md5.h>
+#include <openssl/md5.h>
 
 #define	VERSION	"2.3-OpenBSD"
 

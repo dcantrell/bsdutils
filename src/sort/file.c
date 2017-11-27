@@ -676,7 +676,7 @@ file_reader_readline(struct file_reader *fr)
 
 		fr->strbeg = (strend - fr->buffer) + 1;
 	} else {
-		size_t len = 0;
+		ssize_t len = 0;
 
 		ret = bwsfgetln(fr->file, &len, sort_opts_vals.zflag,
 		    &(fr->rb));
