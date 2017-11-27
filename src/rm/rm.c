@@ -34,7 +34,7 @@
 #include <sys/stat.h>
 #include <sys/mount.h>
 #include <sys/random.h>
-#include <sys/vfs.h>
+#include <sys/statvfs.h>
 
 #include <err.h>
 #include <errno.h>
@@ -289,7 +289,7 @@ int
 rm_overwrite(char *file, struct stat *sbp)
 {
 	struct stat sb, sb2;
-	struct statfs fsb;
+	struct statvfs fsb;
 	size_t bsize;
 	int fd;
 	char *buf = NULL;
@@ -316,7 +316,7 @@ rm_overwrite(char *file, struct stat *sbp)
 		errno = EPERM;
 		goto err;
 	}
-	if (fstatfs(fd, &fsb) == -1)
+	if (fstatvfs(fd, &fsb) == -1)
 		goto err;
 	bsize = MAXIMUM(fsb.f_bsize, 1024U);
 	if ((buf = malloc(bsize)) == NULL)

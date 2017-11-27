@@ -37,7 +37,7 @@
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <sys/mount.h>
-#include <sys/vfs.h>
+#include <sys/statvfs.h>
 
 #include <err.h>
 #include <errno.h>
@@ -227,14 +227,14 @@ do_move(char *from, char *to)
 
 	/* Disallow moving a mount point. */
 	if (S_ISDIR(fsb.st_mode)) {
-		struct statfs sfs;
+		struct statvfs sfs;
 		char path[PATH_MAX];
 
 		if (realpath(from, path) == NULL) {
 			warnx("cannot resolve %s", from);
 			return (1);
 		}
-		if (!statfs(path, &sfs)) {
+		if (!statvfs(path, &sfs)) {
 			warnx("cannot rename a mount point");
 			return (1);
 		}
