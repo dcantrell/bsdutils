@@ -132,8 +132,8 @@ defined in the OpenBSD pwd.h and grp.h header files, but those definitions do
 not exist on Linux.  Our build will just copy in the OpenBSD limits for now.
 
 
-fchflags() and related things
------------------------------
+fchflags()i, stat.st_flags, and related things
+----------------------------------------------
 
 Files in BSD have various flags that can be set.  Make it immutable, for
 instance.  In Linux we have the chattr and lsattr commands for the same type
@@ -143,6 +143,8 @@ so this is implemented in the main API for the operating system.
 
 Linux doesn't have a generic way to do this, so the functionality has been
 removed from commands that try to use it.
+
+The stat(1) command has the st_flags handling code removed as well.
 
 
 MAXBSIZE
@@ -169,7 +171,10 @@ struct statfs
 
 This is available on Linux in the <sys/vfs.h> header.  Not all of the struct
 members are the same as the ones in BSD.  For instance, Linux has .f_bsize
-whereas BSD has .f_iosize.  These changes are made in the source as necessary.
+whereas BSD has .f_iosize.  The statfs structures are OS-specific and the
+similarly named struct statvfs is defined to be the portable one.  We will use
+the statvfs structure and functions where statfs is used.  The statvfs struct
+and functions are defined in <sys/statvfs.h>.
 
 
 struct stat
@@ -179,7 +184,19 @@ There are a number of differences between the stat structures on Linux and
 OpenBSD.  Linux does not have the st_mtimensec member.  Linux has st_atim,
 st_mtim, and st_ctim (note the lack of the trailing 'e') which are all struct
 timespec structures.  There is st_atime, st_mtime, and st_ctime which are the
-.tv_sec members of the timespec structures.
+.tv_sec members of the timespec structures.  You can get the nanoseconds from
+the .tv_nsec member on the timespec structures.  For code that uses this, make
+sure to add -D_XOPEN_SOURCE=700 (or higher than 700) to the CFLAGS.
+
+The st_birthtime member is not present on Linux because this is filesystem
+specific and there is not a generic way to handle it.  Even OpenBSD has this
+problem for some filesystems.  In those cases, the st_btime output is undefined
+if the filesystem lacks support.  GNU stat works this way too.  For consistency
+with the other stuff we are doing, our code removes the st_birthtime code
+whenever it appears in code.
+
+The st_gen member is the file generation number and this is not present on
+Linux, so it has been removed from the code.
 
 
 getbsize()
@@ -260,3 +277,21 @@ call based on the login.  The coreutils one claims to do this, but I'm not sure
 I believe it.  coreutils is generic and can work on BSD, so the man page might
 be saying that while it really doesn't work on Linux.  If that functionality
 actually worked on Linux, then the fakechroot program wouldn't need to exist.
+
+
+sysctl()
+--------
+Linux frowns on using sysctl() to gather information about the system.  There
+is an alternative function called sysconf() which supports a limited subset of
+things.  We use this where sysctl() was used, such as computing the amount of
+physical memory in the system.
+
+
+MD5 routines
+------------
+glibc does not expose any public MD5 data types or functions.  The OpenSSL and
+LibreSSL libraries do.  Since LibreSSL is from OpenBSD, this is the MD5 code
+that is used in sort(1).  Under GNU coreutils, sort(1) uses the MD5 code for
+the md5sum(1) program.  Rather than embed MD5 code in bsdutils, we are choosing
+to link with OpenSSL or LibreSSL on your system.  If you lack these libraries,
+you can build bsdutils with sort disabled.
