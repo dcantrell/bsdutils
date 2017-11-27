@@ -39,6 +39,7 @@
 #include <err.h>
 #include <errno.h>
 #include <stdio.h>
+#include <stdio_ext.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -226,7 +227,7 @@ forward(struct tailfile *tf, int nfiles, enum STYLE style, off_t origoff)
 				} else if (ke.fflags & NOTE_TRUNCATE) {
 					warnx("%s has been truncated, "
 					    "resetting.", ctf->fname);
-					fpurge(ctf->fp);
+					__fpurge(ctf->fp);
 					rewind(ctf->fp);
 				}
 			}
