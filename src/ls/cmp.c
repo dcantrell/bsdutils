@@ -57,9 +57,13 @@ revnamecmp(const FTSENT *a, const FTSENT *b)
 int
 modcmp(const FTSENT *a, const FTSENT *b)
 {
-	if (b->fts_statp->st_mtime > a->fts_statp->st_mtime)
+	if (b->fts_statp->st_mtim.tv_sec > a->fts_statp->st_mtim.tv_sec)
 		return (1);
-	else if (b->fts_statp->st_mtime < a->fts_statp->st_mtime)
+	else if (b->fts_statp->st_mtim.tv_sec < a->fts_statp->st_mtim.tv_sec)
+		return (-1);
+	else if (b->fts_statp->st_mtim.tv_nsec > a->fts_statp->st_mtim.tv_nsec)
+		return (1);
+	else if (b->fts_statp->st_mtim.tv_nsec < a->fts_statp->st_mtim.tv_nsec)
 		return (-1);
 	else
 		return (namecmp(a, b));
@@ -68,9 +72,13 @@ modcmp(const FTSENT *a, const FTSENT *b)
 int
 revmodcmp(const FTSENT *a, const FTSENT *b)
 {
-	if (b->fts_statp->st_mtime > a->fts_statp->st_mtime)
+	if (b->fts_statp->st_mtim.tv_sec > a->fts_statp->st_mtim.tv_sec)
 		return (-1);
-	else if (b->fts_statp->st_mtime < a->fts_statp->st_mtime)
+	else if (b->fts_statp->st_mtim.tv_sec < a->fts_statp->st_mtim.tv_sec)
+		return (1);
+	else if (b->fts_statp->st_mtim.tv_nsec > a->fts_statp->st_mtim.tv_nsec)
+		return (-1);
+	else if (b->fts_statp->st_mtim.tv_nsec < a->fts_statp->st_mtim.tv_nsec)
 		return (1);
 	else
 		return (revnamecmp(a, b));
@@ -79,9 +87,13 @@ revmodcmp(const FTSENT *a, const FTSENT *b)
 int
 acccmp(const FTSENT *a, const FTSENT *b)
 {
-	if (b->fts_statp->st_atime > a->fts_statp->st_atime)
+	if (b->fts_statp->st_atim.tv_sec > a->fts_statp->st_atim.tv_sec)
 		return (1);
-	else if (b->fts_statp->st_atime < a->fts_statp->st_atime)
+	else if (b->fts_statp->st_atim.tv_sec < a->fts_statp->st_atim.tv_sec)
+		return (-1);
+	else if (b->fts_statp->st_atim.tv_nsec > a->fts_statp->st_atim.tv_nsec)
+		return (1);
+	else if (b->fts_statp->st_atim.tv_nsec < a->fts_statp->st_atim.tv_nsec)
 		return (-1);
 	else
 		return (namecmp(a, b));
@@ -90,9 +102,13 @@ acccmp(const FTSENT *a, const FTSENT *b)
 int
 revacccmp(const FTSENT *a, const FTSENT *b)
 {
-	if (b->fts_statp->st_atime > a->fts_statp->st_atime)
+	if (b->fts_statp->st_atim.tv_sec > a->fts_statp->st_atim.tv_sec)
 		return (-1);
-	else if (b->fts_statp->st_atime < a->fts_statp->st_atime)
+	else if (b->fts_statp->st_atim.tv_sec < a->fts_statp->st_atim.tv_sec)
+		return (1);
+	else if (b->fts_statp->st_atim.tv_nsec > a->fts_statp->st_atim.tv_nsec)
+		return (-1);
+	else if (b->fts_statp->st_atim.tv_nsec < a->fts_statp->st_atim.tv_nsec)
 		return (1);
 	else
 		return (revnamecmp(a, b));
@@ -101,9 +117,13 @@ revacccmp(const FTSENT *a, const FTSENT *b)
 int
 statcmp(const FTSENT *a, const FTSENT *b)
 {
-	if (b->fts_statp->st_ctime > a->fts_statp->st_ctime)
+	if (b->fts_statp->st_ctim.tv_sec > a->fts_statp->st_ctim.tv_sec)
 		return (1);
-	else if (b->fts_statp->st_ctime < a->fts_statp->st_ctime)
+	else if (b->fts_statp->st_ctim.tv_sec < a->fts_statp->st_ctim.tv_sec)
+		return (-1);
+	else if (b->fts_statp->st_ctim.tv_nsec > a->fts_statp->st_ctim.tv_nsec)
+		return (1);
+	else if (b->fts_statp->st_ctim.tv_nsec < a->fts_statp->st_ctim.tv_nsec)
 		return (-1);
 	else
 		return (namecmp(a, b));
@@ -112,9 +132,13 @@ statcmp(const FTSENT *a, const FTSENT *b)
 int
 revstatcmp(const FTSENT *a, const FTSENT *b)
 {
-	if (b->fts_statp->st_ctime > a->fts_statp->st_ctime)
+	if (b->fts_statp->st_ctim.tv_sec > a->fts_statp->st_ctim.tv_sec)
 		return (-1);
-	else if (b->fts_statp->st_ctime < a->fts_statp->st_ctime)
+	else if (b->fts_statp->st_ctim.tv_sec < a->fts_statp->st_ctim.tv_sec)
+		return (1);
+	else if (b->fts_statp->st_ctim.tv_nsec > a->fts_statp->st_ctim.tv_nsec)
+		return (-1);
+	else if (b->fts_statp->st_ctim.tv_nsec < a->fts_statp->st_ctim.tv_nsec)
 		return (1);
 	else
 		return (revnamecmp(a, b));
