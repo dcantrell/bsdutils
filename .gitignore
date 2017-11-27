@@ -46,6 +46,7 @@ install-sh
 join
 libtool
 ln
+log
 logname
 ls
 ltmain.sh
