@@ -27,6 +27,7 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/random.h>
 #include <sys/resource.h>
 #include <sys/stat.h>
 #include <sys/sysctl.h>
@@ -35,6 +36,7 @@
 #include <err.h>
 #include <errno.h>
 #include <getopt.h>
+#include <libgen.h>
 #include <limits.h>
 #include <locale.h>
 #include <openssl/md5.h>
@@ -64,6 +66,7 @@
 
 static bool need_random;
 static const char *random_source;
+static const char *progname;
 
 MD5_CTX md5_ctx;
 
@@ -163,7 +166,7 @@ usage(int exit_val)
 {
 	fprintf(exit_val ? stderr : stdout,
 	    "usage: %s [-bCcdfgHhiMmnRrsuVz] [-k field1[,field2]] [-o output] "
-	    "[-S size]\n\t[-T dir] [-t char] [file ...]\n", getprogname());
+	    "[-S size]\n\t[-T dir] [-t char] [file ...]\n", progname);
 	exit(exit_val);
 }
 
@@ -211,13 +214,9 @@ set_hw_params(void)
 	unsigned long long free_memory;
 	long long user_memory;
 	struct rlimit rl;
-	size_t len;
-	int mib[] = { CTL_HW, HW_USERMEM64 };
 
 	/* Get total user (non-kernel) memory. */
-	len = sizeof(user_memory);
-	if (sysctl(mib, 2, &user_memory, &len, NULL, 0) == -1)
-	    user_memory = -1;
+	user_memory = sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGESIZE);
 
 	/* Increase our data size to the max */
 	if (getrlimit(RLIMIT_DATA, &rl) == 0) {
@@ -308,13 +307,11 @@ set_locale(void)
 static void
 set_tmpdir(void)
 {
-	if (!issetugid()) {
-		char *td;
+	char *td;
 
-		td = getenv("TMPDIR");
-		if (td != NULL)
-			tmpdir = td;
-	}
+	td = getenv("TMPDIR");
+	if (td != NULL)
+		tmpdir = td;
 }
 
 /*
@@ -853,7 +850,9 @@ set_random_seed(void)
 	} else {
 		unsigned char rsd[1024];
 
-		arc4random_buf(rsd, sizeof(rsd));
+		if (getrandom(rsd, sizeof(rsd), GRND_RANDOM|GRND_NONBLOCK) == -1)
+			err(1, "getrandom()");
+
 		MD5_Update(&md5_ctx, rsd, sizeof(rsd));
 	}
 }
@@ -870,6 +869,8 @@ main(int argc, char *argv[])
 	struct sort_mods *sm = &default_sort_mods_object;
 	bool mef_flags[NUMBER_OF_MUTUALLY_EXCLUSIVE_FLAGS] =
 	    { false, false, false, false, false, false };
+
+	progname = basename(argv[0]);
 
 	set_hw_params();
 
@@ -1055,11 +1056,6 @@ main(int argc, char *argv[])
 	argc -= optind;
 	argv += optind;
 
-	if (compress_program == NULL) {
-		if (pledge("stdio rpath wpath cpath fattr chown", NULL) == -1)
-			err(2, "pledge");
-	}
-
 #ifndef GNUSORT_COMPATIBILITY
 	if (argc > 2 && strcmp(argv[argc - 2], "-o") == 0) {
 		outfile = argv[argc - 1];
@@ -1076,24 +1072,6 @@ main(int argc, char *argv[])
 		if (argc > 1)
 			errx(2, "only one input file is allowed with the -%c flag",
 			    sort_opts_vals.csilentflag ? 'C' : 'c');
-
-		if (argc == 0 || strcmp(argv[0], "-") == 0) {
-			if (compress_program) {
-				if (pledge("stdio proc exec", NULL) == -1)
-					err(2, "pledge");
-			} else {
-				if (pledge("stdio", NULL) == -1)
-					err(2, "pledge");
-			}
-		} else {
-			if (compress_program) {
-				if (pledge("stdio rpath proc exec", NULL) == -1)
-					err(2, "pledge");
-			} else {
-				if (pledge("stdio rpath", NULL) == -1)
-					err(2, "pledge");
-			}
-		}
 	} else {
 		/* Case when the outfile equals one of the input files: */
 		if (strcmp(outfile, "-") != 0) {
@@ -1119,14 +1097,6 @@ main(int argc, char *argv[])
 					break;
 				}
 			}
-		}
-
-		if (compress_program) {
-			if (pledge("stdio rpath wpath cpath proc exec", NULL) == -1)
-				err(2, "pledge");
-		} else {
-			if (pledge("stdio rpath wpath cpath", NULL) == -1)
-				err(2, "pledge");
 		}
 	}
 
