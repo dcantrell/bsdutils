@@ -15,7 +15,8 @@ base system but have alternatives:
     vdir       vertical 'dir' command         ls
     hostid     print numeric host identifier  none - dropped in 4.4BSD
 
-The following commands are specific to GNU coreutils and have no alternative provided by a BSD system:
+The following commands are specific to GNU coreutils and have no alternative
+provided by a BSD system:
 
     COMMAND    DESCRIPTION
     od         dump files in octal and other formats
