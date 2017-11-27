@@ -38,6 +38,9 @@ int fmt_scaled(long long, char *);
 /* getbsize.c */
 char *getbsize(int *, long *);
 
+/* devname.c */
+char *devname(dev_t, mode_t);
+
 
 /*
  * MAXBSIZE does not exist on Linux because filesystem block size
