@@ -5,7 +5,7 @@
       base64
       chcon
       cksum
-      install
+      install (usr.bin/xinstall)
       link
       md5sum
       numfmt
