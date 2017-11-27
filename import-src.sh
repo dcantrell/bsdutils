@@ -115,6 +115,7 @@ cp -pr lib/libutil/* ${CWD}/lib
 cp -p lib/libc/gen/pwcache.c ${CWD}/compat
 cp -p lib/libc/gen/setmode.c ${CWD}/compat
 cp -p lib/libc/gen/getbsize.c ${CWD}/compat
+cp -p lib/libc/gen/devname.c ${CWD}/compat
 cp -p lib/libc/stdlib/reallocarray.c ${CWD}/compat
 cp -p lib/libc/stdlib/strtonum.c ${CWD}/compat
 cp -p lib/libc/string/strlcat.c ${CWD}/compat
