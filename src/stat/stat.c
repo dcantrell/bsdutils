@@ -50,9 +50,9 @@
 
 #define DEF_FORMAT \
 	"%d %i %Sp %l %Su %Sg %r %z \"%Sa\" \"%Sm\" \"%Sc\" " \
-	"%k %b %#Xf %N"
+	"%k %b %N"
 #define RAW_FORMAT	"%d %i %#p %l %u %g %r %z %a %m %c " \
-	"%k %b %f %N"
+	"%k %b %N"
 #define LS_FORMAT	"%Sp %l %Su %Sg %Z %Sm %N%SY"
 #define LSF_FORMAT	"%Sp %l %Su %Sg %Z %Sm %N%T%SY"
 #define SHELL_FORMAT \
@@ -619,7 +619,17 @@ format1(const struct stat *st,
 			secs = st->st_ctim.tv_sec;
 			nsecs = st->st_ctim.tv_nsec;
 		}
-		/* FALLTHROUGH */
+		small = (sizeof(secs) == 4);
+		data = secs;
+		small = 1;
+		tm = localtime(&secs);
+		(void)strftime(path, sizeof(path), timefmt, tm);
+		sdata = path;
+		formats = FMTF_DECIMAL | FMTF_OCTAL | FMTF_UNSIGNED | FMTF_HEX |
+			FMTF_FLOAT | FMTF_STRING;
+		if (ofmt == 0)
+			ofmt = FMTF_DECIMAL;
+		break;
 	case SHOW_st_size:
 		small = (sizeof(st->st_size) == 4);
 		data = st->st_size;

@@ -319,10 +319,8 @@ Device number for character and block device special files
 .It Cm a , m , c , B
 The time
 .Ar file
-was last accessed or modified, or when the inode was last changed, or
-the birth time of the inode
-.Pq Fa st_atime , st_mtime , st_ctime , st_birthtime .
-If the file system does not support birth time, the value is undefined.
+was last accessed, modified, or when the inode was last changed
+.Pq Fa st_atime , st_mtime , st_ctime .
 .It Cm z
 The size of
 .Ar file
@@ -335,13 +333,6 @@ Number of blocks allocated for
 .It Cm k
 Optimal file system I/O operation block size
 .Pq Fa st_blksize .
-.It Cm f
-User defined flags for
-.Ar file
-.Pq Fa st_flags .
-.It Cm v
-Inode generation number
-.Pq Fa st_gen .
 .El
 .Pp
 The following four field specifiers are not drawn directly from the
