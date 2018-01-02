@@ -25,6 +25,7 @@ SUBDIRS += fmt
 SUBDIRS += fold
 SUBDIRS += head
 SUBDIRS += id
+SUBDIRS += install
 SUBDIRS += join
 SUBDIRS += ln
 SUBDIRS += logname

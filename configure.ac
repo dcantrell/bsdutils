@@ -79,6 +79,7 @@ AC_CONFIG_FILES([Makefile
                  src/fold/Makefile
                  src/head/Makefile
                  src/id/Makefile
+                 src/install/Makefile
                  src/join/Makefile
                  src/ln/Makefile
                  src/logname/Makefile

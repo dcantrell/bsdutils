@@ -90,7 +90,8 @@ CMDS="bin/test
       usr.bin/wc
       usr.bin/who
       usr.bin/yes
-      usr.sbin/chroot"
+      usr.sbin/chroot
+      usr.bin/xinstall"
 for p in ${CMDS} ; do
     sp="$(basename ${p})"
     find ${p} -type d -name CVS | xargs rm -rf
@@ -103,10 +104,13 @@ for p in ${CMDS} ; do
     fi
 
     # Copy in the upstream files
-    [ -d ${CWD}/src/${sp} ] || mkdir -p ${CWD}/src/${sp}
-    cp -pr ${p}/* ${CWD}/src/${sp}
+    [ "${sp}" = "xinstall" ] && dp="install" || dp="${sp}"
+    [ -d ${CWD}/src/${dp} ] || mkdir -p ${CWD}/src/${dp}
+    cp -pr ${p}/* ${CWD}/src/${dp}
 done
-exit 0
+
+# Rename xinstall.c to install.c
+mv ${CWD}/src/install/xinstall.c ${CWD}/src/install/install.c
 
 # We need libutil to build some things
 cp -pr lib/libutil/* ${CWD}/lib
