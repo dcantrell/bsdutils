@@ -45,11 +45,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <linux/rbtree.h>
+#include <sys/param.h>
 
 #include "compat.h"
 
-int	 linkchk(FTSENT *);
 void	 prtout(int64_t, char *, int);
 void	 usage(void);
 
@@ -188,7 +187,7 @@ main(int argc, char *argv[])
 			rval = 1;
 			break;
 		default:
-			if (p->fts_statp->st_nlink > 1 && linkchk(p))
+			if (p->fts_statp->st_nlink > 1)
 				break;
 			/*
 			 * If listing each file, or a non-directory file was
@@ -209,93 +208,6 @@ main(int argc, char *argv[])
 	}
 	fts_close(fts);
 	exit(rval);
-}
-
-
-struct links_entry {
-	RB_ENTRY(links_entry) entry;
-	struct links_entry *fnext;
-	int	 links;
-	dev_t	 dev;
-	ino_t	 ino;
-};
-
-static int
-links_cmp(struct links_entry *e1, struct links_entry *e2)
-{
-	if (e1->dev == e2->dev) {
-		if (e1->ino == e2->ino)
-			return (0);
-		else
-			return (e1->ino < e2->ino ? -1 : 1);
-	}
-	else
-		return (e1->dev < e2->dev ? -1 : 1);
-}
-
-RB_HEAD(ltree, links_entry) links = RB_INITIALIZER(&links);
-
-RB_GENERATE_STATIC(ltree, links_entry, entry, links_cmp);
-
-
-int
-linkchk(FTSENT *p)
-{
-	static struct links_entry *free_list = NULL;
-	static int stop_allocating = 0;
-	struct links_entry ltmp, *le;
-	struct stat *st;
-
-	st = p->fts_statp;
-
-	ltmp.ino = st->st_ino;
-	ltmp.dev = st->st_dev;
-
-	le = RB_FIND(ltree, &links, &ltmp);
-	if (le != NULL) {
-		/*
-		 * Save memory by releasing an entry when we've seen
-		 * all of it's links.
-		 */
-		if (--le->links <= 0) {
-			RB_REMOVE(ltree, &links, le);
-			/* Recycle this node through the free list */
-			if (stop_allocating) {
-				free(le);
-			} else {
-				le->fnext = free_list;
-				free_list = le;
-			}
-		}
-		return (1);
-	}
-
-	if (stop_allocating)
-		return (0);
-
-	/* Add this entry to the links cache. */
-	if (free_list != NULL) {
-		/* Pull a node from the free list if we can. */
-		le = free_list;
-		free_list = le->fnext;
-	} else
-		/* Malloc one if we have to. */
-		le = malloc(sizeof(struct links_entry));
-
-	if (le == NULL) {
-		stop_allocating = 1;
-		warnx("No more memory for tracking hard links");
-		return (0);
-	}
-
-	le->dev = st->st_dev;
-	le->ino = st->st_ino;
-	le->links = st->st_nlink - 1;
-	le->fnext = NULL;
-
-	RB_INSERT(ltree, &links, le);
-
-	return (0);
 }
 
 void
