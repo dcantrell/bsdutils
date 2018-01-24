@@ -42,6 +42,7 @@ fmt
 fold
 head
 id
+install
 install-sh
 join
 libtool
