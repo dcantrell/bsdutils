@@ -132,8 +132,8 @@ defined in the OpenBSD pwd.h and grp.h header files, but those definitions do
 not exist on Linux.  Our build will just copy in the OpenBSD limits for now.
 
 
-fchflags()i, stat.st_flags, and related things
-----------------------------------------------
+fchflags(), stat.st_flags, and related things
+---------------------------------------------
 
 Files in BSD have various flags that can be set.  Make it immutable, for
 instance.  In Linux we have the chattr and lsattr commands for the same type
@@ -291,7 +291,14 @@ MD5 routines
 ------------
 glibc does not expose any public MD5 data types or functions.  The OpenSSL and
 LibreSSL libraries do.  Since LibreSSL is from OpenBSD, this is the MD5 code
-that is used in sort(1).  Under GNU coreutils, sort(1) uses the MD5 code for
+that is used in sort(1).  Under GNU coreutils, sort(1) uses the MD5 code from
 the md5sum(1) program.  Rather than embed MD5 code in bsdutils, we are choosing
 to link with OpenSSL or LibreSSL on your system.  If you lack these libraries,
 you can build bsdutils with sort disabled.
+
+
+issetugid()
+-----------
+This is an OpenBSD system call that returns non-zero if the executing process
+is using escalated privileges via the setgid bit.  This is most closely handled
+on Linux with the getauxval() function and passing it AT_SECURE.
