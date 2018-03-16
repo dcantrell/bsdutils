@@ -35,6 +35,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/epoll.h>
 
 #include <err.h>
 #include <errno.h>
@@ -82,10 +83,14 @@ forward(struct tailfile *tf, int nfiles, enum STYLE style, off_t origoff)
 {
 	int ch;
 	struct tailfile *ctf, *ltf;
-	struct kevent ke;
+	struct epoll_event ev;
+	int efd;
 	const struct timespec *ts = NULL;
 	int i;
 	int nevents;
+
+	if ((efd = epoll_create(1)) == -1)
+		err(1, "epoll_create");
 
 	if (nfiles < 1)
 		return;
