@@ -65,11 +65,13 @@ These C library functions on OpenBSD are not present on Linux.  But we can
 import setmode.c to our libcompat library.
 
 
-reallocarray()
---------------
+reallocarray() and recallocarray()
+----------------------------------
 
-Similar to setmode(), reallocarray() is used in some places and is not in
-glibc.  Copy reallocarray.c over to our libcompat library.
+reallocarray() is a thin wrapper around realloc().  glibc offers it though
+there is currently no man page for it on typical Linux systems.  We will use
+the glibc reallocarray() but copy over recallocarray.c since glibc lacks that.
+recallocarray() is reallocarray() but in calloc() style.
 
 
 DEF_WEAK
