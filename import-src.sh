@@ -122,6 +122,7 @@ cp -p lib/libc/gen/getbsize.c ${CWD}/compat
 cp -p lib/libc/gen/devname.c ${CWD}/compat
 cp -p lib/libc/stdlib/merge.c ${CWD}/compat
 cp -p lib/libc/stdlib/reallocarray.c ${CWD}/compat
+cp -p lib/libc/stdlib/recallocarray.c ${CWD}/compat
 cp -p lib/libc/stdlib/strtonum.c ${CWD}/compat
 cp -p lib/libc/string/strlcat.c ${CWD}/compat
 cp -p lib/libc/string/strlcpy.c ${CWD}/compat
