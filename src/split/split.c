@@ -30,6 +30,8 @@
  * SUCH DAMAGE.
  */
 
+#include "config.h"
+
 #include <sys/param.h>	/* MAXBSIZE */
 #include <sys/types.h>
 

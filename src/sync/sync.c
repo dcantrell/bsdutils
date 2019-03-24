@@ -30,6 +30,8 @@
  * SUCH DAMAGE.
  */
 
+#include "config.h"
+
 #include <unistd.h>
 
 int

@@ -11,6 +11,8 @@
  * This program is in the Public Domain.
  */
 
+#include "config.h"
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>

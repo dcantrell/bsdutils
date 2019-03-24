@@ -33,6 +33,9 @@
 /*
  * unexpand - put tabs into a file replacing blanks
  */
+
+#include "config.h"
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>

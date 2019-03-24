@@ -3,6 +3,7 @@ AC_INIT([bsdutils], [1.0], [david.l.cantrell@gmail.com])
 AM_INIT_AUTOMAKE([foreign])
 AC_CONFIG_SRCDIR([src/ls/ls.c])
 AC_CONFIG_HEADERS([config.h])
+AC_USE_SYSTEM_EXTENSIONS
 LT_INIT
 AC_CONFIG_MACRO_DIRS([m4])
 

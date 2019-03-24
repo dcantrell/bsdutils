@@ -27,6 +27,8 @@
  * SUCH DAMAGE.
  */
 
+#include "config.h"
+
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -45,6 +47,7 @@
 #include "coll.h"
 #include "file.h"
 #include "radixsort.h"
+#include "compat.h"
 
 unsigned long long available_free_memory = 1000000;
 

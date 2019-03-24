@@ -6,6 +6,8 @@
  * Public domain.
  */
 
+#include "config.h"
+
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>

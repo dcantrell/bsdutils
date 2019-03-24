@@ -35,6 +35,8 @@
  * SUCH DAMAGE.
  */
 
+#include "config.h"
+
 #include <sys/stat.h>
 #include <sys/mount.h>
 #include <sys/vfs.h>

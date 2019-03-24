@@ -45,6 +45,8 @@
  * assumption about the input.
  */
 
+#include "config.h"
+
 #include <sys/types.h>
 
 #include <ctype.h>

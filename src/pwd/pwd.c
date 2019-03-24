@@ -30,6 +30,8 @@
  * SUCH DAMAGE.
  */
 
+#include "config.h"
+
 #include <sys/stat.h>
 
 #include <err.h>

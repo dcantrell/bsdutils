@@ -48,6 +48,8 @@
  * in "to") to form the final target path.
  */
 
+#include "config.h"
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/mman.h>

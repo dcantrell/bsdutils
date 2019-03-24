@@ -32,6 +32,8 @@
  * SUCH DAMAGE.
  */
 
+#include "config.h"
+
 #include <sys/queue.h>
 #include <sys/types.h>
 #include <err.h>

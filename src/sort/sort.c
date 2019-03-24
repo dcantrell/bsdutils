@@ -27,6 +27,8 @@
  * SUCH DAMAGE.
  */
 
+#include "config.h"
+
 #include <sys/random.h>
 #include <sys/resource.h>
 #include <sys/stat.h>

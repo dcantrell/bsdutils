@@ -23,6 +23,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "config.h"
+
 #include <err.h>
 #include <stdio.h>
 #include <stdlib.h>

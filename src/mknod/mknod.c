@@ -19,6 +19,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include "config.h"
+
 #include <sys/sysmacros.h>
 #include <sys/stat.h>
 

@@ -52,6 +52,8 @@
  * If no args are given, the list of numbers are read from stdin.
  */
 
+#include "config.h"
+
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>

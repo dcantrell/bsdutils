@@ -30,6 +30,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "config.h"
+
 #include <sys/sysmacros.h>
 #include <sys/types.h>
 #include <sys/stat.h>

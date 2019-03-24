@@ -27,6 +27,8 @@
  * SUCH DAMAGE.
  */
 
+#include "config.h"
+
 #include <sys/types.h>
 
 #include <errno.h>
@@ -976,8 +978,8 @@ randomcoll(struct key_value *kv1, struct key_value *kv2,
 
 	MD5_Update(&ctx1, bwsrawdata(s1), bwsrawlen(s1));
 	MD5_Update(&ctx2, bwsrawdata(s2), bwsrawlen(s2));
-	b1 = MD5_Final(&ctx1, NULL);
-	b2 = MD5_Final(&ctx2, NULL);
+	MD5_Final(b1, &ctx1);
+	MD5_Final(b2, &ctx2);
 	if (b1 == NULL) {
 		if (b2 == NULL)
 			return 0;

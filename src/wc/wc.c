@@ -29,6 +29,8 @@
  * SUCH DAMAGE.
  */
 
+#include "config.h"
+
 #include <sys/param.h>	/* MAXBSIZE */
 #include <sys/stat.h>
 #include <sys/file.h>

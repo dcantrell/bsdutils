@@ -174,6 +174,8 @@
  *   been tested on my FreeBSD machine. Your mileage may vary.
  */
 
+#include "config.h"
+
 #include <ctype.h>
 #include <err.h>
 #include <locale.h>
