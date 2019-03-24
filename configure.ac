@@ -79,7 +79,6 @@ AC_CONFIG_FILES([Makefile
                  src/fold/Makefile
                  src/head/Makefile
                  src/id/Makefile
-                 src/install/Makefile
                  src/join/Makefile
                  src/ln/Makefile
                  src/logname/Makefile
@@ -119,5 +118,6 @@ AC_CONFIG_FILES([Makefile
                  src/users/Makefile
                  src/wc/Makefile
                  src/who/Makefile
+                 src/xinstall/Makefile
                  src/yes/Makefile])
 AC_OUTPUT
