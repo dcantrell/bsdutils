@@ -44,6 +44,7 @@
 #include <unistd.h>
 
 #include "extern.h"
+#include "compat.h"
 
 /*
  * bytes -- read bytes to an offset from the end and display.

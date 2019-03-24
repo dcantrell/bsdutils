@@ -54,7 +54,7 @@ static inline void tfprint(FILE *fp);
 static int tfqueue(struct tailfile *tf);
 static const struct timespec *tfreopen(struct tailfile *tf);
 
-static int kq = -1;
+static int efd = -1;
 
 /*
  * forward -- display the file, from an offset, forward.
@@ -84,19 +84,16 @@ forward(struct tailfile *tf, int nfiles, enum STYLE style, off_t origoff)
 	int ch;
 	struct tailfile *ctf, *ltf;
 	struct epoll_event ev;
-	int efd;
 	const struct timespec *ts = NULL;
 	int i;
 	int nevents;
+	struct epoll_event events[1];
 
 	if ((efd = epoll_create(1)) == -1)
 		err(1, "epoll_create");
 
 	if (nfiles < 1)
 		return;
-
-	if (fflag && (kq = kqueue()) < 0)
-		warn("kqueue");
 
 	for (i = 0; i < nfiles; i++) {
 		off_t off = origoff;
@@ -191,20 +188,18 @@ forward(struct tailfile *tf, int nfiles, enum STYLE style, off_t origoff)
 	ltf = &(tf[i-1]);
 
 	(void)fflush(stdout);
-	if (!fflag || kq < 0)
+	if (!fflag || efd < 0)
 		return;
 
 	while (1) {
-		if ((nevents = kevent(kq, NULL, 0, &ke, 1, ts)) <= 0) {
-			if (errno == EINTR) {
-				close(kq);
-				return;
-			}
+		if ((nevents = epoll_wait(efd, events, 1, -1)) == -1) {
+			warn("epoll_wait");
+			return;
 		}
 
-		ctf = ke.udata;
+		ctf = (struct tailfile *) events[i].data.ptr;
 		if (nevents > 0) {
-			if (ke.filter == EVFILT_READ) {
+			if (events[i].events & EPOLLIN) {
 				if (ctf != ltf) {
 					printfname(ctf->fname);
 					ltf = ctf;
@@ -219,22 +214,15 @@ forward(struct tailfile *tf, int nfiles, enum STYLE style, off_t origoff)
 				}
 				(void)fflush(stdout);
 				clearerr(ctf->fp);
-			} else if (ke.filter == EVFILT_VNODE) {
-				if (ke.fflags & (NOTE_DELETE | NOTE_RENAME)) {
-					/*
-					 * File was deleted or renamed.
-					 *
-					 * Continue to look at it until
-					 * a new file reappears with
-					 * the same name. 
-					 */
-					(void) tfreopen(ctf);
-				} else if (ke.fflags & NOTE_TRUNCATE) {
-					warnx("%s has been truncated, "
-					    "resetting.", ctf->fname);
-					__fpurge(ctf->fp);
-					rewind(ctf->fp);
-				}
+			} else if ((events[i].events & EPOLLPRI) || (events[i].events & EPOLLERR) || (events[i].events & EPOLLHUP)) {
+				/*
+				 * File was deleted or renamed.
+				 *
+				 * Continue to look at it until
+				 * a new file reappears with
+				 * the same name. 
+				 */
+				(void) tfreopen(ctf);
 			}
 		}
 		ts = tfreopen(NULL);
@@ -306,28 +294,22 @@ tfprint(FILE *fp)
 static int
 tfqueue(struct tailfile *tf)
 {
-	struct kevent ke[2];
+	struct epoll_event ev;
 	int i = 1;
 
-	if (kq < 0) {
+	if (efd < 0) {
 		errno = EBADF;
 		return -1;
 	}
 
-	EV_SET(&(ke[0]), fileno(tf->fp), EVFILT_READ,
-	    EV_ENABLE | EV_ADD | EV_CLEAR, 0, 0, tf);
+	ev.events = EPOLLIN | EPOLLPRI | EPOLLERR | EPOLLHUP;
+	ev.data.ptr = (void *) tf;
 
-	if (S_ISREG(tf->sb.st_mode)) {
-		i = 2;
-		EV_SET(&(ke[1]), fileno(tf->fp), EVFILT_VNODE,
-		    EV_ENABLE | EV_ADD | EV_CLEAR,
-		    NOTE_DELETE | NOTE_RENAME | NOTE_TRUNCATE,
-		    0, tf);
-	}
-	if (kevent(kq, ke, i, NULL, 0, NULL) < 0) {
+	if (epoll_ctl(efd, EPOLL_CTL_ADD, fileno(tf->fp), &ev) == -1) {
 		ierr(tf->fname);
 		return -1;
 	}
+
 	return 0;
 }
 

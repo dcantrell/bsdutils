@@ -302,3 +302,11 @@ issetugid()
 This is an OpenBSD system call that returns non-zero if the executing process
 is using escalated privileges via the setgid bit.  This is most closely handled
 on Linux with the getauxval() function and passing it AT_SECURE.
+
+
+kqueue vs. epoll
+----------------
+The tail(1) command on OpenBSD uses kqueue to monitor for events on files and
+then take action.  This is a BSD-specific API and not available on Linux.  But
+Linux does have epoll which is similar.  tail(1) has been modified to use the
+epoll API on Linux and roughly work in the same manner as the OpenBSD one.

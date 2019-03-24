@@ -43,6 +43,7 @@
 #include <unistd.h>
 
 #include "extern.h"
+#include "compat.h"
 
 int fflag, rflag, rval;
 int is_stdin;
@@ -59,9 +60,6 @@ main(int argc, char *argv[])
 	int ch;
 	int i;
 	char *p;
-
-	if (pledge("stdio rpath", NULL) == -1)
-		err(1, "pledge");
 
 	/*
 	 * Tail's options are weird.  First, -n10 is the same as -n-10, not
@@ -168,9 +166,6 @@ main(int argc, char *argv[])
 			forward(tf, i, style, off);
 	}
 	else {
-		if (pledge("stdio", NULL) == -1)
-			err(1, "pledge");
-
 		tf[0].fname = "stdin";
 		tf[0].fp = stdin;
 		is_stdin = 1;
