@@ -5,7 +5,6 @@
       base64
       chcon
       cksum
-      install (usr.bin/xinstall)
       link
       md5sum
       numfmt
@@ -22,10 +21,12 @@
       shuf
       stdbuf
       sum
-      tac
       timeout
       truncate
       unlink
 
-- Explore alternative build systems, like meson+ninja?  autotools helps keep
-  things portable across a wide range of Linux distributions for now though.
+- Maybe incorporate find and xargs in to the tree.
+
+- Maybe incorporate bc and dc in to the tree.
+
+- Maybe incorporate diffutils in to the tree (diff, diff3, sdiff).

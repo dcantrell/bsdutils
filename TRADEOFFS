@@ -28,7 +28,7 @@ Some of these commands can be implemented with simple scripts.  The ones we
 have done that for are available in the scripts/ subdirectory.  Note that these
 deviate from the standard BSD offering, but are an attempt to bridge the
 BSD-GNU command set gap.
- 
+
 
 
 No color support in ls(1)
