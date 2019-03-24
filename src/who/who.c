@@ -195,7 +195,7 @@ who_am_i(FILE *ufp)
 	/* search through the utmp and find an entry for this tty */
 	if (mytty) {
 		while (fread((char *)&usr, sizeof(usr), 1, ufp) == 1)
-			if (*usr.ut_name && !strcmp(usr.ut_line, mytty)) {
+			if (*usr.ut_name && !strncmp(usr.ut_line, mytty, UT_LINESIZE)) {
 				output(&usr);
 				return;
 			}
