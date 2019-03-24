@@ -112,9 +112,6 @@ done
 # Rename xinstall.c to install.c
 mv ${CWD}/src/install/xinstall.c ${CWD}/src/install/install.c
 
-# We need libutil to build some things
-cp -pr lib/libutil/* ${CWD}/lib
-
 # 'compat' is our static library with a subset of BSD library functions
 cp -p lib/libc/gen/pwcache.c ${CWD}/compat
 cp -p lib/libc/gen/setmode.c ${CWD}/compat
