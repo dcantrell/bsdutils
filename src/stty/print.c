@@ -39,6 +39,7 @@
 #include <string.h>
 #include <termios.h>
 #include <pty.h>
+#include <unistd.h>
 
 #include "stty.h"
 #include "extern.h"

@@ -41,6 +41,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <termios.h>
+#include <unistd.h>
 
 #include "stty.h"
 #include "extern.h"
