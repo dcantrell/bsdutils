@@ -129,7 +129,8 @@ tabify(bool all)
 				ocol++;
 			}
 			if (*cp == '\0' || !all) {
-				strlcpy(dp, cp, len);
+				strncpy(dp, cp, len);
+				dp[len - 1] = '\0';
 				return;
 			}
 			*dp++ = *cp;

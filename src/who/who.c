@@ -225,7 +225,8 @@ output(struct utmp *up)
 			time(&now);
 		
 		memset(line, 0, sizeof line);
-		strlcpy(line, _PATH_DEV, sizeof line);
+		strncpy(line, _PATH_DEV, sizeof line);
+		line[sizeof(line) - 1] = '\0';
 		strlcat(line, up->ut_line, sizeof line);
 
 		if (stat(line, &sb) == 0) {

@@ -506,9 +506,11 @@ display(FTSENT *p, FTSENT *list)
 					err(1, NULL);
 
 				np->user = &np->data[0];
-				(void)strlcpy(np->user, user, ulen + 1);
+				(void)strncpy(np->user, user, ulen + 1);
+				np->user[ulen] = '\0';
 				np->group = &np->data[ulen + 1];
-				(void)strlcpy(np->group, group, glen + 1);
+				(void)strncpy(np->group, group, glen + 1);
+				np->group[glen] = '\0';
 
 				if (S_ISCHR(sp->st_mode) ||
 				    S_ISBLK(sp->st_mode))

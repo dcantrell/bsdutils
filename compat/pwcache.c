@@ -76,7 +76,8 @@ fillit:
 				snprintf(cp->name, sizeof(cp->name), "%u", uid);
 				cp->noname = 1;
 			} else {
-				strlcpy(cp->name, pw->pw_name, sizeof(cp->name));
+				strncpy(cp->name, pw->pw_name, sizeof(cp->name));
+				cp->name[sizeof(cp->name) - 1] = '\0';
 			}
 		}
 		if (cp->uid == uid) {
@@ -121,7 +122,8 @@ fillit:
 				snprintf(cp->name, sizeof(cp->name), "%u", gid);
 				cp->noname = 1;
 			} else {
-				strlcpy(cp->name, gr->gr_name, sizeof(cp->name));
+				strncpy(cp->name, gr->gr_name, sizeof(cp->name));
+				cp->name[sizeof(cp->name) - 1] = '\0';
 			}
 		}
 		if (cp->gid == gid) {

@@ -252,8 +252,10 @@ fmt_scaled(long long number, char *result)
 		fract = 0;
 	}
 
-	if (number == 0)
-		strlcpy(result, "0B", FMT_SCALED_STRSIZE);
+	if (number == 0) {
+		strncpy(result, "0B", FMT_SCALED_STRSIZE);
+		result[FMT_SCALED_STRSIZE - 1] = '\0';
+	}
 	else if (unit == NONE || number >= 100 || number <= -100) {
 		if (fract >= 5) {
 			if (number >= 0)

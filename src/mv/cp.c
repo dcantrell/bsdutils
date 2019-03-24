@@ -125,8 +125,10 @@ cpmain(int argc, char *argv[])
 
 	/* Save the target base in "to". */
 	target = argv[--argc];
-	if (strlcpy(to.p_path, target, sizeof to.p_path) >= sizeof(to.p_path))
+	(void)strncpy(to.p_path, target, sizeof to.p_path);
+	if (sizeof(target) >= sizeof(to.p_path))
 		errx(1, "%s: name too long", target);
+	to.p_path[sizeof(to.p_path) - 1] = '\0';
 	to.p_end = to.p_path + strlen(to.p_path);
 	if (to.p_path == to.p_end) {
 		*to.p_end++ = '.';

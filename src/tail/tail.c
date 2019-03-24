@@ -256,7 +256,9 @@ obsolete(char *argv[])
 				errx(1, "illegal option -- %s", *argv);
 			}
 			*p++ = *argv[0];
-			(void)strlcpy(p, ap, start + len + 4 - p);
+			len = start + len + 4 - p;
+			(void)strncpy(p, ap, len);
+			p[len - 1] = '\0';
 			*argv = start;
 			continue;
 

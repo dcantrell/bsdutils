@@ -111,8 +111,10 @@ main(int argc, char *argv[])
 	}
 
 	/* It's a directory, move each file into it. */
-	if (strlcpy(path, argv[argc - 1], sizeof path) >= sizeof path)
+	(void)strncpy(path, argv[argc - 1], sizeof path);
+	if (sizeof(argv[argc - 1]) >= sizeof path)
 		errx(1, "%s: destination pathname too long", *argv);
+	path[sizeof(path) - 1] = '\0';
 	baselen = strlen(path);
 	endp = &path[baselen];
 	if (*(endp - 1) != '/') {

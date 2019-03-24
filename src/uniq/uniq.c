@@ -244,7 +244,8 @@ obsolete(char *argv[])
 			err(1, "malloc");
 		*p++ = '-';
 		*p++ = ap[0] == '+' ? 's' : 'f';
-		(void)strlcpy(p, ap + 1, len - 2);
+		(void)strncpy(p, ap + 1, len - 2);
+		p[len - 3] = '\0';
 		*argv = start;
 	}
 }

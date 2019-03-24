@@ -637,7 +637,8 @@ create_tempfile(char *path, char *temp, size_t tsize)
 {
 	char *p;
 
-	strlcpy(temp, path, tsize);
+	strncpy(temp, path, tsize);
+	temp[tsize - 1] = '\0';
 	if ((p = strrchr(temp, '/')) != NULL)
 		p++;
 	else

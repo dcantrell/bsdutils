@@ -138,8 +138,10 @@ main(int argc, char *argv[])
 				err(1, "%s", *argv);
 			++argv;
 		}
-	if (*argv != NULL)			/* File name prefix. */
-		(void)strlcpy(fname, *argv++, sizeof(fname));
+	if (*argv != NULL) {			/* File name prefix. */
+		(void)strncpy(fname, *argv++, sizeof(fname));
+		fname[sizeof(fname)-1] = '\0';
+	}
 	if (*argv != NULL)
 		usage();
 

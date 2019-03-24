@@ -61,7 +61,8 @@ devname(dev_t dev, mode_t type)
 		if (fstatat(dirfd(dirp), dp->d_name, &sb, AT_SYMLINK_NOFOLLOW)
 		    || sb.st_rdev != dev || (sb.st_mode & S_IFMT) != type)
 			continue;
-		strlcpy(buf, dp->d_name, sizeof(buf));
+		strncpy(buf, dp->d_name, sizeof(buf));
+		buf[sizeof(buf) - 1] = '\0';
 		name = buf;
 		break;
 	}

@@ -722,9 +722,10 @@ format1(const struct stat *st,
 		small = 0;
 		data = 0;
 		if (file == NULL)
-			(void)strlcpy(path, "(stdin)", sizeof(path));
+			(void)strncpy(path, "(stdin)", sizeof(path));
 		else
-			(void)strlcpy(path, file, sizeof(path));
+			(void)strncpy(path, file, sizeof(path));
+		path[sizeof(path) - 1] = '\0';
 		sdata = path;
 		formats = FMTF_STRING;
 		if (ofmt == 0)
