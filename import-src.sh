@@ -120,7 +120,6 @@ cp -p lib/libc/gen/devname.c ${CWD}/compat
 cp -p lib/libc/stdlib/merge.c ${CWD}/compat
 cp -p lib/libc/stdlib/recallocarray.c ${CWD}/compat
 cp -p lib/libc/stdlib/strtonum.c ${CWD}/compat
-cp -p lib/libc/string/strlcat.c ${CWD}/compat
 cp -p lib/libc/string/strmode.c ${CWD}/compat
 cp -p lib/libutil/logwtmp.c ${CWD}/compat
 cp -p lib/libutil/ohash.c ${CWD}/compat

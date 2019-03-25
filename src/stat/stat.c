@@ -683,21 +683,20 @@ format1(const struct stat *st,
 		if (hilo == 0 || hilo == LOW_PIECE) {
 			switch (st->st_mode & S_IFMT) {
 			case S_IFIFO:
-				(void)strlcat(sdata, "|", sizeof(smode));
+				(void)strcat(sdata, "|");
 				break;
 			case S_IFDIR:
-				(void)strlcat(sdata, "/", sizeof(smode));
+				(void)strcat(sdata, "/");
 				break;
 			case S_IFREG:
 				if (st->st_mode & (S_IXUSR | S_IXGRP | S_IXOTH))
-					(void)strlcat(sdata, "*",
-					    sizeof(smode));
+					(void)strcat(sdata, "*");
 				break;
 			case S_IFLNK:
-				(void)strlcat(sdata, "@", sizeof(smode));
+				(void)strcat(sdata, "@");
 				break;
 			case S_IFSOCK:
-				(void)strlcat(sdata, "=", sizeof(smode));
+				(void)strcat(sdata, "=");
 				break;
 			}
 			hilo = 0;
@@ -765,17 +764,17 @@ format1(const struct stat *st,
 	 * Assemble the format string for passing to printf(3).
 	 */
 	lfmt[0] = '\0';
-	(void)strlcat(lfmt, "%", sizeof(lfmt));
+	(void)strcat(lfmt, "%");
 	if (flags & FLAG_POUND)
-		(void)strlcat(lfmt, "#", sizeof(lfmt));
+		(void)strcat(lfmt, "#");
 	if (flags & FLAG_SPACE)
-		(void)strlcat(lfmt, " ", sizeof(lfmt));
+		(void)strcat(lfmt, " ");
 	if (flags & FLAG_PLUS)
-		(void)strlcat(lfmt, "+", sizeof(lfmt));
+		(void)strcat(lfmt, "+");
 	if (flags & FLAG_MINUS)
-		(void)strlcat(lfmt, "-", sizeof(lfmt));
+		(void)strcat(lfmt, "-");
 	if (flags & FLAG_ZERO)
-		(void)strlcat(lfmt, "0", sizeof(lfmt));
+		(void)strcat(lfmt, "0");
 
 	/*
 	 * Only the timespecs support the FLOAT output format, and that
@@ -788,9 +787,9 @@ format1(const struct stat *st,
 		if (prec == 0) {
 			if (size != -1) {
 				(void)snprintf(tmp, sizeof(tmp), "%d", size);
-				(void)strlcat(lfmt, tmp, sizeof(lfmt));
+				(void)strcat(lfmt, tmp);
 			}
-			(void)strlcat(lfmt, "d", sizeof(lfmt));
+			(void)strcat(lfmt, "d");
 			n = snprintf(buf, blen, lfmt, secs);
 			return (n >= blen ? blen : n);
 		}
@@ -813,22 +812,22 @@ format1(const struct stat *st,
 		 */
 		if (size > 0) {
 			(void)snprintf(tmp, sizeof(tmp), "%d", size);
-			(void)strlcat(lfmt, tmp, sizeof(lfmt));
+			(void)strcat(lfmt, tmp);
 		}
-		(void)strlcat(lfmt, "d", sizeof(lfmt));
+		(void)strcat(lfmt, "d");
 
 		/*
 		 * The stuff after the decimal point always needs zero
 		 * filling.
 		 */
-		(void)strlcat(lfmt, ".%0", sizeof(lfmt));
+		(void)strcat(lfmt, ".%0");
 
 		/*
 		 * We can "print" at most nine digits of precision.  The
 		 * rest we will pad on at the end.
 		 */
 		(void)snprintf(tmp, sizeof(tmp), "%dd", prec > 9 ? 9 : prec);
-		(void)strlcat(lfmt, tmp, sizeof(lfmt));
+		(void)strcat(lfmt, tmp);
 
 		/*
 		 * For precision of less that nine digits, trim off the
@@ -845,7 +844,7 @@ format1(const struct stat *st,
 		if (l >= blen)
 			return (l);
 		for (; prec > 9 && l < blen; prec--, l++)
-			(void)strlcat(buf, "0", blen);
+			(void)strcat(buf, "0");
 		return (l);
 	}
 
@@ -854,11 +853,11 @@ format1(const struct stat *st,
 	 */
 	if (size != -1) {
 		(void)snprintf(tmp, sizeof(tmp), "%d", size);
-		(void)strlcat(lfmt, tmp, sizeof(lfmt));
+		(void)strcat(lfmt, tmp);
 	}
 	if (prec != -1) {
 		(void)snprintf(tmp, sizeof(tmp), ".%d", prec);
-		(void)strlcat(lfmt, tmp, sizeof(lfmt));
+		(void)strcat(lfmt, tmp);
 	}
 
 	/*
@@ -867,7 +866,7 @@ format1(const struct stat *st,
 	if (ofmt == FMTF_STRING) {
 		if (sdata == NULL)
 			errx(1, "%.*s: bad format", (int)flen, fmt);
-		(void)strlcat(lfmt, "s", sizeof(lfmt));
+		(void)strcat(lfmt, "s");
 		n = snprintf(buf, blen, lfmt, sdata);
 		return (n >= blen ? blen : n);
 	}
@@ -882,12 +881,12 @@ format1(const struct stat *st,
 	/*
 	 * The four "numeric" output forms.
 	 */
-	(void)strlcat(lfmt, "ll", sizeof(lfmt));
+	(void)strcat(lfmt, "ll");
 	switch (ofmt) {
-	case FMTF_DECIMAL:	(void)strlcat(lfmt, "d", sizeof(lfmt));	break;
-	case FMTF_OCTAL:	(void)strlcat(lfmt, "o", sizeof(lfmt));	break;
-	case FMTF_UNSIGNED:	(void)strlcat(lfmt, "u", sizeof(lfmt));	break;
-	case FMTF_HEX:		(void)strlcat(lfmt, "x", sizeof(lfmt));	break;
+	case FMTF_DECIMAL:	(void)strcat(lfmt, "d");	break;
+	case FMTF_OCTAL:	(void)strcat(lfmt, "o");	break;
+	case FMTF_UNSIGNED:	(void)strcat(lfmt, "u");	break;
+	case FMTF_HEX:		(void)strcat(lfmt, "x");	break;
 	}
 
 	n = snprintf(buf, blen, lfmt, data);

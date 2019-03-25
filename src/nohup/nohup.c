@@ -112,9 +112,9 @@ dofile(void)
 	if ((p = getenv("HOME")) != NULL && *p != '\0' &&
 	    (strlen(p) + strlen(FILENAME) + 1) < sizeof(path)) {
 		(void)strncpy(path, p, sizeof(path));
+		path[strlen(path) + 1] = '/';
+		(void)strncat(path, FILENAME, sizeof(FILENAME));
 		path[sizeof(path) - 1] = '\0';
-		(void)strlcat(path, "/", sizeof(path));
-		(void)strlcat(path, FILENAME, sizeof(path));
 		if ((fd = open(p = path, O_RDWR|O_CREAT|O_APPEND, S_IRUSR|S_IWUSR)) >= 0)
 			goto dupit;
 	}

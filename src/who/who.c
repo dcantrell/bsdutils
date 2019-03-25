@@ -226,8 +226,8 @@ output(struct utmp *up)
 		
 		memset(line, 0, sizeof line);
 		strncpy(line, _PATH_DEV, sizeof line);
+		strncat(line, up->ut_line, UT_LINESIZE);
 		line[sizeof(line) - 1] = '\0';
-		strlcat(line, up->ut_line, sizeof line);
 
 		if (stat(line, &sb) == 0) {
 			state = (sb.st_mode & 020) ? '+' : '-';

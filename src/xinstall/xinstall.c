@@ -644,7 +644,7 @@ create_tempfile(char *path, char *temp, size_t tsize)
 	else
 		p = temp;
 	*p = '\0';
-	strlcat(p, "INS@XXXXXXXXXX", tsize);
+	strncat(p, "INS@XXXXXXXXXX", tsize);
 
 	return(mkstemp(temp));
 }

@@ -12,9 +12,6 @@ void *setmode(const char *);
 /* strtonum.c */
 long long strtonum(const char *, long long, long long, const char **);
 
-/* strlcat.c */
-size_t strlcat(char *, const char *, size_t);
-
 /* strmode.c */
 void strmode(int, char *);
 
