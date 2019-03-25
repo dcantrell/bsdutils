@@ -376,3 +376,11 @@ things depending on what the program needs:
 
 Whichever of these methods is used, we still need to set the trailing NUL
 like we do for the strlcpy() replacements.
+
+
+sys_signame[]
+-------------
+This array contains strings describing the signal number.  The array index is
+the signal number.  The POSIX standard for getting a signal name if you have
+the signal number is strsignal(), which is available on glibc and is what we
+will use.

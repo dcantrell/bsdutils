@@ -30,3 +30,6 @@
 - Maybe incorporate bc and dc in to the tree.
 
 - Maybe incorporate diffutils in to the tree (diff, diff3, sdiff).
+
+- Update import-src.sh to be able to import new versions and overlay them
+  in the source tree so the tree can try to keep up with upstream.
