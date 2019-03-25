@@ -64,5 +64,6 @@ SUBDIRS += uniq
 SUBDIRS += users
 SUBDIRS += wc
 SUBDIRS += who
+SUBDIRS += xargs
 SUBDIRS += xinstall
 SUBDIRS += yes

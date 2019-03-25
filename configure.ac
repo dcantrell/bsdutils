@@ -119,6 +119,7 @@ AC_CONFIG_FILES([Makefile
                  src/users/Makefile
                  src/wc/Makefile
                  src/who/Makefile
+                 src/xargs/Makefile
                  src/xinstall/Makefile
                  src/yes/Makefile])
 AC_OUTPUT
