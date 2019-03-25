@@ -18,7 +18,7 @@ fail_exit() {
     exit 1
 }
 
-for sub in compat lib src ; do
+for sub in compat src ; do
     [ -d ${CWD}/${sub} ] || mkdir -p ${CWD}/${sub}
 done
 
@@ -91,6 +91,7 @@ CMDS="bin/test
       usr.bin/who
       usr.bin/yes
       usr.sbin/chroot
+      usr.bin/xargs
       usr.bin/xinstall"
 for p in ${CMDS} ; do
     sp="$(basename ${p})"
@@ -104,13 +105,9 @@ for p in ${CMDS} ; do
     fi
 
     # Copy in the upstream files
-    [ "${sp}" = "xinstall" ] && dp="install" || dp="${sp}"
     [ -d ${CWD}/src/${dp} ] || mkdir -p ${CWD}/src/${dp}
     cp -pr ${p}/* ${CWD}/src/${dp}
 done
-
-# Rename xinstall.c to install.c
-mv ${CWD}/src/install/xinstall.c ${CWD}/src/install/install.c
 
 # 'compat' is our static library with a subset of BSD library functions
 cp -p lib/libc/gen/pwcache.c ${CWD}/compat
