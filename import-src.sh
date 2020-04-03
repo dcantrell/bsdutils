@@ -24,7 +24,7 @@ done
 
 cd ${TMPDIR}
 curl -L --retry 3 --ftp-pasv -O ${SRC} || fail_exit
-gzip -dc src.tar.gz | tar -xvf -
+gzip -dc src.tar.gz | tar -xf -
 
 # copy in the source for all coreutils programs
 CMDS="bin/test
@@ -105,8 +105,8 @@ for p in ${CMDS} ; do
     fi
 
     # Copy in the upstream files
-    [ -d ${CWD}/src/${dp} ] || mkdir -p ${CWD}/src/${dp}
-    cp -pr ${p}/* ${CWD}/src/${dp}
+    [ -d ${CWD}/src/${sp} ] || mkdir -p ${CWD}/src/${sp}
+    cp -pr ${p}/* ${CWD}/src/${sp}
 done
 
 # 'compat' is our static library with a subset of BSD library functions
@@ -121,7 +121,7 @@ cp -p lib/libc/string/strmode.c ${CWD}/compat
 cp -p lib/libutil/logwtmp.c ${CWD}/compat
 cp -p lib/libutil/ohash.c ${CWD}/compat
 cp -p lib/libutil/ohash.h ${CWD}/compat
-cp -p lib/libutil/fmt_scaled.h ${CWD}/compat
+cp -p lib/libutil/fmt_scaled.c ${CWD}/compat
 
 # These files are needed for the factor command
 cp -p games/primes/primes.h ${CWD}/src/factor
