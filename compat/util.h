@@ -1,7 +1,10 @@
-/*	$OpenBSD: getbsize.c,v 1.11 2015/08/31 02:53:57 guenther Exp $ */
+/*	$OpenBSD: util.h,v 1.36 2019/08/30 03:57:56 deraadt Exp $	*/
+/*	$NetBSD: util.h,v 1.2 1996/05/16 07:00:22 thorpej Exp $	*/
+
 /*-
- * Copyright (c) 1991, 1993
+ * Copyright (c) 1995
  *	The Regents of the University of California.  All rights reserved.
+ * Portions Copyright (c) 1996, Jason Downs.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -28,78 +31,40 @@
  * SUCH DAMAGE.
  */
 
-#include "config.h"
+#ifndef _UTIL_H_
+#define _UTIL_H_
 
-#include <err.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+/*
+ * fparseln() specific operation flags.
+ */
+#define FPARSELN_UNESCESC	0x01
+#define FPARSELN_UNESCCONT	0x02
+#define FPARSELN_UNESCCOMM	0x04
+#define FPARSELN_UNESCREST	0x08
+#define FPARSELN_UNESCALL	0x0f
 
-#include "compat.h"
+/*
+ * opendev() specific operation flags.
+ */
+#define OPENDEV_PART	0x01		/* Try to open the raw partition. */
+#define OPENDEV_BLCK	0x04		/* Open block, not character device. */
 
-char *
-getbsize(int *headerlenp, long *blocksizep)
-{
-	static char header[20];
-	long n, max, mul, blocksize;
-	char *ep, *p, *form;
+/*
+ * uu_lock(3) specific flags.
+ */
+#define UU_LOCK_INUSE (1)
+#define UU_LOCK_OK (0)
+#define UU_LOCK_OPEN_ERR (-1)
+#define UU_LOCK_READ_ERR (-2)
+#define UU_LOCK_CREAT_ERR (-3)
+#define UU_LOCK_WRITE_ERR (-4)
+#define UU_LOCK_LINK_ERR (-5)
+#define UU_LOCK_TRY_ERR (-6)
+#define UU_LOCK_OWNER_ERR (-7)
 
-#define	KB	(1024)
-#define	MB	(1024 * 1024)
-#define	GB	(1024 * 1024 * 1024)
-#define	MAXB	GB		/* No tera, peta, nor exa. */
-	form = "";
-	if ((p = getenv("BLOCKSIZE")) != NULL && *p != '\0') {
-		if ((n = strtol(p, &ep, 10)) < 0)
-			goto underflow;
-		if (n == 0)
-			n = 1;
-		if (*ep && ep[1])
-			goto fmterr;
-		switch (*ep) {
-		case 'G': case 'g':
-			form = "G";
-			max = MAXB / GB;
-			mul = GB;
-			break;
-		case 'K': case 'k':
-			form = "K";
-			max = MAXB / KB;
-			mul = KB;
-			break;
-		case 'M': case 'm':
-			form = "M";
-			max = MAXB / MB;
-			mul = MB;
-			break;
-		case '\0':
-			max = MAXB;
-			mul = 1;
-			break;
-		default:
-fmterr:			warnx("%s: unknown blocksize", p);
-			n = 512;
-			max = MAXB;
-			mul = 1;
-			break;
-		}
-		if (n > max) {
-			warnx("maximum blocksize is %dG", MAXB / GB);
-			n = max;
-		}
-		if ((blocksize = n * mul) < 512) {
-underflow:		warnx("%s: minimum blocksize is 512", p);
-			form = "";
-			blocksize = n = 512;
-		}
-	} else
-		blocksize = n = 512;
+/*
+ * fmt_scaled(3) specific flags.
+ */
+#define	FMT_SCALED_STRSIZE	7	/* minus sign, 4 digits, suffix, null byte */
 
-	*headerlenp = snprintf(header, sizeof(header), "%ld%s-blocks", n, form);
-	if (*headerlenp < 0)
-		*headerlenp = 0;
-	else if (*headerlenp >= sizeof(header))
-		*headerlenp = sizeof(header) - 1;
-	*blocksizep = blocksize;
-	return (header);
-}
+#endif /* !_UTIL_H_ */

@@ -37,6 +37,8 @@
 #include <errno.h>
 #include <stdlib.h>
 
+#include "compat.h"
+
 /*
  * Swap two areas of size number of bytes.  Although qsort(3) permits random
  * blocks of memory to be sorted, sorting pointers is almost certainly the

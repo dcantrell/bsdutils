@@ -24,6 +24,8 @@
 #include <limits.h>
 #include "ohash.h"
 
+#include "compat.h"
+
 struct _ohash_record {
 	uint32_t	hv;
 	const char	*p;

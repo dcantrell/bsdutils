@@ -1,4 +1,4 @@
-/*	$OpenBSD: fmt_scaled.c,v 1.16 2017/03/16 02:40:46 dtucker Exp $	*/
+/*	$OpenBSD: fmt_scaled.c,v 1.18 2019/01/14 23:52:06 bluhm Exp $	*/
 
 /*
  * Copyright (c) 2001, 2002, 2003 Ian F. Darwin.  All rights reserved.
@@ -44,6 +44,8 @@
 #include <string.h>
 #include <ctype.h>
 #include <limits.h>
+
+#include "util.h"
 
 #include "compat.h"
 
@@ -220,12 +222,16 @@ fmt_scaled(long long number, char *result)
 	unsigned int i;
 	unit_type unit = NONE;
 
+	/* Not every negative long long has a positive representation. */
+	if (number == LLONG_MIN) {
+		errno = ERANGE;
+		return -1;
+	}
+
 	abval = llabs(number);
 
-	/* Not every negative long long has a positive representation.
-	 * Also check for numbers that are just too darned big to format
-	 */
-	if (abval < 0 || abval / 1024 >= scale_factors[SCALE_LENGTH-1]) {
+	/* Also check for numbers that are just too darned big to format. */
+	if (abval / 1024 >= scale_factors[SCALE_LENGTH-1]) {
 		errno = ERANGE;
 		return -1;
 	}
@@ -244,19 +250,21 @@ fmt_scaled(long long number, char *result)
 
 	fract = (10 * fract + 512) / 1024;
 	/* if the result would be >= 10, round main number */
-	if (fract == 10) {
+	if (fract >= 10) {
 		if (number >= 0)
 			number++;
 		else
 			number--;
 		fract = 0;
+	} else if (fract < 0) {
+		/* shouldn't happen */
+		fract = 0;
 	}
 
 	if (number == 0) {
 		strncpy(result, "0B", FMT_SCALED_STRSIZE);
-		result[FMT_SCALED_STRSIZE - 1] = '\0';
-	}
-	else if (unit == NONE || number >= 100 || number <= -100) {
+		result[sizeof(result) - 1] = '\0';
+	} else if (unit == NONE || number >= 100 || number <= -100) {
 		if (fract >= 5) {
 			if (number >= 0)
 				number++;

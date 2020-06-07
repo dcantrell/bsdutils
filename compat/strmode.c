@@ -34,6 +34,8 @@
 #include <sys/stat.h>
 #include <string.h>
 
+#include "compat.h"
+
 /* XXX mode should be mode_t */
 
 void

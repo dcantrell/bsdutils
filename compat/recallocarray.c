@@ -23,6 +23,8 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "compat.h"
+
 /*
  * This is sqrt(SIZE_MAX+1), as s1*s2 <= SIZE_MAX
  * if both s1 < MUL_NO_OVERFLOW and s2 < MUL_NO_OVERFLOW
@@ -80,3 +82,4 @@ recallocarray(void *ptr, size_t oldnmemb, size_t newnmemb, size_t size)
 
 	return newptr;
 }
+DEF_WEAK(recallocarray);

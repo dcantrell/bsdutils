@@ -23,6 +23,8 @@
 #include <limits.h>
 #include <stdlib.h>
 
+#include "compat.h"
+
 #define	INVALID		1
 #define	TOOSMALL	2
 #define	TOOLARGE	3
