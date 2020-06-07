@@ -27,15 +27,12 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-
-#include "config.h"
+#include "compat.h"
 
 #include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "compat.h"
 
 char *
 getbsize(int *headerlenp, long *blocksizep)

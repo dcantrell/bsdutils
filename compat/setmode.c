@@ -32,8 +32,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-
-#include "config.h"
+#include "compat.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -43,8 +42,6 @@
 #include <signal.h>
 #include <stdlib.h>
 #include <unistd.h>
-
-#include "compat.h"
 
 #ifdef SETMODE_DEBUG
 #include <stdio.h>
@@ -203,13 +200,13 @@ setmode(const char *p)
 	if (isdigit((unsigned char)*p)) {
 		perml = strtoul(p, &ep, 8);
 		/* The test on perml will also catch overflow. */
-		if (*ep != '\0' || (perml & ~(STANDARD_BITS|S_ISVTX))) {
+		if (*ep != '\0' || (perml & ~(STANDARD_BITS|S_ISTXT))) {
 			free(saveset);
 			errno = ERANGE;
 			return (NULL);
 		}
 		perm = (mode_t)perml;
-		ADDCMD('=', (STANDARD_BITS|S_ISVTX), perm, mask);
+		ADDCMD('=', (STANDARD_BITS|S_ISTXT), perm, mask);
 		set->cmd = 0;
 		return (saveset);
 	}
@@ -247,7 +244,7 @@ getop:		if ((op = *p++) != '+' && op != '-' && op != '=') {
 		if (op == '=')
 			equalopdone = 0;
 
-		who &= ~S_ISVTX;
+		who &= ~S_ISTXT;
 		for (perm = 0, permXbits = 0;; ++p) {
 			switch (*p) {
 			case 'r':
@@ -267,8 +264,8 @@ getop:		if ((op = *p++) != '+' && op != '-' && op != '=') {
 				 * only "other" bits ignore sticky.
 				 */
 				if (who == 0 || (who & ~S_IRWXO)) {
-					who |= S_ISVTX;
-					perm |= S_ISVTX;
+					who |= S_ISTXT;
+					perm |= S_ISTXT;
 				}
 				break;
 			case 'w':

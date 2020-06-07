@@ -27,8 +27,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-
-#include "config.h"
+#include "compat.h"
 
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -42,10 +41,8 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "compat.h"
-
-static char *
-devname_nodb(dev_t dev, mode_t type)
+char *
+devname(dev_t dev, mode_t type)
 {
 	static char buf[NAME_MAX + 1];
 	char *name = NULL;
@@ -61,47 +58,10 @@ devname_nodb(dev_t dev, mode_t type)
 		if (fstatat(dirfd(dirp), dp->d_name, &sb, AT_SYMLINK_NOFOLLOW)
 		    || sb.st_rdev != dev || (sb.st_mode & S_IFMT) != type)
 			continue;
-		strncpy(buf, dp->d_name, sizeof(buf));
-		buf[sizeof(buf) - 1] = '\0';
+		strlcpy(buf, dp->d_name, sizeof(buf));
 		name = buf;
 		break;
 	}
 	closedir(dirp);
 	return (name);
-}
-
-/*
- * Keys in dev.db are a mode_t followed by a dev_t.  The former is the
- * type of the file (mode & S_IFMT), the latter is the st_rdev field.
- * Note that the structure may contain padding.
- */
-char *
-devname(dev_t dev, mode_t type)
-{
-	static DB *db;
-	static bool failure;
-	struct {
-		mode_t type;
-		dev_t dev;
-	} bkey;
-	DBT data, key;
-	char *name = NULL;
-
-	if (!db && !failure) {
-		if (!(db = dbopen(_PATH_DEVDB, O_RDONLY, 0, DB_HASH, NULL)))
-			failure = true;
-	}
-	if (!failure) {
-		/* Be sure to clear any padding that may be found in bkey.  */
-		memset(&bkey, 0, sizeof(bkey));
-		bkey.dev = dev;
-		bkey.type = type;
-		key.data = &bkey;
-		key.size = sizeof(bkey);
-		if ((db->get)(db, &key, &data, 0) == 0)
-			name = data.data;
-	} else {
-		name = devname_nodb(dev, type);
-	}
-	return (name ? name : "??");
 }

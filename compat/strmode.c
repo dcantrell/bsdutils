@@ -27,14 +27,11 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-
-#include "config.h"
+#include "compat.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <string.h>
-
-#include "compat.h"
 
 /* XXX mode should be mode_t */
 

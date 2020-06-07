@@ -16,14 +16,11 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-
-#include "config.h"
+#include "compat.h"
 
 #include <errno.h>
 #include <limits.h>
 #include <stdlib.h>
-
-#include "compat.h"
 
 #define	INVALID		1
 #define	TOOSMALL	2

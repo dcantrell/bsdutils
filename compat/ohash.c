@@ -14,8 +14,7 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-
-#include "config.h"
+#include "compat.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -23,8 +22,6 @@
 #include <string.h>
 #include <limits.h>
 #include "ohash.h"
-
-#include "compat.h"
 
 struct _ohash_record {
 	uint32_t	hv;

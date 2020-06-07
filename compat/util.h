@@ -34,6 +34,8 @@
 #ifndef _UTIL_H_
 #define _UTIL_H_
 
+#include <sys/types.h>
+
 /*
  * fparseln() specific operation flags.
  */
@@ -66,5 +68,16 @@
  * fmt_scaled(3) specific flags.
  */
 #define	FMT_SCALED_STRSIZE	7	/* minus sign, 4 digits, suffix, null byte */
+
+/*
+ * stub struct definitions.
+ */
+struct __sFILE;
+struct login_cap;
+struct passwd;
+struct termios;
+struct utmp;
+struct winsize;
+
 
 #endif /* !_UTIL_H_ */

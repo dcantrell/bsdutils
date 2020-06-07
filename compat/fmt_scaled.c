@@ -35,8 +35,7 @@
  * Formatting code was originally in OpenBSD "df", converted to library routine.
  * Scanning code written for OpenBSD libutil.
  */
-
-#include "config.h"
+#include "compat.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,8 +45,6 @@
 #include <limits.h>
 
 #include "util.h"
-
-#include "compat.h"
 
 typedef enum {
 	NONE = 0, KILO = 1, MEGA = 2, GIGA = 3, TERA = 4, PETA = 5, EXA = 6
@@ -261,10 +258,9 @@ fmt_scaled(long long number, char *result)
 		fract = 0;
 	}
 
-	if (number == 0) {
-		strncpy(result, "0B", FMT_SCALED_STRSIZE);
-		result[sizeof(result) - 1] = '\0';
-	} else if (unit == NONE || number >= 100 || number <= -100) {
+	if (number == 0)
+		strlcpy(result, "0B", FMT_SCALED_STRSIZE);
+	else if (unit == NONE || number >= 100 || number <= -100) {
 		if (fract >= 5) {
 			if (number >= 0)
 				number++;

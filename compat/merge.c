@@ -44,16 +44,13 @@
 /* #define NATURAL to get hybrid natural merge.
  * (The default is pairwise merging.)
  */
-
-#include "config.h"
+#include "compat.h"
 
 #include <sys/types.h>
 
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "compat.h"
 
 static void setup(u_char *, u_char *, size_t, size_t, int (*)());
 static void insertionsort(u_char *, size_t, size_t, int (*)());

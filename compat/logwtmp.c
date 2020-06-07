@@ -27,8 +27,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-
-#include "config.h"
+#include "compat.h"
 
 #include <sys/types.h>
 #include <sys/time.h>
@@ -36,13 +35,10 @@
 
 #include <fcntl.h>
 #include <string.h>
-#include <time.h>
 #include <unistd.h>
 #include <utmp.h>
 
 #include "util.h"
-
-#include "compat.h"
 
 void
 logwtmp(const char *line, const char *name, const char *host)
@@ -57,7 +53,7 @@ logwtmp(const char *line, const char *name, const char *host)
 		(void) strncpy(ut.ut_line, line, sizeof(ut.ut_line));
 		(void) strncpy(ut.ut_name, name, sizeof(ut.ut_name));
 		(void) strncpy(ut.ut_host, host, sizeof(ut.ut_host));
-		(void) time((time_t *) &ut.ut_time);
+		(void) time(&ut.ut_time);
 		if (write(fd, &ut, sizeof(struct utmp)) !=
 		    sizeof(struct utmp))
 			(void) ftruncate(fd, buf.st_size);
