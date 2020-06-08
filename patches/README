@@ -1,0 +1,20 @@
+Patches for source files imported from OpenBSD.  The structure of this
+directory mirrors the parent directory.  Filenames are of the format:
+
+    FILENAME.patch
+
+For example 'devname.c.patch'.  If a patch exists here, it is applied.
+Order can't matter because import-src.sh just applies them all.
+
+To add a patch, manually create it using diff(1) and make sure it can
+apply using 'patch -p0'.  For example:
+
+    cd src/arch/
+    cp -p arch.c arch.c.orig
+    # edit arch.c
+    mkdir -p ../../patches/src/arch
+    diff -u arch.c.orig arch.c > ../../patches/src/arch/arch.c.patch
+
+NOTE: All patches are applied *after* common edits to source files are
+done by import-src.sh.  Be sure to look at that script first if you
+need clarification on what fits that category.
