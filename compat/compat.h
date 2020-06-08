@@ -52,6 +52,9 @@ int heapsort(void *, size_t, size_t, int (*)(const void *, const void *));
 /* recallocarray.c */
 void *recallocarray(void *, size_t, size_t, size_t);
 
+/* strlcat.c */
+size_t strlcat(char *, const char *, size_t);
+
 /* strlcpy.c */
 size_t strlcpy(char *, const char *, size_t);
 
