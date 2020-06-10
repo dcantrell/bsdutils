@@ -1,4 +1,4 @@
-/*	$OpenBSD: cat.c,v 1.26 2016/10/19 18:20:25 schwarze Exp $	*/
+/*	$OpenBSD: cat.c,v 1.27 2019/06/28 13:34:58 deraadt Exp $	*/
 /*	$NetBSD: cat.c,v 1.11 1995/09/07 06:12:54 jtc Exp $	*/
 
 /*
@@ -32,8 +32,6 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-
-#include "config.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -205,7 +203,7 @@ raw_args(char **argv)
 		if (*argv) {
 			if (!strcmp(*argv, "-"))
 				fd = fileno(stdin);
-			else if ((fd = open(*argv, O_RDONLY, 0)) < 0) {
+			else if ((fd = open(*argv, O_RDONLY, 0)) == -1) {
 				warn("%s", *argv);
 				rval = 1;
 				++argv;
@@ -230,7 +228,7 @@ raw_cat(int rfd)
 
 	wfd = fileno(stdout);
 	if (buf == NULL) {
-		if (fstat(wfd, &sbuf))
+		if (fstat(wfd, &sbuf) == -1)
 			err(1, "stdout");
 		bsize = MAXIMUM(sbuf.st_blksize, BUFSIZ);
 		if ((buf = malloc(bsize)) == NULL)
@@ -241,7 +239,7 @@ raw_cat(int rfd)
 			if ((nw = write(wfd, buf + off, (size_t)nr)) == 0 ||
 			     nw == -1)
 				err(1, "stdout");
-	if (nr < 0) {
+	if (nr == -1) {
 		warn("%s", filename);
 		rval = 1;
 	}

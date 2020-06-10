@@ -1,0 +1,12 @@
+--- basename.c.orig	2020-06-07 22:25:25.615165153 -0400
++++ basename.c	2020-06-07 22:36:19.586691594 -0400
+@@ -45,9 +45,6 @@
+ 	int ch;
+ 	char *p;
+ 
+-	if (pledge("stdio", NULL) == -1)
+-		err(1, "pledge");
+-
+ 	while ((ch = getopt(argc, argv, "")) != -1) {
+ 		switch (ch) {
+ 		default:

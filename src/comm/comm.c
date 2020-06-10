@@ -33,8 +33,6 @@
  * SUCH DAMAGE.
  */
 
-#include "config.h"
-
 #include <err.h>
 #include <limits.h>
 #include <locale.h>

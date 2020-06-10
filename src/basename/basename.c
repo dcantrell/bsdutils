@@ -30,8 +30,6 @@
  * SUCH DAMAGE.
  */
 
-#include "config.h"
-
 #include <err.h>
 #include <libgen.h>
 #include <stdio.h>

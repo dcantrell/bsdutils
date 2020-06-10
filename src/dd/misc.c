@@ -1,4 +1,4 @@
-/*	$OpenBSD: misc.c,v 1.21 2017/08/13 02:06:42 tedu Exp $	*/
+/*	$OpenBSD: misc.c,v 1.23 2018/04/07 18:52:39 cheloha Exp $	*/
 /*	$NetBSD: misc.c,v 1.4 1995/03/21 09:04:10 cgd Exp $	*/
 
 /*-
@@ -34,17 +34,11 @@
  * SUCH DAMAGE.
  */
 
-#include "config.h"
-
 #include <sys/types.h>
 #include <sys/time.h>
-#include <sys/uio.h>
 
-#include <err.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <errno.h>
+#include <stdio.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -52,7 +46,7 @@
 #include "extern.h"
 
 /*
- * From <sys/time.h> on OpenBSD.  Not used in any other bsdutils commands,
+ * From <sys/time.h> on OpenBSD.  Not used in any other bsdutils commands
  * so just putting it in this file.
  */
 #define timespecsub(tsp, usp, vsp)                                \
@@ -69,10 +63,7 @@ void
 summary(void)
 {
 	struct timespec elapsed, now;
-	char buf[4][100];
-	struct iovec iov[4];
 	double nanosecs;
-	int i = 0;
 
 	if (ddflags & C_NOINFO)
 		return;
@@ -83,44 +74,30 @@ summary(void)
 	if (nanosecs == 0)
 		nanosecs = 1;
 
-	/* Use snprintf(3) so that we don't reenter stdio(3). */
-	(void)snprintf(buf[0], sizeof(buf[0]),
-	    "%zu+%zu records in\n%zu+%zu records out\n",
+	/* Be async safe: use dprintf(3). */
+	dprintf(STDERR_FILENO, "%zu+%zu records in\n%zu+%zu records out\n",
 	    st.in_full, st.in_part, st.out_full, st.out_part);
-	iov[i].iov_base = buf[0];
-	iov[i++].iov_len = strlen(buf[0]);
 
 	if (st.swab) {
-		(void)snprintf(buf[1], sizeof(buf[1]),
-		    "%zu odd length swab %s\n",
-		     st.swab, (st.swab == 1) ? "block" : "blocks");
-		iov[i].iov_base = buf[1];
-		iov[i++].iov_len = strlen(buf[1]);
+		dprintf(STDERR_FILENO, "%zu odd length swab %s\n",
+		    st.swab, (st.swab == 1) ? "block" : "blocks");
 	}
 	if (st.trunc) {
-		(void)snprintf(buf[2], sizeof(buf[2]),
-		    "%zu truncated %s\n",
-		     st.trunc, (st.trunc == 1) ? "block" : "blocks");
-		iov[i].iov_base = buf[2];
-		iov[i++].iov_len = strlen(buf[2]);
+		dprintf(STDERR_FILENO, "%zu truncated %s\n",
+		    st.trunc, (st.trunc == 1) ? "block" : "blocks");
 	}
 	if (!(ddflags & C_NOXFER)) {
-		(void)snprintf(buf[3], sizeof(buf[3]),
+		dprintf(STDERR_FILENO,
 		    "%lld bytes transferred in %lld.%03ld secs "
 		    "(%0.0f bytes/sec)\n", (long long)st.bytes,
 		    (long long)elapsed.tv_sec, elapsed.tv_nsec / 1000000,
 		    ((double)st.bytes * 1000000000) / nanosecs);
-		iov[i].iov_base = buf[3];
-		iov[i++].iov_len = strlen(buf[3]);
 	}
-
-	(void)writev(STDERR_FILENO, iov, i);
 }
 
 void
-terminate(int notused)
+terminate(int signo)
 {
-
 	summary();
-	_exit(0);
+	_exit(128 + signo);
 }

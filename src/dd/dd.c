@@ -1,4 +1,4 @@
-/*	$OpenBSD: dd.c,v 1.24 2017/08/13 02:06:42 tedu Exp $	*/
+/*	$OpenBSD: dd.c,v 1.27 2019/06/28 13:34:59 deraadt Exp $	*/
 /*	$NetBSD: dd.c,v 1.6 1996/02/20 19:29:06 jtc Exp $	*/
 
 /*-
@@ -33,8 +33,6 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-
-#include "config.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -98,7 +96,7 @@ setup(void)
 		in.fd = STDIN_FILENO;
 	} else {
 		in.fd = open(in.name, O_RDONLY, 0);
-		if (in.fd < 0)
+		if (in.fd == -1)
 			err(1, "%s", in.name);
 	}
 
@@ -120,11 +118,11 @@ setup(void)
 		 * Without read we may have a problem if output also does
 		 * not support seeks.
 		 */
-		if (out.fd < 0) {
+		if (out.fd == -1) {
 			out.fd = open(out.name, O_WRONLY | OFLAGS, DEFFILEMODE);
 			out.flags |= NOREAD;
 		}
-		if (out.fd < 0)
+		if (out.fd == -1)
 			err(1, "%s", out.name);
 	}
 
@@ -138,10 +136,14 @@ setup(void)
 		if ((in.db = malloc(out.dbsz + in.dbsz - 1)) == NULL)
 			err(1, "input buffer");
 		out.db = in.db;
-	} else if ((in.db =
-	    malloc((u_int)(MAXIMUM(in.dbsz, cbsz) + cbsz))) == NULL ||
-	    (out.db = malloc((u_int)(out.dbsz + cbsz))) == NULL)
-		err(1, "output buffer");
+	} else {
+		in.db = malloc(MAXIMUM(in.dbsz, cbsz) + cbsz);
+		if (in.db == NULL)
+			err(1, "input buffer");
+		out.db = malloc(out.dbsz + cbsz);
+		if (out.db == NULL)
+			err(1, "output buffer");
+	}
 	in.dbp = in.db;
 	out.dbp = out.db;
 
@@ -252,7 +254,7 @@ dd_in(void)
 		}
 
 		/* Read error. */
-		if (n < 0) {
+		if (n == -1) {
 			/*
 			 * If noerror not specified, die.  POSIX requires that
 			 * the warning message be followed by an I/O display.
@@ -342,6 +344,10 @@ dd_close(void)
 	}
 	if (out.dbcnt)
 		dd_out(1);
+	if (ddflags & C_FSYNC) {
+		if (fsync(out.fd) == -1)
+			err(1, "fsync %s", out.name);
+	}
 }
 
 void
@@ -372,9 +378,9 @@ dd_out(int force)
 	for (n = force ? out.dbcnt : out.dbsz;; n = out.dbsz) {
 		for (cnt = n;; cnt -= nw) {
 			nw = write(out.fd, outp, cnt);
-			if (nw <= 0) {
-				if (nw == 0)
-					errx(1, "%s: end of device", out.name);
+			if (nw == 0)
+				errx(1, "%s: end of device", out.name);
+			if (nw == -1) {
 				if (errno != EINTR)
 					err(1, "%s", out.name);
 				nw = 0;

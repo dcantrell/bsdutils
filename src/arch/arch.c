@@ -23,9 +23,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "config.h"
-
 #include <err.h>
+#include <libgen.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -39,12 +38,12 @@ static int machine;
 int
 main(int argc, char *argv[])
 {
-	extern char *__progname;
+	char *progname = basename(argv[0]);
 	int short_form = 0, c;
 	char *arch, *opts;
 	struct utsname utsbuf;
 
-	machine = strcmp(__progname, "machine") == 0;
+	machine = strcmp(progname, "machine") == 0;
 
 	if (uname(&utsbuf) == -1)
 		err(1, "uname(2)");
@@ -75,10 +74,7 @@ main(int argc, char *argv[])
 	if (optind != argc)
 		usage();
 
-	if (!short_form)
-		printf("%s.", utsbuf.sysname);
-
-	printf("%s\n", arch);
+	printf("%s%s\n", short_form ? "" : utsbuf.sysname, arch);
 	return (0);
 }
 

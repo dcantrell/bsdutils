@@ -52,8 +52,6 @@
  * If no args are given, the list of numbers are read from stdin.
  */
 
-#include "config.h"
-
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
@@ -61,6 +59,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <libgen.h>
 
 #include "primes.h"
 
@@ -78,7 +77,9 @@ extern const int pattern_size;
 static void		pr_fact(u_int64_t);	/* print factors of a value */
 static void		pr_bigfact(u_int64_t);
 static u_int64_t	usqrt(u_int64_t);
-static void	usage(void);
+static void usage(void);
+
+static char *__progname = NULL;
 
 int
 main(int argc, char *argv[])
@@ -86,6 +87,7 @@ main(int argc, char *argv[])
 	u_int64_t val;
 	int ch;
 	char *p, buf[100];		/* > max number of digits. */
+	__progname = basename(argv[0]);
 
 	while ((ch = getopt(argc, argv, "h")) != -1) {
 		switch (ch) {
@@ -304,7 +306,6 @@ usqrt(u_int64_t n)
 static void
 usage(void)
 {
-	extern char *__progname;
 	(void)fprintf(stderr, "usage: %s [number ...]\n", __progname);
 	exit (1);
 }

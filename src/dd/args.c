@@ -1,4 +1,4 @@
-/*	$OpenBSD: args.c,v 1.28 2016/08/16 16:44:55 krw Exp $	*/
+/*	$OpenBSD: args.c,v 1.31 2019/02/16 10:54:00 bluhm Exp $	*/
 /*	$NetBSD: args.c,v 1.7 1996/03/01 01:18:58 jtc Exp $	*/
 
 /*-
@@ -33,8 +33,6 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-
-#include "config.h"
 
 #include <sys/types.h>
 #include <sys/time.h>
@@ -97,9 +95,9 @@ jcl(char **argv)
 
 	in.dbsz = out.dbsz = 512;
 
-	while ((oper = *++argv) != NULL) {
-		if ((oper = strdup(oper)) == NULL)
-			errx(1, "out of memory");
+	while (*++argv != NULL) {
+		if ((oper = strdup(*argv)) == NULL)
+			err(1, NULL);
 		if ((arg = strchr(oper, '=')) == NULL)
 			errx(1, "unknown operand %s", oper);
 		*arg++ = '\0';
@@ -115,6 +113,7 @@ jcl(char **argv)
 			    tmp.name);
 		ddflags |= ap->set;
 		ap->f(arg);
+		free(oper);
 	}
 
 	/* Final sanity checks. */
@@ -220,8 +219,8 @@ f_ibs(char *arg)
 static void
 f_if(char *arg)
 {
-
-	in.name = arg;
+	if ((in.name = strdup(arg)) == NULL)
+		err(1, NULL);
 }
 
 static void
@@ -235,8 +234,8 @@ f_obs(char *arg)
 static void
 f_of(char *arg)
 {
-
-	out.name = arg;
+	if ((out.name = strdup(arg)) == NULL)
+		err(1, NULL);
 }
 
 static void
@@ -275,6 +274,7 @@ static const struct conv {
 	{ "ascii",	C_ASCII,	C_EBCDIC,	e2a_POSIX },
 	{ "block",	C_BLOCK,	C_UNBLOCK,	NULL },
 	{ "ebcdic",	C_EBCDIC,	C_ASCII,	a2e_POSIX },
+	{ "fsync",	C_FSYNC,	0,		NULL },
 	{ "ibm",	C_EBCDIC,	C_ASCII,	a2ibm_POSIX },
 	{ "lcase",	C_LCASE,	C_UCASE,	NULL },
 	{ "osync",	C_OSYNC,	C_BS,		NULL },
@@ -409,8 +409,9 @@ get_off(char *val)
 	off_t num, t;
 	char *expr;
 
+	errno = 0;
 	num = strtoll(val, &expr, 0);
-	if (num == LLONG_MAX)			/* Overflow. */
+	if (num == LLONG_MAX && errno == ERANGE)	/* Overflow. */
 		err(1, "%s", oper);
 	if (expr == val)			/* No digits. */
 		errx(1, "%s: illegal numeric value", oper);

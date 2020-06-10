@@ -44,8 +44,6 @@
  * and 65537^2 > 2^32-1.
  */
 
-#include "config.h"
-
 #include <sys/types.h>
 
 #include "primes.h"

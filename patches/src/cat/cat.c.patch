@@ -1,0 +1,12 @@
+--- cat.c.orig	2020-06-07 22:25:25.701165353 -0400
++++ cat.c	2020-06-07 22:37:04.890797317 -0400
+@@ -63,9 +63,6 @@
+ {
+ 	int ch;
+ 
+-	if (pledge("stdio rpath", NULL) == -1)
+-		err(1, "pledge");
+-
+ 	while ((ch = getopt(argc, argv, "benstuv")) != -1)
+ 		switch (ch) {
+ 		case 'b':
