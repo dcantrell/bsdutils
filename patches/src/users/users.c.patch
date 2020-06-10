@@ -1,0 +1,14 @@
+--- users.c.orig	2020-06-09 22:34:24.500115693 -0400
++++ users.c	2020-06-09 22:37:22.041561970 -0400
+@@ -53,11 +53,6 @@
+ 	struct utmp utmp;
+ 	int ch;
+ 
+-	if (unveil(_PATH_UTMP, "r") == -1)
+-		err(1, "unveil");
+-	if (pledge("stdio rpath", NULL) == -1)
+-		err(1, "pledge");
+-
+ 	while ((ch = getopt(argc, argv, "")) != -1)
+ 		switch(ch) {
+ 		case '?':

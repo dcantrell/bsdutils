@@ -1,4 +1,4 @@
-/*	$OpenBSD: users.c,v 1.13 2015/10/09 01:37:09 deraadt Exp $	*/
+/*	$OpenBSD: users.c,v 1.14 2018/08/03 16:02:53 deraadt Exp $	*/
 /*	$NetBSD: users.c,v 1.5 1994/12/20 15:58:19 jtc Exp $	*/
 
 /*
@@ -30,8 +30,6 @@
  * SUCH DAMAGE.
  */
 
-#include "config.h"
-
 #include <sys/types.h>
 
 #include <err.h>
@@ -40,8 +38,6 @@
 #include <string.h>
 #include <unistd.h>
 #include <utmp.h>
-
-#include "compat.h"
 
 typedef char	namebuf[UT_NAMESIZE];
 
