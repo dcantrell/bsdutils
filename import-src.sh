@@ -170,6 +170,8 @@ done
 
 if [ -d ${CWD}/patches/compat ]; then
     for patchfile in ${CWD}/patches/compat/*.patch ; do
+        destfile="$(basename ${patchfile} .patch)"
+        [ -f "${CWD}/compat/${destfile}.orig" ] && rm -f "${CWD}/compat/${destfile}.orig"
         patch -d ${CWD}/compat -p0 -b -z .orig < ${patchfile}
     done
 fi
@@ -179,6 +181,8 @@ if [ -d ${CWD}/patches/src ]; then
     for subdir in * ; do
         [ -d ${subdir} ] || continue
         for patchfile in ${CWD}/patches/src/${subdir}/*.patch ; do
+            destfile="$(basename ${patchfile} .patch)"
+            [ -f "${CWD}/src/${subdir}/${destfile}.orig" ] && rm -f "${CWD}/src/${subdir}/${destfile}.orig"
             patch -d ${CWD}/src/${subdir} -p0 -b -z .orig < ${patchfile}
         done
     done
