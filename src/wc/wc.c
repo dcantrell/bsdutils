@@ -1,4 +1,4 @@
-/*	$OpenBSD: wc.c,v 1.21 2016/09/16 09:25:23 fcambus Exp $	*/
+/*	$OpenBSD: wc.c,v 1.26 2019/06/28 13:35:05 deraadt Exp $	*/
 
 /*
  * Copyright (c) 1980, 1987, 1991, 1993
@@ -29,17 +29,17 @@
  * SUCH DAMAGE.
  */
 
-#include "config.h"
-
 #include <sys/param.h>	/* MAXBSIZE */
 #include <sys/stat.h>
-#include <sys/file.h>
+
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <locale.h>
 #include <ctype.h>
 #include <err.h>
 #include <unistd.h>
+#include <util.h>
 #include <wchar.h>
 #include <wctype.h>
 #include "compat.h"
@@ -130,7 +130,7 @@ cnt(char *file)
 	linect = wordct = charct = 0;
 	stream = NULL;
 	if (file) {
-		if ((fd = open(file, O_RDONLY, 0)) < 0) {
+		if ((fd = open(file, O_RDONLY, 0)) == -1) {
 			warn("%s", file);
 			rval = 1;
 			return;
@@ -207,15 +207,17 @@ cnt(char *file)
 		gotsp = 1;
 		while ((len = getline(&buf, &bufsz, stream)) > 0) {
 			if (multibyte) {
-				for (C = buf; *C != '\0'; C += len) {
+				const char *end = buf + len;
+				for (C = buf; C < end; C += len) {
 					++charct;
 					len = mbtowc(&wc, C, MB_CUR_MAX);
 					if (len == -1) {
 						mbtowc(NULL, NULL,
 						    MB_CUR_MAX);
 						len = 1;
-						wc = L' ';
-					}
+						wc = L'?';
+					} else if (len == 0)
+						len = 1;
 					if (iswspace(wc)) {
 						gotsp = 1;
 						if (wc == L'\n')
@@ -227,7 +229,7 @@ cnt(char *file)
 				}
 			} else {
 				charct += len;
-				for (C = buf; *C != '\0'; ++C) {
+				for (C = buf; len--; ++C) {
 					if (isspace((unsigned char)*C)) {
 						gotsp = 1;
 						if (*C == '\n')

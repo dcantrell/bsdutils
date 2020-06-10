@@ -40,6 +40,7 @@ src/expand/expand
 src/factor/factor
 src/false/false
 src/true/true
+src/wc/wc
 src/who/who
 src/yes/yes
 stamp-h1
