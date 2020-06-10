@@ -1,4 +1,4 @@
-/*	$OpenBSD: who.c,v 1.27 2015/10/21 16:06:57 millert Exp $	*/
+/*	$OpenBSD: who.c,v 1.28 2018/08/08 22:55:14 deraadt Exp $	*/
 /*	$NetBSD: who.c,v 1.4 1994/12/07 04:28:49 jtc Exp $	*/
 
 /*
@@ -33,8 +33,6 @@
  * SUCH DAMAGE.
  */
 
-#include "config.h"
-
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <paths.h>
@@ -47,7 +45,6 @@
 #include <time.h>
 #include <err.h>
 #include <locale.h>
-
 #include "compat.h"
 
 void  output(struct utmp *);
@@ -225,9 +222,8 @@ output(struct utmp *up)
 			time(&now);
 		
 		memset(line, 0, sizeof line);
-		strncpy(line, _PATH_DEV, sizeof line);
-		strncat(line, up->ut_line, UT_LINESIZE);
-		line[sizeof(line) - 1] = '\0';
+		strlcpy(line, _PATH_DEV, sizeof line);
+		strlcat(line, up->ut_line, sizeof line);
 
 		if (stat(line, &sb) == 0) {
 			state = (sb.st_mode & 020) ? '+' : '-';
