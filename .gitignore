@@ -39,6 +39,7 @@ src/env/env
 src/expand/expand
 src/factor/factor
 src/false/false
+src/tr/tr
 src/true/true
 src/users/users
 src/wc/wc
