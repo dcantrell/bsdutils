@@ -24,7 +24,9 @@ done
 
 cd ${TMPDIR}
 curl -L --retry 3 --ftp-pasv -O ${SRC} || fail_exit
+curl -L --retry 3 --ftp-pasv -O ${SYS} || fail_exit
 gzip -dc src.tar.gz | tar -xf -
+gzip -dc sys.tar.gz | tar -xf -
 
 # copy in the source for all coreutils programs
 CMDS="bin/test
@@ -132,6 +134,9 @@ cp -p lib/libutil/util.h ${CWD}/compat
 cp -p games/primes/primes.h ${CWD}/src/factor
 cp -p games/primes/pattern.c ${CWD}/src/factor
 cp -p games/primes/pr_tbl.c ${CWD}/src/factor
+
+# This header is in the kernel source, but used in userspace
+cp -p sys/sys/tree.h ${CWD}/compat/tree.h
 
 ################
 # COMMON EDITS #

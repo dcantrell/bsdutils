@@ -1,0 +1,11 @@
+--- tree.h.orig	2020-06-25 10:11:48.304831302 -0400
++++ tree.h	2020-06-25 10:13:38.464187783 -0400
+@@ -27,8 +27,6 @@
+ #ifndef	_SYS_TREE_H_
+ #define	_SYS_TREE_H_
+ 
+-#include <sys/_null.h>
+-
+ /*
+  * This file defines data structures for different types of trees:
+  * splay trees and red-black trees.
