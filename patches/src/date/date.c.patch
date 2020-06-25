@@ -1,0 +1,32 @@
+--- date.c.orig	2020-06-24 22:00:38.923209728 -0400
++++ date.c	2020-06-24 22:12:18.825679470 -0400
+@@ -44,6 +44,9 @@
+ #include <time.h>
+ #include <unistd.h>
+ #include <util.h>
++#include <utmp.h>
++
++#include "compat.h"
+ 
+ extern	char *__progname;
+ 
+@@ -113,9 +116,6 @@
+ 		argc--;
+ 	}
+ 
+-	if (pledge("stdio rpath", NULL) == -1)
+-		err(1, "pledge");
+-
+ 	if (*argv && **argv == '+') {
+ 		format = *argv + 1;
+ 		argc--;
+@@ -145,9 +145,6 @@
+ 	time_t now;
+ 	int yearset = 0;
+ 
+-	if (pledge("stdio settime rpath wpath", NULL) == -1)
+-		err(1, "pledge");
+-
+ 	lt = localtime(&tval);
+ 
+ 	lt->tm_isdst = -1;			/* correct for DST */
