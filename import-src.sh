@@ -123,7 +123,6 @@ cp -p lib/libc/stdlib/strtonum.c ${CWD}/compat
 cp -p lib/libc/string/strlcat.c ${CWD}/compat
 cp -p lib/libc/string/strlcpy.c ${CWD}/compat
 cp -p lib/libc/string/strmode.c ${CWD}/compat
-cp -p lib/libutil/logwtmp.c ${CWD}/compat
 cp -p lib/libutil/ohash.c ${CWD}/compat
 cp -p lib/libutil/ohash.h ${CWD}/compat
 cp -p lib/libutil/fmt_scaled.c ${CWD}/compat
