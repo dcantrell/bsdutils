@@ -1,0 +1,30 @@
+--- head.c.orig	2020-06-25 10:25:58.576582810 -0400
++++ head.c	2020-06-25 19:31:52.274971231 -0400
+@@ -37,6 +37,8 @@
+ #include <errno.h>
+ #include <unistd.h>
+ 
++#include "compat.h"
++
+ static void usage(void);
+ 
+ /*
+@@ -55,9 +57,6 @@
+ 	char	*p = NULL;
+ 	int	status = 0;
+ 
+-	if (pledge("stdio rpath", NULL) == -1)
+-		err(1, "pledge");
+-
+ 	/* handle obsolete -number syntax */
+ 	if (argc > 1 && argv[1][0] == '-' &&
+ 	    isdigit((unsigned char)argv[1][1])) {
+@@ -90,8 +89,6 @@
+ 			if (!firsttime)
+ 				exit(status);
+ 			fp = stdin;
+-			if (pledge("stdio", NULL) == -1)
+-				err(1, "pledge");
+ 		} else {
+ 			if ((fp = fopen(*argv, "r")) == NULL) {
+ 				warn("%s", *argv++);
