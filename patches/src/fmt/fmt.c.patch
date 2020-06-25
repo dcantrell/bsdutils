@@ -1,0 +1,21 @@
+--- fmt.c.orig	2020-06-25 09:46:14.414015193 -0400
++++ fmt.c	2020-06-25 10:23:06.482025946 -0400
+@@ -260,9 +260,6 @@
+ 
+ 	(void)setlocale(LC_CTYPE, "");
+ 
+-	if (pledge("stdio rpath", NULL) == -1)
+-		err(1, "pledge");
+-
+ 	/* 1. Grok parameters. */
+ 	while ((ch = getopt(argc, argv, "0123456789cd:hl:mnpst:w:")) != -1) {
+ 		switch (ch) {
+@@ -344,8 +341,6 @@
+ 		while (argc-- > 0)
+ 			process_named_file(*argv++);
+ 	} else {
+-		if (pledge("stdio", NULL) == -1)
+-			err(1, "pledge");
+ 		process_stream(stdin, "standard input");
+ 	}
+ 
