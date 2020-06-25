@@ -45,8 +45,6 @@
  * assumption about the input.
  */
 
-#include "config.h"
-
 #include <sys/types.h>
 
 #include <ctype.h>
@@ -236,8 +234,7 @@ newfile(void)
 	FILE *fp;
 
 	if ((size_t)snprintf(currfile, sizeof(currfile), "%s%0*ld", prefix,
-	    (int)sufflen, nfiles) >= sizeof(currfile))
-	{
+	    (int)sufflen, nfiles) >= sizeof(currfile)) {
 		errno = ENAMETOOLONG;
 		err(1, "%s", currfile);
 	}
@@ -378,7 +375,7 @@ do_rexp(const char *expr)
 	} else
 		ofs = 0;
 
-	if (regcomp(&cre, re, 0|REG_NOSUB) != 0)
+	if (regcomp(&cre, re, REG_NOSUB) != 0)
 		errx(1, "%s: bad regular expression", re);
 
 	if (*expr == '/')
