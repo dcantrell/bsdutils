@@ -1,0 +1,21 @@
+--- expr.c.orig	2020-06-25 09:46:14.273014877 -0400
++++ expr.c	2020-06-25 10:21:07.811641888 -0400
+@@ -16,6 +16,8 @@
+ #include <regex.h>
+ #include <err.h>
+ 
++#include "compat.h"
++
+ struct val	*make_int(int64_t);
+ struct val	*make_str(char *);
+ void		 free_value(struct val *);
+@@ -495,9 +497,6 @@
+ {
+ 	struct val     *vp;
+ 
+-	if (pledge("stdio", NULL) == -1)
+-		err(2, "pledge");
+-
+ 	if (argc > 1 && !strcmp(argv[1], "--"))
+ 		argv++;
+ 
