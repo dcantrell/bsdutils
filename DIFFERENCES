@@ -1,350 +1,360 @@
 Porting these BSD utilities to non-BSD systems exposes some notable
-differences.  The target platform is Linux and the origin platform is OpenBSD.
-This file attempts to summarize the major differences and what option was taken
-for the port.
+differences.  The target platform is Linux and the origin platform is
+OpenBSD.  This file attempts to summarize the major differences and
+what option was taken for the port.
 
 
 pledge()
 --------
-
-OpenBSD offers a system call named pledge(2) that forces a process in to a
-restricted operating mode.  This is entirely an OpenBSD thing and not present
-on Linux.  All calls to pledge() have been removed in the bsdutils source.
+OpenBSD offers a system call named pledge(2) that forces a process in
+to a restricted operating mode.  This is entirely an OpenBSD thing and
+not present on Linux.  All calls to pledge() have been removed in the
+bsdutils source.
 
 
 __dead
 ------
-
 According to the OpenBSD style(9) man page, they prefer prefixing void
-functions with __dead.  This is defined in their <sys/cdefs.h> header file and
-expands to __volatile or __attribute__((__noreturn__)) depending on C
-preprocessor tests to determine the compiler and options you're using.  It
-feels overly pedantic.  As such, the bsdutils port will be removing all
-instances of __dead from source code.
+functions with __dead.  This is defined in their <sys/cdefs.h> header
+file and expands to __volatile or __attribute__((__noreturn__))
+depending on C preprocessor tests to determine the compiler and
+options you're using.  It feels overly pedantic.  As such, the
+bsdutils port will be removing all instances of __dead from source
+code.
 
 
 SIGINFO
 -------
-
-If you look at the 'kill -l' output on your Linux system, you will see a lot of
-signal types but SIGINFO (INFO in the kill output) is missing.  Linux has never
-had a SIGINFO signal that functions in the same way as BSD systems.  The idea
-is that you can send SIGINFO to a long running process like cp on a large file
-or dd on a large device and the signal handler will print stats on the process.
-The statistics come from the kernel, so any implementation on Linux would
-require a kernel patch and that doesn't seem likely or really necessary.  All
-signal handlers for SIGINFO and their accompanying functions have been removed
-from the bsdutils source code.
+If you look at the 'kill -l' output on your Linux system, you will see
+a lot of signal types but SIGINFO (INFO in the kill output) is
+missing.  Linux has never had a SIGINFO signal that functions in the
+same way as BSD systems.  The idea is that you can send SIGINFO to a
+long running process like cp on a large file or dd on a large device
+and the signal handler will print stats on the process.  The
+statistics come from the kernel, so any implementation on Linux would
+require a kernel patch and that doesn't seem likely or really
+necessary.  All signal handlers for SIGINFO and their accompanying
+functions have been removed from the bsdutils source code.
 
 
 errc() and warnc()
 ------------------
+The errc() error message formatting function exists on OpenBSD but not
+Linux.  The difference between err() and errc() is that the error code
+is passed as the second argument for errc() whereas the err() function
+just looks at the global errno variable.  We can replace errc() calls
+with a setting of errno and a call to err() with the second parameter
+removed.
 
-The errc() error message formatting function exists on OpenBSD but not Linux.
-The difference between err() and errc() is that the error code is passed as the
-second argument for errc() whereas the err() function just looks at the global
-errno variable.  We can replace errc() calls with a setting of errno and a call
-to err() with the second parameter removed.
-
-All of the previous paragraph applies to warnc() as well where we replace it
-with a call to warn() in the same manner.
+All of the previous paragraph applies to warnc() as well where we
+replace it with a call to warn() in the same manner.
 
 
 S_ISTXT
 -------
-
-The OpenBSD macro to test st_mode to see if the sticky bit is set is named
-S_ISTXT while Linux calls it S_ISVTX.  For our purposes we will just change
-these in the code to S_ISVTX.
+The OpenBSD macro to test st_mode to see if the sticky bit is set is
+named S_ISTXT while Linux calls it S_ISVTX.  For our purposes we will
+just change these in the code to S_ISVTX.
 
 
 setmode() and getmode()
 -----------------------
-
-These C library functions on OpenBSD are not present on Linux.  But we can
-import setmode.c to our libcompat library.
+These C library functions on OpenBSD are not present on Linux.  But we
+can import setmode.c to our libcompat library.
 
 
 reallocarray() and recallocarray()
 ----------------------------------
-
-reallocarray() is a thin wrapper around realloc().  glibc offers it though
-there is currently no man page for it on typical Linux systems.  We will use
-the glibc reallocarray() but copy over recallocarray.c since glibc lacks that.
-recallocarray() is reallocarray() but in calloc() style.
+reallocarray() is a thin wrapper around realloc().  glibc offers it
+though there is currently no man page for it on typical Linux systems.
+We will use the glibc reallocarray() but copy over recallocarray.c
+since glibc lacks that.  recallocarray() is reallocarray() but in
+calloc() style.
 
 
 DEF_WEAK
 --------
-
-Linux does not have the namespace.h definitions from OpenBSD, which includes
-DEF_WEAK.  This expands to __weak_alias(x, HIDDEN(x)) and HIDDEN renames the
-item with a prefix of __libc_.  We don't need that here since our compat
-library is just a static library used to build this handful of programs.  Where
-DEF_WEAK is present in source, it will be removed.
+Linux does not have the namespace.h definitions from OpenBSD, which
+includes DEF_WEAK.  This expands to __weak_alias(x, HIDDEN(x)) and
+HIDDEN renames the item with a prefix of __libc_.  We don't need that
+here since our compat library is just a static library used to build
+this handful of programs.  Where DEF_WEAK is present in source, it
+will be removed.
 
 
 NL_TEXTMAX
 ----------
-
 Linux has this when __USE_XOPEN is defined.  You can get this through
-_GNU_SOURCE or _XOPEN_SOURCE or _POSIX_C_SOURCE.  For us, _GNU_SOURCE tends to
-be the better option so we don't accidentally turn off other definitions.
+_GNU_SOURCE or _XOPEN_SOURCE or _POSIX_C_SOURCE.  For us, _GNU_SOURCE
+tends to be the better option so we don't accidentally turn off other
+definitions.
 
 
 getline()
 ---------
-
 glibc has this if you define _GNU_SOURCE when building.
 
 
 fgetln()
 --------
-
-The BSD function to read a line of input from a file stream is not portable,
-except to other BSD variants.  On glibc and defined by POSIX we have getline(),
-which is similar but slightly different.  We can't easily port the BSD fgetln()
-function because of the way it works.  It's easier to just rewrite code to use
-getline() instead, which is what we will do.
+The BSD function to read a line of input from a file stream is not
+portable, except to other BSD variants.  On glibc and defined by POSIX
+we have getline(), which is similar but slightly different.  We can't
+easily port the BSD fgetln() function because of the way it works.
+It's easier to just rewrite code to use getline() instead, which is
+what we will do.
 
 
 struct passwd
 -------------
-
-As defined in pwd.h, this is mostly similar on Linux from OpenBSD but OpenBSD
-does include some things beyond what a standard Unix system has.  Notably their
-pw_class attribute which defines the user class.  This is a thing specific to
-OpenBSD and is not present on other systems.  At least it's not present on
-Linux.  For our port, we are removing the pw_class support in code that uses
-it.
+As defined in pwd.h, this is mostly similar on Linux from OpenBSD but
+OpenBSD does include some things beyond what a standard Unix system
+has.  Notably their pw_class attribute which defines the user class.
+This is a thing specific to OpenBSD and is not present on other
+systems.  At least it's not present on Linux.  For our port, we are
+removing the pw_class support in code that uses it.
 
 
 strmode()
 ---------
-
-This convenience function is in the OpenBSD libc and has been copied over to
-our libcompat.  It is not available in glibc.
+This convenience function is in the OpenBSD libc and has been copied
+over to our libcompat.  It is not available in glibc.
 
 
 user_from_uid() and group_from_gid()
 ------------------------------------
-
-These come from pwcache.c in the OpenBSD libc source.  These use macro limits
-defined in the OpenBSD pwd.h and grp.h header files, but those definitions do
-not exist on Linux.  Our build will just copy in the OpenBSD limits for now.
+These come from pwcache.c in the OpenBSD libc source.  These use macro
+limits defined in the OpenBSD pwd.h and grp.h header files, but those
+definitions do not exist on Linux.  Our build will just copy in the
+OpenBSD limits for now.
 
 
 fchflags(), stat.st_flags, and related things
 ---------------------------------------------
+Files in BSD have various flags that can be set.  Make it immutable,
+for instance.  In Linux we have the chattr and lsattr commands for the
+same type functionality.  These are filesystem-specific.  In BSD,
+everything is implemented in the same source tree and they only have
+the one main filesystem, so this is implemented in the main API for
+the operating system.
 
-Files in BSD have various flags that can be set.  Make it immutable, for
-instance.  In Linux we have the chattr and lsattr commands for the same type
-functionality.  These are filesystem-specific.  In BSD, everything is
-implemented in the same source tree and they only have the one main filesystem,
-so this is implemented in the main API for the operating system.
-
-Linux doesn't have a generic way to do this, so the functionality has been
-removed from commands that try to use it.
+Linux doesn't have a generic way to do this, so the functionality has
+been removed from commands that try to use it.
 
 The stat(1) command has the st_flags handling code removed as well.
 
 
 MAXBSIZE
 --------
-
-Defined in sys/param.h on OpenBSD, but filesystem specific.  Similar to
-fchflags(), we don't have a generic definition for this in Linux.  The OpenBSD
-definition is the same as the definition that comes with e2fsprogs, which seems
-like a reasonable default.  So we define this one as-is in the source.
+Defined in sys/param.h on OpenBSD, but filesystem specific.  Similar
+to fchflags(), we don't have a generic definition for this in Linux.
+The OpenBSD definition is the same as the definition that comes with
+e2fsprogs, which seems like a reasonable default.  So we define this
+one as-is in the source.
 
 
 arc4random() and related things
 -------------------------------
+Linux has the standard C library random functions and does not include
+anything named arc4random from the BSD world.  There is a getrandom()
+call that appeared starting with the 3.17 kernel.  This is more useful
+than the pseudo random number generator functions provided by the C
+library so whenever we can, we'll replace arc4random stuff with
+getrandom() calls.
 
-Linux has the standard C library random functions and does not include anything
-named arc4random from the BSD world.  There is a getrandom() call that appeared
-starting with the 3.17 kernel.  This is more useful than the pseudo random
-number generator functions provided by the C library so whenever we can, we'll
-replace arc4random stuff with getrandom() calls.
-
-arc4random() in the BSD world uses the RC4 algorithm for generating random
-numbers.  RC4 is short for Rivest Cipher 4 and is also known as ARC4 or ARCFOUR
-or Alleged RC4.  Later versions of arc4random() have changed to other
-algorithms leading the man pages to say arc4random stands for "a replacement
-for random" referring to the original random() library call.
+arc4random() in the BSD world uses the RC4 algorithm for generating
+random numbers.  RC4 is short for Rivest Cipher 4 and is also known as
+ARC4 or ARCFOUR or Alleged RC4.  Later versions of arc4random() have
+changed to other algorithms leading the man pages to say arc4random
+stands for "a replacement for random" referring to the original
+random() library call.
 
 
 struct statfs
 -------------
-
-This is available on Linux in the <sys/vfs.h> header.  Not all of the struct
-members are the same as the ones in BSD.  For instance, Linux has .f_bsize
-whereas BSD has .f_iosize.  The statfs structures are OS-specific and the
-similarly named struct statvfs is defined to be the portable one.  We will use
-the statvfs structure and functions where statfs is used.  The statvfs struct
-and functions are defined in <sys/statvfs.h>.
+This is available on Linux in the <sys/vfs.h> header.  Not all of the
+struct members are the same as the ones in BSD.  For instance, Linux
+has .f_bsize whereas BSD has .f_iosize.  The statfs structures are
+OS-specific and the similarly named struct statvfs is defined to be
+the portable one.  We will use the statvfs structure and functions
+where statfs is used.  The statvfs struct and functions are defined in
+<sys/statvfs.h>.
 
 
 struct stat
 -----------
+There are a number of differences between the stat structures on Linux
+and OpenBSD.  Linux does not have the st_mtimensec member.  Linux has
+st_atim, st_mtim, and st_ctim (note the lack of the trailing 'e')
+which are all struct timespec structures.  There is st_atime,
+st_mtime, and st_ctime which are the .tv_sec members of the timespec
+structures.  You can get the nanoseconds from the .tv_nsec member on
+the timespec structures.  For code that uses this, make sure to add
+-D_XOPEN_SOURCE=700 (or higher than 700) to the CFLAGS.
 
-There are a number of differences between the stat structures on Linux and
-OpenBSD.  Linux does not have the st_mtimensec member.  Linux has st_atim,
-st_mtim, and st_ctim (note the lack of the trailing 'e') which are all struct
-timespec structures.  There is st_atime, st_mtime, and st_ctime which are the
-.tv_sec members of the timespec structures.  You can get the nanoseconds from
-the .tv_nsec member on the timespec structures.  For code that uses this, make
-sure to add -D_XOPEN_SOURCE=700 (or higher than 700) to the CFLAGS.
+The st_birthtime member is not present on Linux because this is
+filesystem specific and there is not a generic way to handle it.  Even
+OpenBSD has this problem for some filesystems.  In those cases, the
+st_btime output is undefined if the filesystem lacks support.  GNU
+stat works this way too.  For consistency with the other stuff we are
+doing, our code removes the st_birthtime code whenever it appears in
+code.
 
-The st_birthtime member is not present on Linux because this is filesystem
-specific and there is not a generic way to handle it.  Even OpenBSD has this
-problem for some filesystems.  In those cases, the st_btime output is undefined
-if the filesystem lacks support.  GNU stat works this way too.  For consistency
-with the other stuff we are doing, our code removes the st_birthtime code
-whenever it appears in code.
-
-The st_gen member is the file generation number and this is not present on
-Linux, so it has been removed from the code.
+The st_gen member is the file generation number and this is not
+present on Linux, so it has been removed from the code.
 
 
 getbsize()
 ----------
-The OpenBSD standard C library includes the getbsize() function which returns a
-formatted string based on the value in the BLOCKSIZE environment variable.
-This appears to be a standard BSD thing as it claims to have originated with
-4.4 BSD.  We take the one from the OpenBSD source tree and put it in our compat
-library.
+The OpenBSD standard C library includes the getbsize() function which
+returns a formatted string based on the value in the BLOCKSIZE
+environment variable.  This appears to be a standard BSD thing as it
+claims to have originated with 4.4 BSD.  We take the one from the
+OpenBSD source tree and put it in our compat library.
 
 
 VDSUSP
 ------
-This is called CDSUSP on Linux.  In fact, on OpenBSD the VDSUSP name appears to
-be legacy.  Linux doesn't carry the old name, only the new name.
+This is called CDSUSP on Linux.  In fact, on OpenBSD the VDSUSP name
+appears to be legacy.  Linux doesn't carry the old name, only the new
+name.
 
 
 VSTATUS
 -------
-Terminal control sequence only available on BSD systems.  This displays kernel
-information on the terminal, which the Linux kernel lacks support for.  This is
-removed from stty(1) and other commands that use it.
+Terminal control sequence only available on BSD systems.  This
+displays kernel information on the terminal, which the Linux kernel
+lacks support for.  This is removed from stty(1) and other commands
+that use it.
 
 
 tty headers
 -----------
-Fortunately Linux and BSD systems do things very differently here.  On Linux,
-you generally want to include termios.h and pty.h.  BSD doesn't have the
-latter.  Avoid directly including sys or linux headers because those are pulled
-in by the glibc headers.
+Fortunately Linux and BSD systems do things very differently here.  On
+Linux, you generally want to include termios.h and pty.h.  BSD doesn't
+have the latter.  Avoid directly including sys or linux headers
+because those are pulled in by the glibc headers.
 
 
 TIOCSTART and TIOCSTOP
 ----------------------
-These are not implemented on Linux, so they have been removed from stty(1).
+These are not implemented on Linux, so they have been removed from
+stty(1).
 
 
 TIOCEXT
 -------
-This is handled via tcgetattr() and tcsetattr() on Linux, whereas it's an ioctl
-on BSD.  The f_extproc function in stty.c has been altered to do things the
-Linux way.
+This is handled via tcgetattr() and tcsetattr() on Linux, whereas it's
+an ioctl on BSD.  The f_extproc function in stty.c has been altered to
+do things the Linux way.
 
 
 ALTWERASE
 ---------
-Alternate word erase is a BSD thing.  glibc offers WERASE and VWERASE and has
-inconsistent documentation alluding to VWERASE being ALTWERASE as you expect on
-BSD.  Our patches use VWERASE where ALTWERASE was used.
+Alternate word erase is a BSD thing.  glibc offers WERASE and VWERASE
+and has inconsistent documentation alluding to VWERASE being ALTWERASE
+as you expect on BSD.  Our patches use VWERASE where ALTWERASE was
+used.
 
 
 TTYDISC and other *DISC macros
 ------------------------------
-tty line discipline macro names are entirely different between Linux and BSD.
-TTTYDISC is '0' and that maps to N_TTY on Linux.  The Linux names tend to be
-N_*, so PPPDISC is N_PPP.  OpenBSD has some that Linux doesn't have, like
-NMEADISC, and in those cases the OpenBSD-specific code is removed.
+tty line discipline macro names are entirely different between Linux
+and BSD.  TTTYDISC is '0' and that maps to N_TTY on Linux.  The Linux
+names tend to be N_*, so PPPDISC is N_PPP.  OpenBSD has some that
+Linux doesn't have, like NMEADISC, and in those cases the
+OpenBSD-specific code is removed.
 
 
 OXTABS
 ------
-This is another stty thing, which does exist on Linux under the name XTABS.
-It's actually under several macro names, but XTABS is the closest to what BSD
-calls it, so we'll go with that.
+This is another stty thing, which does exist on Linux under the name
+XTABS.  It's actually under several macro names, but XTABS is the
+closest to what BSD calls it, so we'll go with that.
 
 
 Missing Control Modes
 ---------------------
-Some modes for stty(1) just don't exist on Linux.  These are mdmbuf, kerninfo,
-and onoeot.  In those cases, the support for them is removed from stty(1).
+Some modes for stty(1) just don't exist on Linux.  These are mdmbuf,
+kerninfo, and onoeot.  In those cases, the support for them is removed
+from stty(1).
 
 
 login_cap.h and setlogin()
 --------------------------
-Linux doesn't have any of this.  The chroot command's -u option has been
-removed as a result as well as the other checks in the program and the setsid()
-call based on the login.  The coreutils one claims to do this, but I'm not sure
-I believe it.  coreutils is generic and can work on BSD, so the man page might
-be saying that while it really doesn't work on Linux.  If that functionality
-actually worked on Linux, then the fakechroot program wouldn't need to exist.
+Linux doesn't have any of this.  The chroot command's -u option has
+been removed as a result as well as the other checks in the program
+and the setsid() call based on the login.  The coreutils one claims to
+do this, but I'm not sure I believe it.  coreutils is generic and can
+work on BSD, so the man page might be saying that while it really
+doesn't work on Linux.  If that functionality actually worked on
+Linux, then the fakechroot program wouldn't need to exist.
 
 
 sysctl()
 --------
-Linux frowns on using sysctl() to gather information about the system.  There
-is an alternative function called sysconf() which supports a limited subset of
-things.  We use this where sysctl() was used, such as computing the amount of
-physical memory in the system.
+Linux frowns on using sysctl() to gather information about the system.
+There is an alternative function called sysconf() which supports a
+limited subset of things.  We use this where sysctl() was used, such
+as computing the amount of physical memory in the system.
 
 
 MD5 routines
 ------------
-glibc does not expose any public MD5 data types or functions.  The OpenSSL and
-LibreSSL libraries do.  Since LibreSSL is from OpenBSD, this is the MD5 code
-that is used in sort(1).  Under GNU coreutils, sort(1) uses the MD5 code from
-the md5sum(1) program.  Rather than embed MD5 code in bsdutils, we are choosing
-to link with OpenSSL or LibreSSL on your system.  If you lack these libraries,
-you can build bsdutils with sort disabled.
+glibc does not expose any public MD5 data types or functions.  The
+OpenSSL and LibreSSL libraries do.  Since LibreSSL is from OpenBSD,
+this is the MD5 code that is used in sort(1).  Under GNU coreutils,
+sort(1) uses the MD5 code from the md5sum(1) program.  Rather than
+embed MD5 code in bsdutils, we are choosing to link with OpenSSL or
+LibreSSL on your system.  If you lack these libraries, you can build
+bsdutils with sort disabled.
 
 
 issetugid()
 -----------
-This is an OpenBSD system call that returns non-zero if the executing process
-is using escalated privileges via the setgid bit.  This is most closely handled
-on Linux with the getauxval() function and passing it AT_SECURE.
+This is an OpenBSD system call that returns non-zero if the executing
+process is using escalated privileges via the setgid bit.  This is
+most closely handled on Linux with the getauxval() function and
+passing it AT_SECURE.
 
 
 kqueue vs. epoll
 ----------------
-The tail(1) command on OpenBSD uses kqueue to monitor for events on files and
-then take action.  This is a BSD-specific API and not available on Linux.  But
-Linux does have epoll which is similar.  tail(1) has been modified to use the
-epoll API on Linux and roughly work in the same manner as the OpenBSD one.
+The tail(1) command on OpenBSD uses kqueue to monitor for events on
+files and then take action.  This is a BSD-specific API and not
+available on Linux.  But Linux does have epoll which is similar.
+tail(1) has been modified to use the epoll API on Linux and roughly
+work in the same manner as the OpenBSD one.
 
 
 strlcpy()
 ---------
-This string function appeared at some point in the Unix lineage as a better
-replacement for strncpy() (which itself was a better strcpy()).  Neither
-strncpy() nor strcpy() will guarantee a NUL terminated string, which can lead
-to all sorts of problems as nearly every C programmer on the planet assumes a
-string is NUL terminated.  strlcpy() entered the mix basically to guarantee
-that the destination string was NUL terminated at all costs, even if it meant
-truncating data.  Some would say this is good behavior for a C string library
-function but others argue that possibly eliminating data in the name of NUL
-termination can lead to unexpected behavior in the calling program.  While that
-is true, you could also argue that a calling program should not be so fast and
-loose with strings.
+This string function appeared at some point in the Unix lineage as a
+better replacement for strncpy() (which itself was a better strcpy()).
+Neither strncpy() nor strcpy() will guarantee a NUL terminated string,
+which can lead to all sorts of problems as nearly every C programmer
+on the planet assumes a string is NUL terminated.  strlcpy() entered
+the mix basically to guarantee that the destination string was NUL
+terminated at all costs, even if it meant truncating data.  Some would
+say this is good behavior for a C string library function but others
+argue that possibly eliminating data in the name of NUL termination
+can lead to unexpected behavior in the calling program.  While that is
+true, you could also argue that a calling program should not be so
+fast and loose with strings.
 
-OK, so strlcpy() is present on a lot of commercial Unix systems and the BSD
-family.  For instance, Solaris, the open source BSDs, MacOS X, and IRIX offer
-strlcpy().  But AIX and HP-UX do not.  Also Linux, by way of glibc, does not
-offer this function.  There is a long and colorful debate about whether or not
-strlcpy() should be added to glibc.  Patches show up from time to time and get
-rejected.  It is worth noting that strlcpy() are not part of POSIX.1-2008 and
-that should count for something.  LWN has a fun article about strlcpy():
+OK, so strlcpy() is present on a lot of commercial Unix systems and
+the BSD family.  For instance, Solaris, the open source BSDs, MacOS X,
+and IRIX offer strlcpy().  But AIX and HP-UX do not.  Also Linux, by
+way of glibc, does not offer this function.  There is a long and
+colorful debate about whether or not strlcpy() should be added to
+glibc.  Patches show up from time to time and get rejected.  It is
+worth noting that strlcpy() are not part of POSIX.1-2008 and that
+should count for something.  LWN has a fun article about strlcpy():
 
     https://lwn.net/Articles/507319/
 
-Where does that leave this project?  Where strlcpy() is used like this:
+Where does that leave this project?  Where strlcpy() is used like
+this:
 
     strlcpy(dest, src, size);
 
@@ -358,29 +368,37 @@ Problem solved.
 
 strlcat()
 ---------
-Similar to the strlcpy() discussion is the strlcat() function.  See the LWN
-article above as it includes strlcat() as well.  This is not a POSIX function
-and it is not present in glibc.  In place of strlcat() we can do a couple of
-things depending on what the program needs:
+Similar to the strlcpy() discussion is the strlcat() function.  See
+the LWN article above as it includes strlcat() as well.  This is not a
+POSIX function and it is not present in glibc.  In place of strlcat()
+we can do a couple of things depending on what the program needs:
 
-* We can use strncat() and make sure the 3rd argument is the size of the
-  2nd argument.  This works when the dest buffer is static.  And in a lot
-  of these programs, that is the case.
+* We can use strncat() and make sure the 3rd argument is the size of
+  the 2nd argument.  This works when the dest buffer is static.  And
+  in a lot of these programs, that is the case.
 
 * We can use stpcpy() to build up a dynamic string of parts and avoid
-  scanning the dest string for each concatenation.  Must free the memory
-  afterwards.
+  scanning the dest string for each concatenation.  Must free the
+  memory afterwards.
 
-* In cases where a string of length 1 is going through strlcat(), we can
-  just reference that array element directly and set it.
+* In cases where a string of length 1 is going through strlcat(), we
+  can just reference that array element directly and set it.
 
-Whichever of these methods is used, we still need to set the trailing NUL
-like we do for the strlcpy() replacements.
+Whichever of these methods is used, we still need to set the trailing
+NUL like we do for the strlcpy() replacements.
 
 
 sys_signame[]
 -------------
-This array contains strings describing the signal number.  The array index is
-the signal number.  The POSIX standard for getting a signal name if you have
-the signal number is strsignal(), which is available on glibc and is what we
-will use.
+This array contains strings describing the signal number.  The array
+index is the signal number.  The POSIX standard for getting a signal
+name if you have the signal number is strsignal(), which is available
+on glibc and is what we will use.
+
+
+REG_BASIC
+---------
+OpenBSD defines REG_BASIC for regcomp(3).  This is not defined in
+glibc on Linux because it is the default behavior.  There is
+REG_EXTENDED to enable POSIX Extended Regular Expressions.  Where
+REG_BASIC appears in regcomp() calls, we remove it.
