@@ -30,9 +30,6 @@ const char *group_from_gid(gid_t, int);
 int uid_from_user(const char *, uid_t *);
 int gid_from_group(const char *, gid_t *);
 
-/* logwtmp.c */
-void logwtmp(const char *, const char *, const char *);
-
 /* fmt_scaled.c */
 int scan_scaled(char *, long long *);
 int fmt_scaled(long long, char *);
