@@ -1,4 +1,4 @@
-/*	$OpenBSD: cp.c,v 1.46 2017/06/27 21:49:47 tedu Exp $	*/
+/*	$OpenBSD: cp.c,v 1.53 2019/06/28 13:34:58 deraadt Exp $	*/
 /*	$NetBSD: cp.c,v 1.14 1995/09/07 06:14:51 jtc Exp $	*/
 
 /*
@@ -48,8 +48,6 @@
  * in "to") to form the final target path.
  */
 
-#include "config.h"
-
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
@@ -92,7 +90,7 @@ main(int argc, char *argv[])
 	char *target;
 
 	Hflag = Lflag = Pflag = Rflag = 0;
-	while ((ch = getopt(argc, argv, "HLPRfiprv")) != -1)
+	while ((ch = getopt(argc, argv, "HLPRafiprv")) != -1)
 		switch (ch) {
 		case 'H':
 			Hflag = 1;
@@ -108,6 +106,12 @@ main(int argc, char *argv[])
 			break;
 		case 'R':
 			Rflag = 1;
+			break;
+		case 'a':
+			Rflag = 1;
+			pflag = 1;
+			Pflag = 1;
+			Hflag = Lflag = 0;
 			break;
 		case 'f':
 			fflag = 1;
@@ -167,10 +171,8 @@ main(int argc, char *argv[])
 
 	/* Save the target base in "to". */
 	target = argv[--argc];
-	(void) strncpy(to.p_path, target, sizeof to.p_path);
-	if (sizeof(target) >= sizeof(to.p_path))
+	if (strlcpy(to.p_path, target, sizeof to.p_path) >= sizeof(to.p_path))
 		errx(1, "%s: name too long", target);
-	to.p_path[sizeof(to.p_path) - 1] = '\0';
 	to.p_end = to.p_path + strlen(to.p_path);
 	if (to.p_path == to.p_end) {
 		*to.p_end++ = '.';
@@ -262,7 +264,7 @@ copy(char *argv[], enum op type, int fts_options)
 	struct stat to_stat;
 	FTS *ftsp;
 	FTSENT *curr;
-	int base, nlen, rval;
+	int base, cval, nlen, rval;
 	char *p, *target_mid;
 	base = 0;
 
@@ -393,9 +395,9 @@ copy(char *argv[], enum op type, int fts_options)
 
 		switch (curr->fts_statp->st_mode & S_IFMT) {
 		case S_IFLNK:
-			if (copy_link(curr, !fts_dne(curr)))
+			if ((cval = copy_link(curr, !fts_dne(curr))) == 1)
 				rval = 1;
-			else if (vflag)
+			if (!cval && vflag)
 				(void)fprintf(stdout, "%s -> %s\n",
 				    curr->fts_path, to.p_path);
 			break;
@@ -417,49 +419,54 @@ copy(char *argv[], enum op type, int fts_options)
 			 */
 			if (fts_dne(curr)) {
 				if (mkdir(to.p_path,
-				    curr->fts_statp->st_mode | S_IRWXU) < 0)
+				    curr->fts_statp->st_mode | S_IRWXU) == -1)
 					err(1, "%s", to.p_path);
 				else if (vflag)
 					(void)fprintf(stdout, "%s -> %s\n",
 					    curr->fts_path, to.p_path);
-			} else if (!S_ISDIR(to_stat.st_mode))
+			} else if (!S_ISDIR(to_stat.st_mode)) {
 				errno = ENOTDIR;
 				err(1, "%s", to.p_path);
+			}
 			break;
 		case S_IFBLK:
 		case S_IFCHR:
 			if (Rflag) {
-				if (copy_special(curr->fts_statp,
-				    !fts_dne(curr)))
+				if ((cval = copy_special(curr->fts_statp,
+				    !fts_dne(curr))) == 1)
 					rval = 1;
 			} else
-				if (copy_file(curr, fts_dne(curr)))
+				if ((cval = copy_file(curr, !fts_dne(curr))) == 1)
 					rval = 1;
-			if (!rval && vflag)
+			if (!cval && vflag)
 				(void)fprintf(stdout, "%s -> %s\n",
 				    curr->fts_path, to.p_path);
+			cval = 0;
 			break;
 		case S_IFIFO:
 			if (Rflag) {
-				if (copy_fifo(curr->fts_statp, !fts_dne(curr)))
+				if ((cval = copy_fifo(curr->fts_statp,
+				    !fts_dne(curr))) == 1)
 					rval = 1;
 			} else
-				if (copy_file(curr, fts_dne(curr)))
+				if ((cval = copy_file(curr, !fts_dne(curr))) == 1)
 					rval = 1;
-			if (!rval && vflag)
+			if (!cval && vflag)
 				(void)fprintf(stdout, "%s -> %s\n",
 				    curr->fts_path, to.p_path);
+			cval = 0;
 			break;
 		case S_IFSOCK:
 			errno = EOPNOTSUPP;
 			warn("%s", curr->fts_path);
 			break;
 		default:
-			if (copy_file(curr, fts_dne(curr)))
+			if ((cval = copy_file(curr, !fts_dne(curr))) == 1)
 				rval = 1;
-			else if (vflag)
+			if (!cval && vflag)
 				(void)fprintf(stdout, "%s -> %s\n",
 				    curr->fts_path, to.p_path);
+			cval = 0;
 			break;
 		}
 	}

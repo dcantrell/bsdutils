@@ -1,4 +1,4 @@
-/*	$OpenBSD: utils.c,v 1.40 2017/06/27 21:43:46 tedu Exp $	*/
+/*	$OpenBSD: utils.c,v 1.48 2019/06/28 13:34:58 deraadt Exp $	*/
 /*	$NetBSD: utils.c,v 1.6 1997/02/26 14:40:51 cgd Exp $	*/
 
 /*-
@@ -30,8 +30,6 @@
  * SUCH DAMAGE.
  */
 
-#include "config.h"
-
 #include <sys/param.h>		/* MAXBSIZE */
 #include <sys/stat.h>
 #include <sys/mman.h>
@@ -47,17 +45,19 @@
 #include <unistd.h>
 #include <limits.h>
 
-#include "extern.h"
-
 #include "compat.h"
 
+#include "extern.h"
+
+int copy_overwrite(void);
+
 int
-copy_file(FTSENT *entp, int dne)
+copy_file(FTSENT *entp, int exists)
 {
 	static char *buf;
 	static char *zeroes;
 	struct stat to_stat, *fs;
-	int ch, checkch, from_fd, rcount, rval, to_fd, wcount;
+	int from_fd, rcount, rval, to_fd, wcount;
 #ifdef VM_AND_BUFFER_CACHE_SYNCHRONIZED
 	char *p;
 #endif
@@ -84,32 +84,25 @@ copy_file(FTSENT *entp, int dne)
 	 * In -f (force) mode, we always unlink the destination first
 	 * if it exists.  Note that -i and -f are mutually exclusive.
 	 */
-	if (!dne && fflag)
+	if (exists && fflag)
 		(void)unlink(to.p_path);
 
 	/*
-	 * If the file exists and we're interactive, verify with the user.
 	 * If the file DNE, set the mode to be the from file, minus setuid
 	 * bits, modified by the umask; arguably wrong, but it makes copying
 	 * executables work right and it's been that way forever.  (The
 	 * other choice is 666 or'ed with the execute bits on the from file
 	 * modified by the umask.)
 	 */
-	if (!dne && !fflag) {
-		if (iflag) {
-			(void)fprintf(stderr, "overwrite %s? ", to.p_path);
-			checkch = ch = getchar();
-			while (ch != '\n' && ch != EOF)
-				ch = getchar();
-			if (checkch != 'y' && checkch != 'Y') {
-				(void)close(from_fd);
-				return (0);
-			}
-		}
+	if (exists && !fflag) {
+		if (!copy_overwrite()) {
+			(void)close(from_fd);
+			return 2;
+ 		}
 		to_fd = open(to.p_path, O_WRONLY | O_TRUNC, 0);
 	} else
 		to_fd = open(to.p_path, O_WRONLY | O_TRUNC | O_CREAT,
-		    fs->st_mode & ~(S_ISVTX | S_ISUID | S_ISGID));
+		    fs->st_mode & ~(S_ISTXT | S_ISUID | S_ISGID));
 
 	if (to_fd == -1) {
 		warn("%s", to.p_path);
@@ -138,7 +131,7 @@ copy_file(FTSENT *entp, int dne)
 				rval = 1;
 			}
 			/* Some systems don't unmap on close(2). */
-			if (munmap(p, fs->st_size) < 0) {
+			if (munmap(p, fs->st_size) == -1) {
 				warn("%s", entp->fts_path);
 				rval = 1;
 			}
@@ -161,9 +154,9 @@ copy_file(FTSENT *entp, int dne)
 				break;
 			}
 		}
-		if (skipholes && rcount >= 0)
+		if (skipholes && rcount != -1)
 			rcount = ftruncate(to_fd, lseek(to_fd, 0, SEEK_CUR));
-		if (rcount < 0) {
+		if (rcount == -1) {
 			warn("%s", entp->fts_path);
 			rval = 1;
 		}
@@ -183,7 +176,7 @@ copy_file(FTSENT *entp, int dne)
 	 */
 #define	RETAINBITS \
 	(S_ISUID | S_ISGID | S_ISVTX | S_IRWXU | S_IRWXG | S_IRWXO)
-	if (!pflag && dne &&
+	if (!pflag && !exists &&
 	    fs->st_mode & (S_ISUID | S_ISGID) && fs->st_uid == myuid) {
 		if (fstat(to_fd, &to_stat)) {
 			warn("%s", to.p_path);
@@ -208,6 +201,8 @@ copy_link(FTSENT *p, int exists)
 	int len;
 	char name[PATH_MAX];
 
+	if (exists && !copy_overwrite())
+		return (2);
 	if ((len = readlink(p->fts_path, name, sizeof(name)-1)) == -1) {
 		warn("readlink: %s", p->fts_path);
 		return (1);
@@ -227,6 +222,8 @@ copy_link(FTSENT *p, int exists)
 int
 copy_fifo(struct stat *from_stat, int exists)
 {
+	if (exists && !copy_overwrite())
+		return (2);
 	if (exists && unlink(to.p_path)) {
 		warn("unlink: %s", to.p_path);
 		return (1);
@@ -241,6 +238,8 @@ copy_fifo(struct stat *from_stat, int exists)
 int
 copy_special(struct stat *from_stat, int exists)
 {
+	if (exists && !copy_overwrite())
+		return (2);
 	if (exists && unlink(to.p_path)) {
 		warn("unlink: %s", to.p_path);
 		return (1);
@@ -252,6 +251,24 @@ copy_special(struct stat *from_stat, int exists)
 	return (pflag ? setfile(from_stat, -1) : 0);
 }
 
+/*
+ * If the file exists and we're interactive, verify with the user.
+ */
+int
+copy_overwrite(void)
+{
+	int ch, checkch;
+
+	if (iflag) {
+		(void)fprintf(stderr, "overwrite %s? ", to.p_path);
+		checkch = ch = getchar();
+		while (ch != '\n' && ch != EOF)
+			ch = getchar();
+		if (checkch != 'y' && checkch != 'Y')
+			return (0);
+	}
+	return 1;
+}
 
 int
 setfile(struct stat *fs, int fd)
@@ -260,7 +277,7 @@ setfile(struct stat *fs, int fd)
 	int rval;
 
 	rval = 0;
-	fs->st_mode &= S_ISVTX | S_ISUID | S_ISGID | S_IRWXU | S_IRWXG | S_IRWXO;
+	fs->st_mode &= S_ISTXT | S_ISUID | S_ISGID | S_IRWXU | S_IRWXG | S_IRWXO;
 
 	ts[0] = fs->st_atim;
 	ts[1] = fs->st_mtim;
@@ -281,13 +298,15 @@ setfile(struct stat *fs, int fd)
 			warn("chown: %s", to.p_path);
 			rval = 1;
 		}
-		fs->st_mode &= ~(S_ISVTX | S_ISUID | S_ISGID);
+		fs->st_mode &= ~(S_ISTXT | S_ISUID | S_ISGID);
 	}
 	if (fd >= 0 ? fchmod(fd, fs->st_mode) :
 	    fchmodat(AT_FDCWD, to.p_path, fs->st_mode, AT_SYMLINK_NOFOLLOW)) {
 		warn("chmod: %s", to.p_path);
 		rval = 1;
 	}
+
+	return (rval);
 }
 
 
@@ -295,9 +314,9 @@ void
 usage(void)
 {
 	(void)fprintf(stderr,
-	    "usage: %s [-fipv] [-R [-H | -L | -P]] source target\n", __progname);
+	    "usage: %s [-afipv] [-R [-H | -L | -P]] source target\n", __progname);
 	(void)fprintf(stderr,
-	    "       %s [-fipv] [-R [-H | -L | -P]] source ... directory\n",
+	    "       %s [-afipv] [-R [-H | -L | -P]] source ... directory\n",
 	    __progname);
 	exit(1);
 }
