@@ -1,4 +1,4 @@
-.\"	$OpenBSD: du.1,v 1.34 2014/10/19 18:24:58 jmc Exp $
+.\"	$OpenBSD: du.1,v 1.37 2020/01/30 17:54:30 schwarze Exp $
 .\"	$NetBSD: du.1,v 1.6 1996/10/18 07:20:31 thorpej Exp $
 .\"
 .\" Copyright (c) 1990, 1993
@@ -30,7 +30,7 @@
 .\"
 .\"	@(#)du.1	8.2 (Berkeley) 4/1/94
 .\"
-.Dd $Mdocdate: October 19 2014 $
+.Dd $Mdocdate: January 30 2020 $
 .Dt DU 1
 .Os
 .Sh NAME
@@ -147,9 +147,14 @@ option is specified.
 .El
 .Sh EXIT STATUS
 .Ex -std du
+.Sh EXAMPLES
+Display a summary of files and folders in the current directory,
+sorted by size:
+.Pp
+.Dl $ du -sh * .??* | sort -h
 .Sh SEE ALSO
 .Xr df 1 ,
-.Xr fts 3 ,
+.Xr fts_open 3 ,
 .Xr symlink 7 ,
 .Xr quot 8
 .Sh STANDARDS
