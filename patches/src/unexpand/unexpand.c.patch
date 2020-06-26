@@ -1,0 +1,23 @@
+--- unexpand.c.orig	2020-06-25 10:25:58.603582898 -0400
++++ unexpand.c	2020-06-26 10:16:56.206691586 -0400
+@@ -39,6 +39,8 @@
+ #include <string.h>
+ #include <unistd.h>
+ 
++#include "compat.h"
++
+ char	genbuf[BUFSIZ];
+ char	linebuf[BUFSIZ];
+ 
+@@ -50,11 +52,6 @@
+ 	bool all = false;
+ 	char *cp;
+ 
+-	if (pledge("stdio rpath", NULL) == -1) {
+-		perror("pledge");
+-		exit(1);
+-	}
+-
+ 	argc--, argv++;
+ 	if (argc > 0 && argv[0][0] == '-') {
+ 		if (strcmp(argv[0], "-a") != 0) {

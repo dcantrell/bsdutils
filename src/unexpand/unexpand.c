@@ -33,9 +33,6 @@
 /*
  * unexpand - put tabs into a file replacing blanks
  */
-
-#include "config.h"
-
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -129,8 +126,7 @@ tabify(bool all)
 				ocol++;
 			}
 			if (*cp == '\0' || !all) {
-				strncpy(dp, cp, len);
-				dp[len - 1] = '\0';
+				strlcpy(dp, cp, len);
 				return;
 			}
 			*dp++ = *cp;
