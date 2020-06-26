@@ -71,6 +71,16 @@ We will use the glibc reallocarray() but copy over recallocarray.c
 since glibc lacks that.  recallocarray() is reallocarray() but in
 calloc() style.
 
+glibc makes reallocarray available with _DEFAULT_SOURCE defined, but
+in versions prior to 2.28 it was part of _GNU_SOURCE.  Programs using
+reallocarray() have _DEFAULT_SOURCE added to their Makefile.am file.
+
+
+wcwidth() and wchar.h functions
+-------------------------------
+Available in glibc by defining _XOPEN_SOURCE.  Programs requiring this
+have it added to their Makefile.am file.
+
 
 DEF_WEAK
 --------
@@ -402,3 +412,9 @@ OpenBSD defines REG_BASIC for regcomp(3).  This is not defined in
 glibc on Linux because it is the default behavior.  There is
 REG_EXTENDED to enable POSIX Extended Regular Expressions.  Where
 REG_BASIC appears in regcomp() calls, we remove it.
+
+
+UID_MAX
+-------
+Defined in /etc/login.defs on Linux.  Using INT_MAX here to keep
+things simple.
