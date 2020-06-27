@@ -427,3 +427,22 @@ the routing table of the current process when run as 'id -R'.  The
 option calls getrtable(), which is not a function that Linux provides.
 This functionality is not really in scope for the id(1) command, so it
 has been removed.
+
+
+'ls -o'
+-------
+The ls(1) command has the -o option to show the file flags in the long
+listing output.  Flags come from st_flags on struct stat structures
+and is specific to BSD operating systems.  This option has been
+removed from ls in this port.
+
+
+howmany()
+---------
+This macro is available in <sys/param.h> on Linux.
+
+
+major() and minor()
+-------------------
+These macros are for use with st_rdev members of a struct stat.  They
+are available from the <sys/sysmacros.h> header on Linux.

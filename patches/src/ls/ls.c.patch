@@ -1,0 +1,54 @@
+--- ls.c.orig	2020-06-26 10:20:13.215148870 -0400
++++ ls.c	2020-06-27 14:19:39.076220077 -0400
+@@ -54,6 +54,8 @@
+ #include "ls.h"
+ #include "extern.h"
+ 
++#include "compat.h"
++
+ static void	 display(FTSENT *, FTSENT *);
+ static int	 mastercmp(const FTSENT **, const FTSENT **);
+ static void	 traverse(int, char **, int);
+@@ -124,15 +126,12 @@
+ 	if (termwidth == 0)
+ 		termwidth = 80;
+ 
+-	if (pledge("stdio rpath getpw", NULL) == -1)
+-		err(1, "pledge");
+-
+ 	/* Root is -A automatically. */
+ 	if (!getuid())
+ 		f_listdot = 1;
+ 
+ 	fts_options = FTS_PHYSICAL;
+-	while ((ch = getopt(argc, argv, "1ACFHLRSTacdfghiklmnopqrstux")) != -1) {
++	while ((ch = getopt(argc, argv, "1ACFHLRSTacdfghiklmnpqrstux")) != -1) {
+ 		switch (ch) {
+ 		/*
+ 		 * The -1, -C and -l, -m, -n and -x options all override each
+@@ -220,9 +219,6 @@
+ 			blocksize = 1024;
+ 			kflag = 1;
+ 			break;
+-		case 'o':
+-			f_flags = 1;
+-			break;
+ 		case 'p':
+ 			f_typedir = 1;
+ 			break;
+@@ -506,14 +502,7 @@
+ 					maxuser = ulen;
+ 				if ((glen = strlen(group)) > maxgroup)
+ 					maxgroup = glen;
+-				if (f_flags) {
+-					flags = fflagstostr(sp->st_flags);
+-					if (*flags == '\0')
+-						flags = "-";
+-					if ((flen = strlen(flags)) > maxflags)
+-						maxflags = flen;
+-				} else
+-					flen = 0;
++				flen = 0;
+ 
+ 				if ((np = malloc(sizeof(NAMES) +
+ 				    ulen + 1 + glen + 1 + flen + 1)) == NULL)

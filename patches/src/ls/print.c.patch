@@ -1,0 +1,17 @@
+--- print.c.orig	2020-06-26 10:20:13.218148877 -0400
++++ print.c	2020-06-27 14:27:08.079178170 -0400
+@@ -48,10 +48,14 @@
+ #include <unistd.h>
+ #include <limits.h>
+ #include <util.h>
++#include <sys/param.h>
++#include <sys/sysmacros.h>
+ 
+ #include "ls.h"
+ #include "extern.h"
+ 
++#include "compat.h"
++
+ static int	printaname(FTSENT *, int, int);
+ static void	printlink(FTSENT *);
+ static void	printsize(int, off_t);

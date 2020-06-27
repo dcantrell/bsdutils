@@ -1,4 +1,4 @@
-/*	$OpenBSD: ls.c,v 1.48 2016/08/16 16:13:32 krw Exp $	*/
+/*	$OpenBSD: ls.c,v 1.51 2018/09/13 15:23:32 millert Exp $	*/
 /*	$NetBSD: ls.c,v 1.18 1996/07/09 09:16:29 mycroft Exp $	*/
 
 /*
@@ -33,8 +33,6 @@
  * SUCH DAMAGE.
  */
 
-#include "config.h"
-
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
@@ -51,6 +49,7 @@
 #include <unistd.h>
 #include <limits.h>
 #include <locale.h>
+#include <util.h>
 
 #include "ls.h"
 #include "extern.h"
@@ -76,6 +75,7 @@ int sortkey = BY_NAME;
 int f_accesstime;		/* use time of last access */
 int f_column;			/* columnated format */
 int f_columnacross;		/* columnated format, sorted across */
+int f_flags;			/* show flags associated with a file */
 int f_grouponly;		/* long listing format without owner */
 int f_humanval;			/* show human-readable file sizes */
 int f_inode;			/* print inode */
@@ -424,11 +424,12 @@ display(FTSENT *p, FTSENT *list)
 	unsigned long long btotal;
 	blkcnt_t maxblock;
 	ino_t maxinode;
-	int bcfile, glen, ulen, maxflags, maxgroup, maxuser, maxlen;
+	int bcfile, flen, glen, ulen, maxflags, maxgroup, maxuser, maxlen;
 	int entries, needstats;
 	int width;
-	char *user, *group, buf[21];	/* 64 bits == 20 digits */
+	const char *user, *group;
 	char nuser[12], ngroup[12];
+	char buf[21];	/* 64 bits == 20 digits */
 	char *flags = NULL;
 
 	/*
@@ -442,6 +443,7 @@ display(FTSENT *p, FTSENT *list)
 		return;
 
 	needstats = f_inode || f_longform || f_size;
+	flen = 0;
 	btotal = maxblock = maxinode = maxlen = maxnlink = 0;
 	bcfile = 0;
 	maxuser = maxgroup = maxflags = 0;
@@ -488,8 +490,8 @@ display(FTSENT *p, FTSENT *list)
 			btotal += sp->st_blocks;
 			if (f_longform) {
 				if (f_numericonly) {
-					snprintf(nuser, 12, "%u", sp->st_uid);
-					snprintf(ngroup, 12, "%u", sp->st_gid);
+					snprintf(nuser, sizeof nuser, "%u", sp->st_uid);
+					snprintf(ngroup, sizeof nuser, "%u", sp->st_gid);
 					user = nuser;
 					group = ngroup;
 				} else {
@@ -500,22 +502,27 @@ display(FTSENT *p, FTSENT *list)
 					maxuser = ulen;
 				if ((glen = strlen(group)) > maxgroup)
 					maxgroup = glen;
+				flen = 0;
 
 				if ((np = malloc(sizeof(NAMES) +
-				    ulen + 1 + glen + 1)) == NULL)
+				    ulen + 1 + glen + 1 + flen + 1)) == NULL)
 					err(1, NULL);
 
 				np->user = &np->data[0];
-				(void)strncpy(np->user, user, ulen + 1);
-				np->user[ulen] = '\0';
+				(void)strlcpy(np->user, user, ulen + 1);
 				np->group = &np->data[ulen + 1];
-				(void)strncpy(np->group, group, glen + 1);
-				np->group[glen] = '\0';
+				(void)strlcpy(np->group, group, glen + 1);
 
 				if (S_ISCHR(sp->st_mode) ||
 				    S_ISBLK(sp->st_mode))
 					bcfile = 1;
 
+				if (f_flags) {
+					np->flags = &np->data[ulen + 1 + glen + 1];
+					(void)strlcpy(np->flags, flags, flen + 1);
+					if (*flags != '-')
+						free(flags);
+				}
 				cur->fts_pointer = np;
 			}
 		}
@@ -532,7 +539,7 @@ display(FTSENT *p, FTSENT *list)
 		d.bcfile = bcfile;
 		d.btotal = btotal;
 		(void)snprintf(buf, sizeof(buf), "%llu",
-		   (unsigned long long)maxblock);
+		    (unsigned long long)maxblock);
 		d.s_block = strlen(buf);
 		d.s_flags = maxflags;
 		d.s_group = maxgroup;
@@ -544,7 +551,7 @@ display(FTSENT *p, FTSENT *list)
 		d.s_nlink = strlen(buf);
 		if (!f_humanval) {
 			(void)snprintf(buf, sizeof(buf), "%lld",
-				(long long) maxsize);
+			    (long long)maxsize);
 			d.s_size = strlen(buf);
 		} else
 			d.s_size = FMT_SCALED_STRSIZE-2; /* no - or '\0' */
