@@ -30,8 +30,6 @@
  * SUCH DAMAGE.
  */
 
-#include "config.h"
-
 #include <sys/resource.h>
 
 #include <ctype.h>
