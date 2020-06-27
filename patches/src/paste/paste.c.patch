@@ -1,0 +1,12 @@
+--- paste.c.orig	2020-06-27 17:37:25.925824788 -0400
++++ paste.c	2020-06-27 17:42:58.351669178 -0400
+@@ -57,9 +57,6 @@
+ 	extern int optind;
+ 	int ch, seq;
+ 
+-	if (pledge("stdio rpath", NULL) == -1)
+-		err(1, "pledge");
+-
+ 	seq = 0;
+ 	while ((ch = getopt(argc, argv, "d:s")) != -1) {
+ 		switch (ch) {
