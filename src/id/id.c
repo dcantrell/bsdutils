@@ -29,21 +29,18 @@
  * SUCH DAMAGE.
  */
 
-#include "config.h"
-
 #include <sys/types.h>
-#include <sys/socket.h> /* getrtable() lives here */
 
 #include <err.h>
 #include <errno.h>
 #include <grp.h>
-#include <libgen.h>
 #include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <limits.h>
+
 #include "compat.h"
 
 extern char *__progname;
@@ -328,7 +325,7 @@ who(char *u)
 }
 
 void
-usage()
+usage(void)
 {
 	if (strcmp(__progname, "groups") == 0) {
 		(void)fprintf(stderr, "usage: groups [user]\n");
@@ -336,6 +333,7 @@ usage()
 		(void)fprintf(stderr, "usage: whoami\n");
 	} else {
 		(void)fprintf(stderr, "usage: id [user]\n");
+		(void)fprintf(stderr, "       id -c [user]\n");
 		(void)fprintf(stderr, "       id -G [-n] [user]\n");
 		(void)fprintf(stderr, "       id -g [-nr] [user]\n");
 		(void)fprintf(stderr, "       id -p [user]\n");

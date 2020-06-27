@@ -1,0 +1,49 @@
+--- id.1.orig	2020-06-25 10:25:58.576582810 -0400
++++ id.1	2020-06-27 14:00:05.250737474 -0400
+@@ -43,9 +43,6 @@
+ .Nm id
+ .Op Ar user
+ .Nm id
+-.Fl c
+-.Op Ar user
+-.Nm id
+ .Fl G Op Fl n
+ .Op Ar user
+ .Nm id
+@@ -55,8 +52,6 @@
+ .Fl p
+ .Op Ar user
+ .Nm id
+-.Fl R
+-.Nm id
+ .Fl u Op Fl nr
+ .Op Ar user
+ .Sh DESCRIPTION
+@@ -75,9 +70,6 @@
+ .Pp
+ The options are as follows:
+ .Bl -tag -width Ds
+-.It Fl c
+-Display the login class of the real user ID or the specified
+-.Ar user .
+ .It Fl G
+ Display the different group IDs (effective, real and supplementary)
+ as whitespace separated numbers, in no particular order.
+@@ -117,8 +109,6 @@
+ database, it is displayed, preceded by the keyword
+ .Dq class .
+ Each display is on a separate line.
+-.It Fl R
+-Display the routing table of the current process.
+ .It Fl r
+ Display the real ID for the
+ .Fl g
+@@ -141,7 +131,7 @@
+ specification.
+ .Pp
+ The flags
+-.Op Fl cpR
++.Op Fl cp
+ are extensions to that specification.
+ .Sh HISTORY
+ The

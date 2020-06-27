@@ -418,3 +418,12 @@ UID_MAX
 -------
 Defined in /etc/login.defs on Linux.  Using INT_MAX here to keep
 things simple.
+
+
+'id -R' and getrtable()
+-----------------------
+The id(1) command from OpenBSD has a non-standard extension that shows
+the routing table of the current process when run as 'id -R'.  The
+option calls getrtable(), which is not a function that Linux provides.
+This functionality is not really in scope for the id(1) command, so it
+has been removed.
