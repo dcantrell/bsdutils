@@ -30,13 +30,11 @@
  * SUCH DAMAGE.
  */
 
-#include "config.h"
-
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/mount.h>
-#include <sys/random.h>
 #include <sys/statvfs.h>
+#include <sys/random.h>
 
 #include <err.h>
 #include <errno.h>
