@@ -1,0 +1,12 @@
+--- mktemp.c.orig	2020-06-26 10:20:13.219148879 -0400
++++ mktemp.c	2020-06-27 16:22:56.776635024 -0400
+@@ -38,9 +38,6 @@
+ 	char *cp, *template, *tempfile, *prefix = _PATH_TMP;
+ 	size_t len;
+ 
+-	if (pledge("stdio rpath wpath cpath", NULL) == -1)
+-		err(1, "pledge");
+-
+ 	while ((ch = getopt(argc, argv, "dp:qtu")) != -1)
+ 		switch(ch) {
+ 		case 'd':

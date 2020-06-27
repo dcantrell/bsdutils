@@ -1,8 +1,8 @@
-/*	$OpenBSD: mktemp.c,v 1.22 2015/10/09 01:37:08 deraadt Exp $	*/
+/*	$OpenBSD: mktemp.c,v 1.25 2019/06/28 05:35:34 deraadt Exp $	*/
 
 /*
  * Copyright (c) 1996, 1997, 2001-2003, 2013
- *	Todd C. Miller <Todd.Miller@courtesan.com>
+ *	Todd C. Miller <millert@openbsd.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -16,8 +16,6 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-
-#include "config.h"
 
 #include <err.h>
 #include <paths.h>
@@ -93,7 +91,7 @@ main(int argc, char *argv[])
 		while (len != 0 && prefix[len - 1] == '/')
 			len--;
 
-		if (asprintf(&tempfile, "%.*s/%s", (int)len, prefix, template) < 0)
+		if (asprintf(&tempfile, "%.*s/%s", (int)len, prefix, template) == -1)
 			tempfile = NULL;
 	} else
 		tempfile = strdup(template);
@@ -107,7 +105,7 @@ main(int argc, char *argv[])
 		if (uflag)
 			(void)rmdir(tempfile);
 	} else {
-		if ((fd = mkstemp(tempfile)) < 0)
+		if ((fd = mkstemp(tempfile)) == -1)
 			fatal("cannot make temp file %s", tempfile);
 		(void)close(fd);
 		if (uflag)
