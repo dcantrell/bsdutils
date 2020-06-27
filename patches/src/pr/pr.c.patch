@@ -1,0 +1,23 @@
+--- pr.c.orig	2020-06-27 17:37:25.925824788 -0400
++++ pr.c	2020-06-27 17:43:50.409801411 -0400
+@@ -50,6 +50,8 @@
+ #include "pr.h"
+ #include "extern.h"
+ 
++#include "compat.h"
++
+ /*
+  * pr:	a printing and pagination filter. If multiple input files
+  *	are specified, each is read, formatted, and written to standard
+@@ -139,11 +141,6 @@
+ {
+     int ret_val;
+ 
+-    if (pledge("stdio rpath", NULL) == -1) {
+-	perror("pledge");
+-	exit(1);
+-    }
+-
+     if (signal(SIGINT, SIG_IGN) != SIG_IGN)
+ 	(void)signal(SIGINT, terminate);
+     ret_val = setup(argc, argv);
