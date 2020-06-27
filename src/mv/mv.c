@@ -1,4 +1,4 @@
-/*	$OpenBSD: mv.c,v 1.45 2017/06/27 21:43:46 tedu Exp $	*/
+/*	$OpenBSD: mv.c,v 1.46 2019/06/28 13:34:59 deraadt Exp $	*/
 /*	$NetBSD: mv.c,v 1.9 1995/03/21 09:06:52 cgd Exp $	*/
 
 /*
@@ -32,8 +32,6 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-
-#include "config.h"
 
 #include <sys/time.h>
 #include <sys/wait.h>
@@ -111,10 +109,8 @@ main(int argc, char *argv[])
 	}
 
 	/* It's a directory, move each file into it. */
-	(void)strncpy(path, argv[argc - 1], sizeof path);
-	if (sizeof(argv[argc - 1]) >= sizeof path)
+	if (strlcpy(path, argv[argc - 1], sizeof path) >= sizeof path)
 		errx(1, "%s: destination pathname too long", *argv);
-	path[sizeof(path) - 1] = '\0';
 	baselen = strlen(path);
 	endp = &path[baselen];
 	if (*(endp - 1) != '/') {
@@ -283,11 +279,11 @@ fastcopy(char *from, char *to, struct stat *sbp)
 		}
 	}
 
-	if ((from_fd = open(from, O_RDONLY, 0)) < 0) {
+	if ((from_fd = open(from, O_RDONLY, 0)) == -1) {
 		warn("%s", from);
 		return (1);
 	}
-	if ((to_fd = open(to, O_CREAT | O_TRUNC | O_WRONLY, 0600)) < 0) {
+	if ((to_fd = open(to, O_CREAT | O_TRUNC | O_WRONLY, 0600)) == -1) {
 		warn("%s", to);
 		(void)close(from_fd);
 		return (1);
@@ -304,7 +300,7 @@ fastcopy(char *from, char *to, struct stat *sbp)
 			warn("%s", to);
 			goto err;
 		}
-	if (nread < 0) {
+	if (nread == -1) {
 		warn("%s", from);
 err:		if (unlink(to))
 			warn("%s: remove", to);
@@ -317,7 +313,8 @@ err:		if (unlink(to))
 	if (badchown) {
 		if ((sbp->st_mode & (S_ISUID|S_ISGID)))  {
 			errno = serrno;
-			warn("%s: set owner/group; not setting setuid/setgid", to);
+			warn("%s: set owner/group; not setting setuid/setgid",
+			    to);
 			sbp->st_mode &= ~(S_ISUID|S_ISGID);
 		} else if (!fflg) {
 			errno = serrno;

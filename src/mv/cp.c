@@ -1,4 +1,4 @@
-/*	$OpenBSD: cp.c,v 1.7 2015/12/27 01:25:57 chl Exp $	*/
+/*	$OpenBSD: cp.c,v 1.8 2019/06/28 13:34:59 deraadt Exp $	*/
 /*	$NetBSD: cp.c,v 1.14 1995/09/07 06:14:51 jtc Exp $	*/
 
 /*
@@ -47,8 +47,6 @@
  * path (relative to the root of the traversal) is appended to dir (stored
  * in "to") to form the final target path.
  */
-
-#include "config.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -125,10 +123,8 @@ cpmain(int argc, char *argv[])
 
 	/* Save the target base in "to". */
 	target = argv[--argc];
-	(void)strncpy(to.p_path, target, sizeof to.p_path);
-	if (sizeof(target) >= sizeof(to.p_path))
+	if (strlcpy(to.p_path, target, sizeof to.p_path) >= sizeof(to.p_path))
 		errx(1, "%s: name too long", target);
-	to.p_path[sizeof(to.p_path) - 1] = '\0';
 	to.p_end = to.p_path + strlen(to.p_path);
 	if (to.p_path == to.p_end) {
 		*to.p_end++ = '.';
@@ -362,7 +358,7 @@ copy(char *argv[], enum op type, int fts_options)
 			 */
 			if (fts_dne(curr)) {
 				if (mkdir(to.p_path,
-				    curr->fts_statp->st_mode | S_IRWXU) < 0)
+				    curr->fts_statp->st_mode | S_IRWXU) == -1)
 					err(1, "%s", to.p_path);
 			} else if (!S_ISDIR(to_stat.st_mode)) {
 				errno = ENOTDIR;
@@ -395,7 +391,7 @@ copy(char *argv[], enum op type, int fts_options)
 }
 
 
-/*	$OpenBSD: cp.c,v 1.7 2015/12/27 01:25:57 chl Exp $	*/
+/*	$OpenBSD: cp.c,v 1.8 2019/06/28 13:34:59 deraadt Exp $	*/
 /*	$NetBSD: utils.c,v 1.6 1997/02/26 14:40:51 cgd Exp $	*/
 
 /*-
@@ -427,6 +423,7 @@ copy(char *argv[], enum op type, int fts_options)
  * SUCH DAMAGE.
  */
 
+#include <sys/param.h>		/* MAXBSIZE */
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <sys/time.h>
@@ -499,7 +496,7 @@ copy_file(FTSENT *entp, int dne)
 		to_fd = open(to.p_path, O_WRONLY | O_TRUNC, 0);
 	} else
 		to_fd = open(to.p_path, O_WRONLY | O_TRUNC | O_CREAT,
-		    fs->st_mode & ~(S_ISVTX | S_ISUID | S_ISGID));
+		    fs->st_mode & ~(S_ISTXT | S_ISUID | S_ISGID));
 
 	if (to_fd == -1) {
 		warn("%s", to.p_path);
@@ -528,7 +525,7 @@ copy_file(FTSENT *entp, int dne)
 				rval = 1;
 			}
 			/* Some systems don't unmap on close(2). */
-			if (munmap(p, fs->st_size) < 0) {
+			if (munmap(p, fs->st_size) == -1) {
 				warn("%s", entp->fts_path);
 				rval = 1;
 			}
@@ -553,7 +550,7 @@ copy_file(FTSENT *entp, int dne)
 		}
 		if (skipholes && rcount >= 0)
 			rcount = ftruncate(to_fd, lseek(to_fd, 0, SEEK_CUR));
-		if (rcount < 0) {
+		if (rcount == -1) {
 			warn("%s", entp->fts_path);
 			rval = 1;
 		}
@@ -633,7 +630,7 @@ setfile(struct stat *fs, int fd)
 	int rval;
 
 	rval = 0;
-	fs->st_mode &= S_ISVTX | S_ISUID | S_ISGID | S_IRWXU | S_IRWXG | S_IRWXO;
+	fs->st_mode &= S_ISTXT | S_ISUID | S_ISGID | S_IRWXU | S_IRWXG | S_IRWXO;
 
 	ts[0] = fs->st_atim;
 	ts[1] = fs->st_mtim;
@@ -654,7 +651,7 @@ setfile(struct stat *fs, int fd)
 			warn("chown: %s", to.p_path);
 			rval = 1;
 		}
-		fs->st_mode &= ~(S_ISVTX | S_ISUID | S_ISGID);
+		fs->st_mode &= ~(S_ISTXT | S_ISUID | S_ISGID);
 	}
 	if (fd >= 0 ? fchmod(fd, fs->st_mode) :
 	    fchmodat(AT_FDCWD, to.p_path, fs->st_mode, AT_SYMLINK_NOFOLLOW)) {
