@@ -1,0 +1,30 @@
+--- nohup.c.orig	2020-06-27 17:37:25.924824786 -0400
++++ nohup.c	2020-06-27 17:42:17.630565743 -0400
+@@ -41,6 +41,8 @@
+ #include <limits.h>
+ #include <err.h>
+ 
++#include "compat.h"
++
+ static void dofile(void);
+ static void usage(void);
+ 
+@@ -72,18 +74,12 @@
+ {
+ 	int exit_status;
+ 
+-	if (pledge("stdio rpath wpath cpath exec", NULL) == -1)
+-		err(1, "pledge");
+-
+ 	if (argc < 2)
+ 		usage();
+ 
+ 	if (isatty(STDOUT_FILENO) || errno == EBADF)
+ 		dofile();
+ 
+-	if (pledge("stdio exec", NULL) == -1)
+-		err(1, "pledge");
+-
+ 	if ((isatty(STDERR_FILENO) || errno == EBADF) &&
+ 	    dup2(STDOUT_FILENO, STDERR_FILENO) == -1) {
+ 		/* may have just closed stderr */
