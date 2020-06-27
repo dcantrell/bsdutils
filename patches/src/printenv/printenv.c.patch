@@ -1,0 +1,12 @@
+--- printenv.c.orig	2020-06-27 17:37:25.926824791 -0400
++++ printenv.c	2020-06-27 17:44:47.233945749 -0400
+@@ -48,9 +48,6 @@
+ 	char *cp, **ep;
+ 	int len;
+ 
+-	if (pledge("stdio", NULL) == -1)
+-		err(1, "pledge");
+-
+ 	if (argc < 2) {
+ 		for (ep = environ; *ep; ep++)
+ 			puts(*ep);
