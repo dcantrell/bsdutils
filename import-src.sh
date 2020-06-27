@@ -166,6 +166,7 @@ for cfile in $(find ${CWD}/src -type f -name '*.c' -print) ; do
     sed -i -r 's|\s+__dead\s+| |g' ${cfile}
     sed -i -r 's|^__dead\s+||g' ${cfile}
     sed -i -r 's|\s+__dead$||g' ${cfile}
+    sed -i -r 's|\s+__dead;|;|g' ${cfile}
 done
 
 #####################
