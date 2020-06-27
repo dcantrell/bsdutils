@@ -1,0 +1,30 @@
+--- mknod.c.orig	2020-06-26 10:20:13.218148877 -0400
++++ mknod.c	2020-06-27 16:21:20.904407965 -0400
+@@ -29,6 +29,9 @@
+ #include <stdlib.h>
+ #include <string.h>
+ #include <unistd.h>
++#include <sys/sysmacros.h>
++
++#include "compat.h"
+ 
+ extern char *__progname;
+ 
+@@ -54,9 +57,6 @@
+ 	void *set;
+ 	int ch;
+ 
+-	if (pledge("stdio dpath", NULL) == -1)
+-		err(1, "pledge");
+-
+ 	node = reallocarray(NULL, sizeof(struct node), argc);
+ 	if (!node)
+ 		err(1, NULL);
+@@ -133,7 +133,6 @@
+ 			n++;
+ 		}
+ 		optind = 1;
+-		optreset = 1;
+ 	}
+ 
+ 	if (n == 0)

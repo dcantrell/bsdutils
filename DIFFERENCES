@@ -446,3 +446,9 @@ major() and minor()
 -------------------
 These macros are for use with st_rdev members of a struct stat.  They
 are available from the <sys/sysmacros.h> header on Linux.
+
+
+optreset
+--------
+getopt() on OpenBSD uses an optreset variable.  glibc does not have
+this on Linux, so uses of it are removed from this port.
