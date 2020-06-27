@@ -1,0 +1,64 @@
+--- nl.c.orig	2020-06-27 17:37:25.924824786 -0400
++++ nl.c	2020-06-27 17:40:43.302326141 -0400
+@@ -41,6 +41,10 @@
+ #include <unistd.h>
+ #include <wchar.h>
+ 
++#include "compat.h"
++
++extern char *__progname;
++
+ typedef enum {
+ 	number_all,		/* number all lines */
+ 	number_nonempty,	/* number non-empty lines */
+@@ -118,9 +122,6 @@
+ 
+ 	(void)setlocale(LC_ALL, "");
+ 
+-	if (pledge("stdio rpath", NULL) == -1)
+-		err(1, "pledge");
+-
+ 	while ((c = getopt(argc, argv, "pb:d:f:h:i:l:n:s:v:w:")) != -1) {
+ 		switch (c) {
+ 		case 'p':
+@@ -131,14 +132,18 @@
+ 			break;
+ 		case 'd':
+ 			clen = mbrlen(optarg, MB_CUR_MAX, NULL);
+-			if (clen == (size_t)-1 || clen == (size_t)-2)
+-				errc(EXIT_FAILURE, EILSEQ, NULL);
++			if (clen == (size_t)-1 || clen == (size_t)-2) {
++				errno = EILSEQ;
++				err(EXIT_FAILURE, NULL);
++			}
+ 			if (clen != 0) {
+ 				memcpy(delim1, optarg, delim1len = clen);
+ 				clen = mbrlen(optarg + delim1len,
+ 				    MB_CUR_MAX, NULL);
+-				if (clen == (size_t)-1 || clen == (size_t)-2)
+-					errc(EXIT_FAILURE, EILSEQ, NULL);
++				if (clen == (size_t)-1 || clen == (size_t)-2) {
++					errno = EILSEQ;
++					err(EXIT_FAILURE, NULL);
++				}
+ 				if (clen != 0) {
+ 					memcpy(delim2, optarg + delim1len,
+ 					    delim2len = clen);
+@@ -218,9 +223,6 @@
+ 		/* NOTREACHED */
+ 	}
+ 
+-	if (pledge("stdio", NULL) == -1)
+-		err(1, "pledge");
+-
+ 	/* Generate the delimiter sequence */
+ 	memcpy(delim, delim1, delim1len);
+ 	memcpy(delim + delim1len, delim2, delim2len);
+@@ -364,6 +366,6 @@
+ {
+ 	(void)fprintf(stderr, "usage: %s [-p] [-b type] [-d delim] [-f type] "
+ 	    "[-h type] [-i incr] [-l num]\n\t[-n format] [-s sep] "
+-	    "[-v startnum] [-w width] [file]\n", getprogname());
++	    "[-v startnum] [-w width] [file]\n", __progname);
+ 	exit(EXIT_FAILURE);
+ }

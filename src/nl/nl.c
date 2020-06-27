@@ -1,4 +1,4 @@
-/*	$OpenBSD: nl.c,v 1.6 2015/10/09 01:37:08 deraadt Exp $ */
+/*	$OpenBSD: nl.c,v 1.7 2019/04/21 01:08:46 deraadt Exp $ */
 /*	$NetBSD: nl.c,v 1.11 2011/08/16 12:00:46 christos Exp $	*/
 
 /*-
@@ -30,8 +30,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "config.h"
-
 #include <err.h>
 #include <errno.h>
 #include <limits.h>
@@ -42,7 +40,10 @@
 #include <string.h>
 #include <unistd.h>
 #include <wchar.h>
+
 #include "compat.h"
+
+extern char *__progname;
 
 typedef enum {
 	number_all,		/* number all lines */
@@ -109,7 +110,6 @@ static int startnum = 1;
 /* should be unsigned but required signed by `*' precision conversion */
 static int width = 6;
 
-extern char *__progname;
 
 int
 main(int argc, char *argv[])
@@ -362,7 +362,7 @@ parse_numbering(const char *argstr, int section)
 }
 
 void
-usage()
+usage(void)
 {
 	(void)fprintf(stderr, "usage: %s [-p] [-b type] [-d delim] [-f type] "
 	    "[-h type] [-i incr] [-l num]\n\t[-n format] [-s sep] "
