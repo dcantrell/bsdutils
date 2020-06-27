@@ -1,0 +1,21 @@
+--- test.c.orig	2020-06-27 17:37:25.933824809 -0400
++++ test.c	2020-06-27 17:53:54.562336829 -0400
+@@ -22,6 +22,8 @@
+ #include <string.h>
+ #include <err.h>
+ 
++#include "compat.h"
++
+ /* test(1) accepts the following grammar:
+ 	oexpr	::= aexpr | aexpr "-o" oexpr ;
+ 	aexpr	::= nexpr | nexpr "-a" aexpr ;
+@@ -161,9 +163,6 @@
+ 	extern char *__progname;
+ 	int	res;
+ 
+-	if (pledge("stdio rpath", NULL) == -1)
+-		err(2, "pledge");
+-
+ 	if (strcmp(__progname, "[") == 0) {
+ 		if (strcmp(argv[--argc], "]"))
+ 			errx(2, "missing ]");
