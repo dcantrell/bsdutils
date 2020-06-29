@@ -38,9 +38,7 @@
 #include <sys/types.h>
 #include <openssl/md5.h>
 
-#ifndef VERSION /* should be in config.h */
 #define	VERSION	"2.3-OpenBSD"
-#endif
 
 /*
  * If true, we output some debug information.

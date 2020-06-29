@@ -27,8 +27,6 @@
  * SUCH DAMAGE.
  */
 
-#include "config.h"
-
 #include <errno.h>
 #include <err.h>
 #include <langinfo.h>
@@ -41,6 +39,7 @@
 
 #include "coll.h"
 #include "radixsort.h"
+
 #include "compat.h"
 
 #define DEFAULT_SORT_FUNC_RADIXSORT mergesort

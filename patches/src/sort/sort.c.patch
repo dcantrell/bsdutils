@@ -1,0 +1,199 @@
+--- sort.c.orig	2020-06-27 17:37:25.930824801 -0400
++++ sort.c	2020-06-29 12:34:31.266770375 -0400
+@@ -27,16 +27,17 @@
+  * SUCH DAMAGE.
+  */
+ 
++#include <sys/random.h>
+ #include <sys/resource.h>
+ #include <sys/stat.h>
+-#include <sys/sysctl.h>
+ #include <sys/types.h>
++#include <sys/auxv.h>
+ 
+ #include <err.h>
+ #include <errno.h>
+ #include <getopt.h>
+ #include <limits.h>
+-#include <md5.h>
++#include <openssl/md5.h>
+ #include <regex.h>
+ #include <signal.h>
+ #include <stdbool.h>
+@@ -52,6 +53,10 @@
+ #include "file.h"
+ #include "sort.h"
+ 
++#include "compat.h"
++
++extern char *__progname;
++
+ #ifdef GNUSORT_COMPATIBILITY
+ # define PERMUTE	""
+ #else
+@@ -156,7 +161,7 @@
+ {
+ 	fprintf(exit_val ? stderr : stdout,
+ 	    "usage: %s [-bCcdfgHhiMmnRrsuVz] [-k field1[,field2]] [-o output] "
+-	    "[-S size]\n\t[-T dir] [-t char] [file ...]\n", getprogname());
++	    "[-S size]\n\t[-T dir] [-t char] [file ...]\n", __progname);
+ 	exit(exit_val);
+ }
+ 
+@@ -204,13 +209,9 @@
+ 	unsigned long long free_memory;
+ 	long long user_memory;
+ 	struct rlimit rl;
+-	size_t len;
+-	int mib[] = { CTL_HW, HW_USERMEM64 };
+ 
+ 	/* Get total user (non-kernel) memory. */
+-	len = sizeof(user_memory);
+-	if (sysctl(mib, 2, &user_memory, &len, NULL, 0) == -1)
+-	    user_memory = -1;
++	user_memory = sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGESIZE);
+ 
+ 	/* Increase our data size to the max */
+ 	if (getrlimit(RLIMIT_DATA, &rl) == 0) {
+@@ -239,7 +240,7 @@
+ static void
+ set_tmpdir(void)
+ {
+-	if (!issetugid()) {
++	if (!getauxval(AT_SECURE)) {
+ 		char *td;
+ 
+ 		td = getenv("TMPDIR");
+@@ -314,7 +315,8 @@
+ 		    100;
+ 		break;
+ 	default:
+-		warnc(EINVAL, "%s", optarg);
++		errno = EINVAL;
++		warn("%s", optarg);
+ 		membuf = available_free_memory;
+ 	}
+ 	if (membuf > SIZE_MAX)
+@@ -328,7 +330,7 @@
+  * Signal handler that clears the temporary files.
+  */
+ static void
+-sig_handler(int sig __unused)
++sig_handler(int sig)
+ {
+ 	clear_tmp_files();
+ 	_exit(2);
+@@ -765,7 +767,7 @@
+ 	if (!need_random)
+ 		return;
+ 
+-	MD5Init(&md5_ctx);
++	MD5_Init(&md5_ctx);
+ 	if (random_source != NULL) {
+ 		unsigned char buf[BUFSIZ];
+ 		size_t nr;
+@@ -774,15 +776,16 @@
+ 		if ((fp = fopen(random_source, "r")) == NULL)
+ 			err(2, "%s", random_source);
+ 		while ((nr = fread(buf, 1, sizeof(buf), fp)) != 0)
+-			MD5Update(&md5_ctx, buf, nr);
++			MD5_Update(&md5_ctx, buf, nr);
+ 		if (ferror(fp))
+ 			err(2, "%s", random_source);
+ 		fclose(fp);
+ 	} else {
+ 		unsigned char rsd[1024];
+ 
+-		arc4random_buf(rsd, sizeof(rsd));
+-		MD5Update(&md5_ctx, rsd, sizeof(rsd));
++		if (getrandom(rsd, sizeof(rsd), GRND_RANDOM|GRND_NONBLOCK) == -1)
++			err(1, "getrandom()");
++		MD5_Update(&md5_ctx, rsd, sizeof(rsd));
+ 	}
+ }
+ 
+@@ -801,9 +804,6 @@
+ 
+ 	set_hw_params();
+ 
+-	if (pledge("stdio rpath wpath cpath fattr chown proc exec", NULL) == -1)
+-		err(2, "pledge");
+-
+ 	outfile = "-";
+ 	real_outfile = NULL;
+ 	sflag = NULL;
+@@ -856,8 +856,10 @@
+ 				keys[keys_num].pos2b = default_sort_mods->bflag;
+ #endif
+ 
+-				if (parse_k(optarg, &(keys[keys_num++])) < 0)
+-					errc(2, EINVAL, "-k %s", optarg);
++				if (parse_k(optarg, &(keys[keys_num++])) < 0) {
++					errno = EINVAL;
++					err(2, "-k %s", optarg);
++				}
+ 
+ 				break;
+ 			}
+@@ -879,7 +881,8 @@
+ 			case 't':
+ 				while (strlen(optarg) > 1) {
+ 					if (optarg[0] != '\\') {
+-						errc(2, EINVAL, "%s", optarg);
++						errno = EINVAL;
++						err(2, "%s", optarg);
+ 					}
+ 					optarg += 1;
+ 					if (*optarg == '0') {
+@@ -972,11 +975,6 @@
+ 	argc -= optind;
+ 	argv += optind;
+ 
+-	if (compress_program == NULL) {
+-		if (pledge("stdio rpath wpath cpath fattr chown", NULL) == -1)
+-			err(2, "pledge");
+-	}
+-
+ #ifndef GNUSORT_COMPATIBILITY
+ 	if (argc > 2 && strcmp(argv[argc - 2], "-o") == 0) {
+ 		outfile = argv[argc - 1];
+@@ -993,24 +991,6 @@
+ 		if (argc > 1)
+ 			errx(2, "only one input file is allowed with the -%c flag",
+ 			    sort_opts_vals.csilentflag ? 'C' : 'c');
+-
+-		if (argc == 0 || strcmp(argv[0], "-") == 0) {
+-			if (compress_program) {
+-				if (pledge("stdio proc exec", NULL) == -1)
+-					err(2, "pledge");
+-			} else {
+-				if (pledge("stdio", NULL) == -1)
+-					err(2, "pledge");
+-			}
+-		} else {
+-			if (compress_program) {
+-				if (pledge("stdio rpath proc exec", NULL) == -1)
+-					err(2, "pledge");
+-			} else {
+-				if (pledge("stdio rpath", NULL) == -1)
+-					err(2, "pledge");
+-			}
+-		}
+ 	} else {
+ 		/* Case when the outfile equals one of the input files: */
+ 		if (strcmp(outfile, "-") != 0) {
+@@ -1037,14 +1017,6 @@
+ 				}
+ 			}
+ 		}
+-
+-		if (compress_program) {
+-			if (pledge("stdio rpath wpath cpath proc exec", NULL) == -1)
+-				err(2, "pledge");
+-		} else {
+-			if (pledge("stdio rpath wpath cpath", NULL) == -1)
+-				err(2, "pledge");
+-		}
+ 	}
+ 
+ 	if (sflag != NULL)

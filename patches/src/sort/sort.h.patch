@@ -1,0 +1,11 @@
+--- sort.h.orig	2020-06-27 17:37:25.930824801 -0400
++++ sort.h	2020-06-28 13:47:00.664274198 -0400
+@@ -36,7 +36,7 @@
+ #include <wchar.h>
+ 
+ #include <sys/types.h>
+-#include <md5.h>
++#include <openssl/md5.h>
+ 
+ #define	VERSION	"2.3-OpenBSD"
+ 

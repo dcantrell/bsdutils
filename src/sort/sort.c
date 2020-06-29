@@ -1,4 +1,4 @@
-/*	$OpenBSD: sort.c,v 1.87 2017/01/04 15:30:58 millert Exp $	*/
+/*	$OpenBSD: sort.c,v 1.90 2019/06/28 13:35:03 deraadt Exp $	*/
 
 /*-
  * Copyright (C) 2009 Gabor Kovesdan <gabor@FreeBSD.org>
@@ -27,20 +27,16 @@
  * SUCH DAMAGE.
  */
 
-#include "config.h"
-
 #include <sys/random.h>
 #include <sys/resource.h>
 #include <sys/stat.h>
-#include <sys/sysctl.h>
 #include <sys/types.h>
+#include <sys/auxv.h>
 
 #include <err.h>
 #include <errno.h>
 #include <getopt.h>
-#include <libgen.h>
 #include <limits.h>
-#include <locale.h>
 #include <openssl/md5.h>
 #include <regex.h>
 #include <signal.h>
@@ -59,6 +55,8 @@
 
 #include "compat.h"
 
+extern char *__progname;
+
 #ifdef GNUSORT_COMPATIBILITY
 # define PERMUTE	""
 #else
@@ -68,7 +66,6 @@
 
 static bool need_random;
 static const char *random_source;
-static const char *progname;
 
 MD5_CTX md5_ctx;
 
@@ -77,12 +74,8 @@ struct sort_opts sort_opts_vals;
 bool debug_sort;
 bool need_hint;
 
-static bool gnusort_numeric_compatibility;
-
 static struct sort_mods default_sort_mods_object;
 struct sort_mods * const default_sort_mods = &default_sort_mods_object;
-
-static bool print_symbols_on_debug;
 
 /*
  * Arguments from file (when file0-from option is used:
@@ -168,7 +161,7 @@ usage(int exit_val)
 {
 	fprintf(exit_val ? stderr : stdout,
 	    "usage: %s [-bCcdfgHhiMmnRrsuVz] [-k field1[,field2]] [-o output] "
-	    "[-S size]\n\t[-T dir] [-t char] [file ...]\n", progname);
+	    "[-S size]\n\t[-T dir] [-t char] [file ...]\n", __progname);
 	exit(exit_val);
 }
 
@@ -242,78 +235,18 @@ set_hw_params(void)
 }
 
 /*
- * Convert "plain" symbol to wide symbol, with default value.
- */
-static void
-conv_mbtowc(wchar_t *wc, const char *c, const wchar_t def)
-{
-	int res;
-
-	res = mbtowc(wc, c, MB_CUR_MAX);
-	if (res < 1)
-		*wc = def;
-}
-
-/*
- * Set current locale symbols.
- */
-static void
-set_locale(void)
-{
-	struct lconv *lc;
-	const char *locale;
-
-	setlocale(LC_ALL, "");
-
-	/* Obtain LC_NUMERIC info */
-	lc = localeconv();
-
-	/* Convert to wide char form */
-	conv_mbtowc(&symbol_decimal_point, lc->decimal_point,
-	    symbol_decimal_point);
-	conv_mbtowc(&symbol_thousands_sep, lc->thousands_sep,
-	    symbol_thousands_sep);
-	conv_mbtowc(&symbol_positive_sign, lc->positive_sign,
-	    symbol_positive_sign);
-	conv_mbtowc(&symbol_negative_sign, lc->negative_sign,
-	    symbol_negative_sign);
-
-	if (getenv("GNUSORT_NUMERIC_COMPATIBILITY"))
-		gnusort_numeric_compatibility = true;
-
-	locale = setlocale(LC_COLLATE, NULL);
-	if (locale != NULL) {
-		char *tmpl;
-		const char *byteclocale;
-
-		tmpl = sort_strdup(locale);
-		byteclocale = setlocale(LC_COLLATE, "C");
-		if (byteclocale && strcmp(byteclocale, tmpl) == 0) {
-			byte_sort = true;
-		} else {
-			byteclocale = setlocale(LC_COLLATE, "POSIX");
-			if (byteclocale && strcmp(byteclocale, tmpl) == 0)
-				byte_sort = true;
-			else
-				setlocale(LC_COLLATE, tmpl);
-		}
-		sort_free(tmpl);
-	}
-	if (!byte_sort)
-		sort_mb_cur_max = MB_CUR_MAX;
-}
-
-/*
  * Set directory temporary files.
  */
 static void
 set_tmpdir(void)
 {
-	char *td;
+	if (!getauxval(AT_SECURE)) {
+		char *td;
 
-	td = getenv("TMPDIR");
-	if (td != NULL)
-		tmpdir = td;
+		td = getenv("TMPDIR");
+		if (td != NULL)
+			tmpdir = td;
+	}
 }
 
 /*
@@ -419,7 +352,7 @@ set_signal_handler(void)
 	sa.sa_handler = sig_handler;
 
 	for (i = 0; signals[i] != 0; i++) {
-		if (sigaction(signals[i], &sa, NULL) < 0) {
+		if (sigaction(signals[i], &sa, NULL) == -1) {
 			warn("sigaction(%s)", strsignal(signals[i]));
 			continue;
 		}
@@ -520,7 +453,6 @@ set_sort_modifier(struct sort_mods *sm, int c)
 	case 'n':
 		sm->nflag = true;
 		need_hint = true;
-		print_symbols_on_debug = true;
 		break;
 	case 'r':
 		sm->rflag = true;
@@ -531,7 +463,6 @@ set_sort_modifier(struct sort_mods *sm, int c)
 	case 'h':
 		sm->hflag = true;
 		need_hint = true;
-		print_symbols_on_debug = true;
 		break;
 	default:
 		return false;
@@ -854,7 +785,6 @@ set_random_seed(void)
 
 		if (getrandom(rsd, sizeof(rsd), GRND_RANDOM|GRND_NONBLOCK) == -1)
 			err(1, "getrandom()");
-
 		MD5_Update(&md5_ctx, rsd, sizeof(rsd));
 	}
 }
@@ -872,8 +802,6 @@ main(int argc, char *argv[])
 	bool mef_flags[NUMBER_OF_MUTUALLY_EXCLUSIVE_FLAGS] =
 	    { false, false, false, false, false, false };
 
-	progname = basename(argv[0]);
-
 	set_hw_params();
 
 	outfile = "-";
@@ -886,7 +814,6 @@ main(int argc, char *argv[])
 
 	atexit(clear_tmp_files);
 
-	set_locale();
 	set_tmpdir();
 	set_sort_opts();
 
@@ -968,16 +895,6 @@ main(int argc, char *argv[])
 				if (sort_opts_vals.field_sep == WEOF) {
 					errno = EINVAL;
 					err(2, NULL);
-				}
-				if (!gnusort_numeric_compatibility) {
-					if (symbol_decimal_point == sort_opts_vals.field_sep)
-						symbol_decimal_point = WEOF;
-					if (symbol_thousands_sep == sort_opts_vals.field_sep)
-						symbol_thousands_sep = WEOF;
-					if (symbol_negative_sign == sort_opts_vals.field_sep)
-						symbol_negative_sign = WEOF;
-					if (symbol_positive_sign == sort_opts_vals.field_sep)
-						symbol_positive_sign = WEOF;
 				}
 				break;
 			case 'u':
@@ -1135,22 +1052,9 @@ main(int argc, char *argv[])
 		ks->sm.func = get_sort_func(&(ks->sm));
 	}
 
-	if (debug_sort) {
+	if (debug_sort)
 		printf("Memory to be used for sorting: %llu\n",
 		    available_free_memory);
-		printf("Using collate rules of %s locale\n",
-		    setlocale(LC_COLLATE, NULL));
-		if (byte_sort)
-			printf("Byte sort is used\n");
-		if (print_symbols_on_debug) {
-			printf("Decimal Point: <%lc>\n", symbol_decimal_point);
-			if (symbol_thousands_sep)
-				printf("Thousands separator: <%lc>\n",
-				    symbol_thousands_sep);
-			printf("Positive sign: <%lc>\n", symbol_positive_sign);
-			printf("Negative sign: <%lc>\n", symbol_negative_sign);
-		}
-	}
 
 	if (sort_opts_vals.cflag)
 		return check(argc ? *argv : "-");
@@ -1208,7 +1112,7 @@ main(int argc, char *argv[])
 	}
 
 	if (real_outfile) {
-		if (rename(outfile, real_outfile) < 0)
+		if (rename(outfile, real_outfile) == -1)
 			err(2, "%s", real_outfile);
 		sort_free(outfile);
 	}
