@@ -190,6 +190,9 @@ the portable one.  We will use the statvfs structure and functions
 where statfs is used.  The statvfs struct and functions are defined in
 <sys/statvfs.h>.
 
+The struct statvfs on Linux does not have the f_mntonname member, so
+uses of that in these tools has been removed.
+
 
 struct stat
 -----------
