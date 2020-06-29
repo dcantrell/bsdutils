@@ -1,0 +1,44 @@
+--- install.1.orig	2020-06-29 12:42:43.624119515 -0400
++++ install.1	2020-06-29 13:40:42.565805899 -0400
+@@ -40,7 +40,6 @@
+ .Nm install
+ .Op Fl bCcDdFpSs
+ .Op Fl B Ar suffix
+-.Op Fl f Ar flags
+ .Op Fl g Ar group
+ .Op Fl m Ar mode
+ .Op Fl o Ar owner
+@@ -111,12 +110,6 @@
+ .Xr fsync 2
+ function to synchronize the installed file's contents with the
+ on-disk version.
+-.It Fl f Ar flags
+-Specify the target's file
+-.Ar flags .
+-(See
+-.Xr chflags 1
+-for a list of possible flags and their meanings.)
+ .It Fl g Ar group
+ Specify a
+ .Ar group .
+@@ -157,12 +150,6 @@
+ is set, it is used instead.
+ .El
+ .Pp
+-By default,
+-.Nm
+-preserves all file flags, with the exception of the
+-.Dq nodump
+-flag.
+-.Pp
+ The
+ .Nm
+ utility attempts to prevent moving a file onto itself.
+@@ -188,7 +175,6 @@
+ .Sh EXIT STATUS
+ .Ex -std install
+ .Sh SEE ALSO
+-.Xr chflags 1 ,
+ .Xr chgrp 1 ,
+ .Xr chmod 1 ,
+ .Xr cp 1 ,

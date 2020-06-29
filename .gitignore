@@ -89,5 +89,6 @@ src/users/users
 src/wc/wc
 src/who/who
 src/xargs/xargs
+src/xinstall/xinstall
 src/yes/yes
 stamp-h1

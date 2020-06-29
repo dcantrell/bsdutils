@@ -65,5 +65,5 @@ SUBDIRS += users
 SUBDIRS += wc
 SUBDIRS += who
 #SUBDIRS += xargs
-#SUBDIRS += xinstall
+SUBDIRS += xinstall
 SUBDIRS += yes
