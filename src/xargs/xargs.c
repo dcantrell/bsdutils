@@ -35,8 +35,6 @@
  * $xMach: xargs.c,v 1.6 2002/02/23 05:27:47 tim Exp $
  */
 
-#include "config.h"
-
 #include <sys/wait.h>
 
 #include <ctype.h>
@@ -55,6 +53,7 @@
 #include <limits.h>
 
 #include "pathnames.h"
+
 #include "compat.h"
 
 static void	parse_input(int, char *[]);
@@ -319,7 +318,7 @@ arg2:
 					 * argument.
 					 */
 					if ((curlen = strlen(inpline)))
-						inpline[strlen(inpline) + 1] = ' ';
+						strlcat(inpline, " ", inpsize);
 				}
 				curlen++;
 				/*
@@ -333,9 +332,9 @@ arg2:
 				if (inpline == NULL)
 					errx(1, "realloc failed");
 				if (curlen == 1)
-					strncpy(inpline, argp, sizeof(argp));
+					strlcpy(inpline, argp, inpsize);
 				else
-					strncat(inpline, argp, sizeof(argp));
+					strlcat(inpline, argp, inpsize);
 			}
 		}
 

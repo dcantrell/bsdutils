@@ -1,0 +1,41 @@
+--- xargs.c.orig	2020-06-29 12:42:43.624119515 -0400
++++ xargs.c	2020-06-29 15:32:11.722447246 -0400
+@@ -54,6 +54,8 @@
+ 
+ #include "pathnames.h"
+ 
++#include "compat.h"
++
+ static void	parse_input(int, char *[]);
+ static void	prerun(int, char *[]);
+ static int	prompt(void);
+@@ -105,9 +107,6 @@
+ 	if ((arg_max = sysconf(_SC_ARG_MAX)) == -1)
+ 		errx(1, "sysconf(_SC_ARG_MAX) failed");
+ 
+-	if (pledge("stdio rpath proc exec", NULL) == -1)
+-		err(1, "pledge");
+-
+ 	nline = arg_max - 4 * 1024;
+ 	while (*ep != NULL) {
+ 		/* 1 byte for each '\0' */
+@@ -589,7 +588,7 @@
+ 			if (WTERMSIG(status) != SIGPIPE) {
+ 				if (WTERMSIG(status) < NSIG)
+ 					warnx("%s terminated by SIG%s", name,
+-					    sys_signame[WTERMSIG(status)]);
++					    strsignal(WTERMSIG(status)));
+ 				else
+ 					warnx("%s terminated by signal %d",
+ 					    name, WTERMSIG(status));
+@@ -617,8 +616,8 @@
+ 		return (2);	/* Indicate that the TTY failed to open. */
+ 	(void)fprintf(stderr, "?...");
+ 	(void)fflush(stderr);
+-	if ((response = fgetln(ttyfp, &rsize)) == NULL ||
+-	    regcomp(&cre, nl_langinfo(YESEXPR), REG_BASIC) != 0) {
++	if (getline(&response, &rsize, ttyfp) == -1 ||
++	    regcomp(&cre, nl_langinfo(YESEXPR), 0) != 0) {
+ 		(void)fclose(ttyfp);
+ 		return (0);
+ 	}

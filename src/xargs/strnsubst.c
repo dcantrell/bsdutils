@@ -1,4 +1,4 @@
-/*	$OpenBSD: strnsubst.c,v 1.6 2017/01/03 21:47:37 tedu Exp $	*/
+/*	$OpenBSD: strnsubst.c,v 1.7 2019/07/03 03:24:02 deraadt Exp $	*/
 /*	$FreeBSD: strnsubst.c,v 1.6 2002/06/22 12:58:42 jmallett Exp $	*/
 
 /*
@@ -14,6 +14,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
+#include "compat.h"
 
 void	strnsubst(char **, const char *, const char *, size_t);
 
@@ -43,7 +45,7 @@ strnsubst(char **str, const char *match, const char *replstr, size_t maxsize)
 		replstr = "";
 
 	if (match == NULL || *match == '\0' || strlen(s1) >= maxsize) {
-		strncpy(s2, s1, maxsize);
+		strlcpy(s2, s1, maxsize);
 		goto done;
 	}
 
@@ -55,14 +57,13 @@ strnsubst(char **str, const char *match, const char *replstr, size_t maxsize)
 			break;
 		n = snprintf(s2 + s2len, maxsize - s2len, "%.*s%s",
 		    (int)(this - s1), s1, replstr);
-		if (n == -1 || n + s2len + strlen(this + matchlen) >= maxsize)
+		if (n < 0 || n + s2len + strlen(this + matchlen) >= maxsize)
 			break;			/* out of room */
 		s2len += n;
 		s1 = this + matchlen;
 	}
-	strncpy(s2 + s2len, s1, maxsize - s2len);
+	strlcpy(s2 + s2len, s1, maxsize - s2len);
 done:
-	s2[maxsize - 1] = '\0';
 	*str = s2;
 	return;
 }
