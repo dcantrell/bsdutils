@@ -1,0 +1,91 @@
+--- key.c.orig	2020-06-30 11:07:47.431704771 -0400
++++ key.c	2020-07-03 15:42:01.067934212 -0400
+@@ -44,6 +44,8 @@
+ #include "stty.h"
+ #include "extern.h"
+ 
++#include "compat.h"
++
+ __BEGIN_DECLS
+ void	f_all(struct info *);
+ void	f_cbreak(struct info *);
+@@ -61,8 +63,6 @@
+ void	f_sane(struct info *);
+ void	f_size(struct info *);
+ void	f_speed(struct info *);
+-void	f_ostart(struct info *);
+-void	f_ostop(struct info *);
+ void	f_tty(struct info *);
+ __END_DECLS
+ 
+@@ -88,8 +88,6 @@
+ 	{ "nl",		f_nl,		F_OFFOK },
+ 	{ "old",	f_tty,		0 },
+ 	{ "ospeed",	f_ospeed,	F_NEEDARG },
+-	{ "ostart",	f_ostart,	0 },
+-	{ "ostop",	f_ostop,	0 },
+ 	{ "raw",	f_raw,		F_OFFOK },
+ 	{ "rows",	f_rows,		F_NEEDARG },
+ 	{ "sane",	f_sane,		0 },
+@@ -198,14 +196,25 @@
+ void
+ f_extproc(struct info *ip)
+ {
++	struct termios tio;
++	errno = 0;
++
++	if (tcgetattr(ip->fd, &tio) == -1) {
++		err(1, "extproc");
++		return;
++	}
+ 
+ 	if (ip->off) {
+-		int tmp = 0;
+-		(void)ioctl(ip->fd, TIOCEXT, &tmp);
++		tio.c_lflag &= ~EXTPROC;
+ 	} else {
+-		int tmp = 1;
+-		(void)ioctl(ip->fd, TIOCEXT, &tmp);
++		tio.c_lflag |= EXTPROC;
+ 	}
++
++	if (tcsetattr(ip->fd, TCSANOW, &tio) == -1) {
++		err(1, "extproc");
++		return;
++	}
++
+ 	ip->set = 1;
+ }
+ 
+@@ -297,7 +306,7 @@
+ 	ip->t.c_iflag = TTYDEF_IFLAG;
+ 	ip->t.c_iflag |= ICRNL;
+ 	/* preserve user-preference flags in lflag */
+-#define	LKEEP	(ECHOKE|ECHOE|ECHOK|ECHOPRT|ECHOCTL|ALTWERASE|TOSTOP|NOFLSH)
++#define	LKEEP	(ECHOKE|ECHOE|ECHOK|ECHOPRT|ECHOCTL|VWERASE|TOSTOP|NOFLSH)
+ 	ip->t.c_lflag = TTYDEF_LFLAG | (ip->t.c_lflag & LKEEP);
+ 	ip->t.c_oflag = TTYDEF_OFLAG;
+ 	ip->set = 1;
+@@ -322,21 +331,7 @@
+ {
+ 	int tmp;
+ 
+-	tmp = TTYDISC;
++	tmp = N_TTY;
+ 	if (ioctl(ip->fd, TIOCSETD, &tmp) == -1)
+ 		err(1, "TIOCSETD");
+ }
+-
+-void
+-f_ostart(struct info *ip)
+-{
+-	if (ioctl(ip->fd, TIOCSTART) == -1)
+-		err(1, "TIOCSTART");
+-}
+-
+-void
+-f_ostop(struct info *ip)
+-{
+-	if (ioctl(ip->fd, TIOCSTOP) == -1)
+-		err(1, "TIOCSTOP");
+-}

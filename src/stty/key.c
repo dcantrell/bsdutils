@@ -1,4 +1,4 @@
-/*	$OpenBSD: key.c,v 1.17 2016/03/23 14:52:42 mmcc Exp $	*/
+/*	$OpenBSD: key.c,v 1.18 2019/06/28 13:35:00 deraadt Exp $	*/
 /*	$NetBSD: key.c,v 1.11 1995/09/07 06:57:11 jtc Exp $	*/
 
 /*-
@@ -30,8 +30,6 @@
  * SUCH DAMAGE.
  */
 
-#include "config.h"
-
 #include <sys/types.h>
 #include <sys/ioctl.h>
 
@@ -42,7 +40,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <termios.h>
-#include <pty.h>
 
 #include "stty.h"
 #include "extern.h"
@@ -203,7 +200,7 @@ f_extproc(struct info *ip)
 	errno = 0;
 
 	if (tcgetattr(ip->fd, &tio) == -1) {
-		err(1, "extproc %s", strerror(errno));
+		err(1, "extproc");
 		return;
 	}
 
@@ -214,7 +211,7 @@ f_extproc(struct info *ip)
 	}
 
 	if (tcsetattr(ip->fd, TCSANOW, &tio) == -1) {
-		err(1, "extproc %s", strerror(errno));
+		err(1, "extproc");
 		return;
 	}
 
@@ -335,6 +332,6 @@ f_tty(struct info *ip)
 	int tmp;
 
 	tmp = N_TTY;
-	if (ioctl(ip->fd, TIOCSETD, &tmp) < 0)
+	if (ioctl(ip->fd, TIOCSETD, &tmp) == -1)
 		err(1, "TIOCSETD");
 }

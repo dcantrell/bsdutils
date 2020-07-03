@@ -30,14 +30,11 @@
  * SUCH DAMAGE.
  */
 
-#include "config.h"
-
 #include <sys/types.h>
 
 #include <stddef.h>
 #include <string.h>
 #include <termios.h>
-#include <pty.h>
 
 #include "stty.h"
 #include "extern.h"
