@@ -4,12 +4,13 @@ OpenBSD.  This file attempts to summarize the major differences and
 what option was taken for the port.
 
 
-pledge()
---------
+pledge() and unveil()
+---------------------
 OpenBSD offers a system call named pledge(2) that forces a process in
-to a restricted operating mode.  This is entirely an OpenBSD thing and
-not present on Linux.  All calls to pledge() have been removed in the
-bsdutils source.
+to a restricted operating mode.  Calls to unveil(2) undo a pledge(2)
+call.  This is entirely an OpenBSD thing and not present on Linux.
+All calls to pledge() and unveil() have been removed in the bsdutils
+source.
 
 
 __dead
@@ -194,8 +195,8 @@ The struct statvfs on Linux does not have the f_mntonname member, so
 uses of that in these tools has been removed.
 
 
-struct stat
------------
+struct stat (st_birthtime, st_gen, and other things)
+----------------------------------------------------
 There are a number of differences between the stat structures on Linux
 and OpenBSD.  Linux does not have the st_mtimensec member.  Linux has
 st_atim, st_mtim, and st_ctim (note the lack of the trailing 'e')
@@ -235,10 +236,8 @@ name.
 
 VSTATUS
 -------
-Terminal control sequence only available on BSD systems.  This
-displays kernel information on the terminal, which the Linux kernel
-lacks support for.  This is removed from stty(1) and other commands
-that use it.
+This is called CSTATUS on Linux, similar to the VDSUSP vs. CDSUSP
+difference.
 
 
 tty headers
@@ -273,7 +272,7 @@ used.
 TTYDISC and other *DISC macros
 ------------------------------
 tty line discipline macro names are entirely different between Linux
-and BSD.  TTTYDISC is '0' and that maps to N_TTY on Linux.  The Linux
+and BSD.  TTYDISC is '0' and that maps to N_TTY on Linux.  The Linux
 names tend to be N_*, so PPPDISC is N_PPP.  OpenBSD has some that
 Linux doesn't have, like NMEADISC, and in those cases the
 OpenBSD-specific code is removed.
@@ -417,10 +416,10 @@ REG_EXTENDED to enable POSIX Extended Regular Expressions.  Where
 REG_BASIC appears in regcomp() calls, we remove it.
 
 
-UID_MAX
--------
+UID_MAX and GID_MAX
+-------------------
 Defined in /etc/login.defs on Linux.  Using INT_MAX here to keep
-things simple.
+things simple.  Might need a better solution in the future.
 
 
 'id -R' and getrtable()
@@ -455,3 +454,33 @@ optreset
 --------
 getopt() on OpenBSD uses an optreset variable.  glibc does not have
 this on Linux, so uses of it are removed from this port.
+
+
+EFTYPE
+------
+This is an errno value from OpenBSD that we do not have on Linux.  It
+means "invalid file type".  Where we need to use EFTYPE for reporting,
+we will use EINVAL instead.
+
+
+MACHINE_ARCH
+------------
+This is not defined on Linux.  Where it is used, the 'machine' member
+of struct utsname is used instead.
+
+
+timespecclear() and timespecisset()
+-----------------------------------
+glibc does not provide these functions.  Where timespecclear() is
+used, we will use memset().  For example:
+
+    timespecclear(&t) -> memset(&t, 0, sizeof(t))
+
+Where timespecisset() is used, we will just test to see if the value
+is non-zero:
+
+    if (timespecisset(&t)) -> if (t.tv_sec || t.tv_nsec)
+
+There may be other <sys/time.h> functions we encounter that are
+specific to OpenBSD, in which case we will just adjust them to a
+functionally equivalent glibc alternative.
