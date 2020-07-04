@@ -1,5 +1,5 @@
 bin_PROGRAMS = nice
-man_MANS = nice.1
+dist_man_MANS = nice.1
 
 nice_SOURCES = nice.c
 nice_CFLAGS = -I$(top_srcdir)/compat

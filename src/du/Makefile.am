@@ -1,5 +1,5 @@
 bin_PROGRAMS = du
-man_MANS = du.1
+dist_man_MANS = du.1
 
 du_SOURCES = du.c
 du_CFLAGS = -I$(top_srcdir)/compat

@@ -1,5 +1,5 @@
 bin_PROGRAMS = id
-man_MANS = id.1 groups.1 whoami.1
+dist_man_MANS = id.1 groups.1 whoami.1
 
 id_SOURCES = id.c
 id_CFLAGS = -I$(top_srcdir)/compat

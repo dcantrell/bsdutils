@@ -1,5 +1,5 @@
 bin_PROGRAMS = nohup
-man_MANS = nohup.1
+dist_man_MANS = nohup.1
 
 nohup_SOURCES = nohup.c
 nohup_CFLAGS = -I$(top_srcdir)/compat

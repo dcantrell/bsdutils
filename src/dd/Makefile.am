@@ -1,4 +1,6 @@
 bin_PROGRAMS = dd
-man_MANS = dd.1
+dist_man_MANS = dd.1
 
 dd_SOURCES = args.c conv.c conv_tab.c dd.c misc.c position.c
+
+EXTRA_DIST = dd.h extern.h

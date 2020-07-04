@@ -1,5 +1,5 @@
 bin_PROGRAMS = nl
-man_MANS = nl.1
+dist_man_MANS = nl.1
 
 nl_SOURCES = nl.c
 nl_CFLAGS = -I$(top_srcdir)/compat -D_GNU_SOURCE

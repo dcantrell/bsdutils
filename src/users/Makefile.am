@@ -1,5 +1,5 @@
 bin_PROGRAMS = users
-man_MANS = users.1
+dist_man_MANS = users.1
 
 users_SOURCES = users.c
 users_CFLAGS = -I$(top_srcdir)/compat

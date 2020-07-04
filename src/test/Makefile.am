@@ -1,5 +1,5 @@
 bin_PROGRAMS = test
-man_MANS = test.1
+dist_man_MANS = test.1
 
 test_SOURCES = test.c
 test_CFLAGS = -I$(top_srcdir)/compat
