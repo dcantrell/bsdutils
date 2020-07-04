@@ -32,7 +32,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#include <db.h>
 #include <dirent.h>
 #include <fcntl.h>
 #include <limits.h>

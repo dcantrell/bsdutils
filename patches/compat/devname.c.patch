@@ -1,6 +1,14 @@
---- devname.c.orig	2020-06-07 21:01:05.831174670 -0400
-+++ devname.c	2020-06-07 21:03:44.228471584 -0400
-@@ -41,8 +41,8 @@
+--- devname.c.orig	2020-06-25 09:46:13.853013934 -0400
++++ devname.c	2020-07-04 10:02:24.563361508 -0400
+@@ -32,7 +32,6 @@
+ #include <sys/stat.h>
+ #include <sys/types.h>
+ 
+-#include <db.h>
+ #include <dirent.h>
+ #include <fcntl.h>
+ #include <limits.h>
+@@ -41,8 +40,8 @@
  #include <string.h>
  #include <stdlib.h>
  
@@ -11,7 +19,7 @@
  {
  	static char buf[NAME_MAX + 1];
  	char *name = NULL;
-@@ -65,39 +65,3 @@
+@@ -65,39 +64,3 @@
  	closedir(dirp);
  	return (name);
  }
