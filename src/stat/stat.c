@@ -1,4 +1,4 @@
-/*	$OpenBSD: stat.c,v 1.21 2015/10/10 20:35:01 deraadt Exp $ */
+/*	$OpenBSD: stat.c,v 1.23 2018/09/18 15:14:06 tb Exp $ */
 /*	$NetBSD: stat.c,v 1.19 2004/06/20 22:20:16 jmc Exp $ */
 
 /*
@@ -30,11 +30,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "config.h"
-
-#include <sys/sysmacros.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/sysmacros.h>
 
 #include <ctype.h>
 #include <err.h>
@@ -52,9 +50,9 @@
 
 #define DEF_FORMAT \
 	"%d %i %Sp %l %Su %Sg %r %z \"%Sa\" \"%Sm\" \"%Sc\" " \
-	"%k %b %N"
+	"%k %b %#Xf %N"
 #define RAW_FORMAT	"%d %i %#p %l %u %g %r %z %a %m %c " \
-	"%k %b %N"
+	"%k %b %f %N"
 #define LS_FORMAT	"%Sp %l %Su %Sg %Z %Sm %N%SY"
 #define LSF_FORMAT	"%Sp %l %Su %Sg %Z %Sm %N%T%SY"
 #define SHELL_FORMAT \
@@ -486,10 +484,9 @@ format1(const struct stat *st,
     int hilo, int what)
 {
 	u_int64_t data;
-	char *sdata, lfmt[24], tmp[20];
+	char lfmt[24], tmp[20];
 	char smode[12], sid[12], path[PATH_MAX + 4];
-	struct passwd *pw;
-	struct group *gr;
+	const char *sdata;
 	struct tm *tm;
 	time_t secs;
 	long nsecs;
@@ -542,26 +539,30 @@ format1(const struct stat *st,
 		small = (sizeof(st->st_mode) == 4);
 		data = st->st_mode;
 		strmode(st->st_mode, smode);
-		sdata = smode;
-		l = strlen(sdata);
-		if (sdata[l - 1] == ' ')
-			sdata[--l] = '\0';
-		if (hilo == HIGH_PIECE) {
+		l = strlen(smode);
+		if (smode[l - 1] == ' ')
+			smode[--l] = '\0';
+		switch (hilo) {
+		case HIGH_PIECE:
 			data >>= 12;
-			sdata += 1;
-			sdata[3] = '\0';
-			hilo = 0;
-		} else if (hilo == MIDDLE_PIECE) {
+			smode[4] = '\0';
+			sdata = smode + 1;
+			break;
+		case MIDDLE_PIECE:
 			data = (data >> 9) & 07;
-			sdata += 4;
-			sdata[3] = '\0';
-			hilo = 0;
-		} else if (hilo == LOW_PIECE) {
+			smode[7] = '\0';
+			sdata = smode + 4;
+			break;
+		case LOW_PIECE:
 			data &= 0777;
-			sdata += 7;
-			sdata[3] = '\0';
-			hilo = 0;
+			smode[10] = '\0';
+			sdata = smode + 7;
+			break;
+		default:
+			sdata = smode;
+			break;
 		}
+		hilo = 0;
 		formats = FMTF_DECIMAL | FMTF_OCTAL | FMTF_UNSIGNED | FMTF_HEX |
 		    FMTF_STRING;
 		if (ofmt == 0)
@@ -578,9 +579,8 @@ format1(const struct stat *st,
 	case SHOW_st_uid:
 		small = (sizeof(st->st_uid) == 4);
 		data = st->st_uid;
-		if ((pw = getpwuid(st->st_uid)) != NULL)
-			sdata = pw->pw_name;
-		else {
+		sdata = user_from_uid(st->st_uid, 1);
+		if (sdata == NULL) {
 			snprintf(sid, sizeof(sid), "(%ld)", (long)st->st_uid);
 			sdata = sid;
 		}
@@ -592,9 +592,8 @@ format1(const struct stat *st,
 	case SHOW_st_gid:
 		small = (sizeof(st->st_gid) == 4);
 		data = st->st_gid;
-		if ((gr = getgrgid(st->st_gid)) != NULL)
-			sdata = gr->gr_name;
-		else {
+		sdata = group_from_gid(st->st_gid, 1);
+		if (sdata == NULL) {
 			snprintf(sid, sizeof(sid), "(%ld)", (long)st->st_gid);
 			sdata = sid;
 		}
@@ -605,20 +604,20 @@ format1(const struct stat *st,
 		break;
 	case SHOW_st_atime:
 		gottime = 1;
-		secs = st->st_atim.tv_sec;
+		secs = st->st_atime;
 		nsecs = st->st_atim.tv_nsec;
 		/* FALLTHROUGH */
 	case SHOW_st_mtime:
 		if (!gottime) {
 			gottime = 1;
-			secs = st->st_mtim.tv_sec;
+			secs = st->st_mtime;
 			nsecs = st->st_mtim.tv_nsec;
 		}
 		/* FALLTHROUGH */
 	case SHOW_st_ctime:
 		if (!gottime) {
 			gottime = 1;
-			secs = st->st_ctim.tv_sec;
+			secs = st->st_ctime;
 			nsecs = st->st_ctim.tv_nsec;
 		}
 		small = (sizeof(secs) == 4);
@@ -628,7 +627,7 @@ format1(const struct stat *st,
 		(void)strftime(path, sizeof(path), timefmt, tm);
 		sdata = path;
 		formats = FMTF_DECIMAL | FMTF_OCTAL | FMTF_UNSIGNED | FMTF_HEX |
-			FMTF_FLOAT | FMTF_STRING;
+		    FMTF_FLOAT | FMTF_STRING;
 		if (ofmt == 0)
 			ofmt = FMTF_DECIMAL;
 		break;
@@ -679,24 +678,25 @@ format1(const struct stat *st,
 		small = 0;
 		data = 0;
 		sdata = smode;
-		sdata[0] = '\0';
+		smode[0] = '\0';
 		if (hilo == 0 || hilo == LOW_PIECE) {
 			switch (st->st_mode & S_IFMT) {
 			case S_IFIFO:
-				(void)strcat(sdata, "|");
+				(void)strlcat(smode, "|", sizeof(smode));
 				break;
 			case S_IFDIR:
-				(void)strcat(sdata, "/");
+				(void)strlcat(smode, "/", sizeof(smode));
 				break;
 			case S_IFREG:
 				if (st->st_mode & (S_IXUSR | S_IXGRP | S_IXOTH))
-					(void)strcat(sdata, "*");
+					(void)strlcat(smode, "*",
+					    sizeof(smode));
 				break;
 			case S_IFLNK:
-				(void)strcat(sdata, "@");
+				(void)strlcat(smode, "@", sizeof(smode));
 				break;
 			case S_IFSOCK:
-				(void)strcat(sdata, "=");
+				(void)strlcat(smode, "=", sizeof(smode));
 				break;
 			}
 			hilo = 0;
@@ -721,10 +721,9 @@ format1(const struct stat *st,
 		small = 0;
 		data = 0;
 		if (file == NULL)
-			(void)strncpy(path, "(stdin)", sizeof(path));
+			(void)strlcpy(path, "(stdin)", sizeof(path));
 		else
-			(void)strncpy(path, file, sizeof(path));
-		path[sizeof(path) - 1] = '\0';
+			(void)strlcpy(path, file, sizeof(path));
 		sdata = path;
 		formats = FMTF_STRING;
 		if (ofmt == 0)
@@ -764,17 +763,17 @@ format1(const struct stat *st,
 	 * Assemble the format string for passing to printf(3).
 	 */
 	lfmt[0] = '\0';
-	(void)strcat(lfmt, "%");
+	(void)strlcat(lfmt, "%", sizeof(lfmt));
 	if (flags & FLAG_POUND)
-		(void)strcat(lfmt, "#");
+		(void)strlcat(lfmt, "#", sizeof(lfmt));
 	if (flags & FLAG_SPACE)
-		(void)strcat(lfmt, " ");
+		(void)strlcat(lfmt, " ", sizeof(lfmt));
 	if (flags & FLAG_PLUS)
-		(void)strcat(lfmt, "+");
+		(void)strlcat(lfmt, "+", sizeof(lfmt));
 	if (flags & FLAG_MINUS)
-		(void)strcat(lfmt, "-");
+		(void)strlcat(lfmt, "-", sizeof(lfmt));
 	if (flags & FLAG_ZERO)
-		(void)strcat(lfmt, "0");
+		(void)strlcat(lfmt, "0", sizeof(lfmt));
 
 	/*
 	 * Only the timespecs support the FLOAT output format, and that
@@ -787,9 +786,9 @@ format1(const struct stat *st,
 		if (prec == 0) {
 			if (size != -1) {
 				(void)snprintf(tmp, sizeof(tmp), "%d", size);
-				(void)strcat(lfmt, tmp);
+				(void)strlcat(lfmt, tmp, sizeof(lfmt));
 			}
-			(void)strcat(lfmt, "d");
+			(void)strlcat(lfmt, "d", sizeof(lfmt));
 			n = snprintf(buf, blen, lfmt, secs);
 			return (n >= blen ? blen : n);
 		}
@@ -812,22 +811,22 @@ format1(const struct stat *st,
 		 */
 		if (size > 0) {
 			(void)snprintf(tmp, sizeof(tmp), "%d", size);
-			(void)strcat(lfmt, tmp);
+			(void)strlcat(lfmt, tmp, sizeof(lfmt));
 		}
-		(void)strcat(lfmt, "d");
+		(void)strlcat(lfmt, "d", sizeof(lfmt));
 
 		/*
 		 * The stuff after the decimal point always needs zero
 		 * filling.
 		 */
-		(void)strcat(lfmt, ".%0");
+		(void)strlcat(lfmt, ".%0", sizeof(lfmt));
 
 		/*
 		 * We can "print" at most nine digits of precision.  The
 		 * rest we will pad on at the end.
 		 */
 		(void)snprintf(tmp, sizeof(tmp), "%dd", prec > 9 ? 9 : prec);
-		(void)strcat(lfmt, tmp);
+		(void)strlcat(lfmt, tmp, sizeof(lfmt));
 
 		/*
 		 * For precision of less that nine digits, trim off the
@@ -844,7 +843,7 @@ format1(const struct stat *st,
 		if (l >= blen)
 			return (l);
 		for (; prec > 9 && l < blen; prec--, l++)
-			(void)strcat(buf, "0");
+			(void)strlcat(buf, "0", blen);
 		return (l);
 	}
 
@@ -853,11 +852,11 @@ format1(const struct stat *st,
 	 */
 	if (size != -1) {
 		(void)snprintf(tmp, sizeof(tmp), "%d", size);
-		(void)strcat(lfmt, tmp);
+		(void)strlcat(lfmt, tmp, sizeof(lfmt));
 	}
 	if (prec != -1) {
 		(void)snprintf(tmp, sizeof(tmp), ".%d", prec);
-		(void)strcat(lfmt, tmp);
+		(void)strlcat(lfmt, tmp, sizeof(lfmt));
 	}
 
 	/*
@@ -866,7 +865,7 @@ format1(const struct stat *st,
 	if (ofmt == FMTF_STRING) {
 		if (sdata == NULL)
 			errx(1, "%.*s: bad format", (int)flen, fmt);
-		(void)strcat(lfmt, "s");
+		(void)strlcat(lfmt, "s", sizeof(lfmt));
 		n = snprintf(buf, blen, lfmt, sdata);
 		return (n >= blen ? blen : n);
 	}
@@ -881,12 +880,12 @@ format1(const struct stat *st,
 	/*
 	 * The four "numeric" output forms.
 	 */
-	(void)strcat(lfmt, "ll");
+	(void)strlcat(lfmt, "ll", sizeof(lfmt));
 	switch (ofmt) {
-	case FMTF_DECIMAL:	(void)strcat(lfmt, "d");	break;
-	case FMTF_OCTAL:	(void)strcat(lfmt, "o");	break;
-	case FMTF_UNSIGNED:	(void)strcat(lfmt, "u");	break;
-	case FMTF_HEX:		(void)strcat(lfmt, "x");	break;
+	case FMTF_DECIMAL:	(void)strlcat(lfmt, "d", sizeof(lfmt));	break;
+	case FMTF_OCTAL:	(void)strlcat(lfmt, "o", sizeof(lfmt));	break;
+	case FMTF_UNSIGNED:	(void)strlcat(lfmt, "u", sizeof(lfmt));	break;
+	case FMTF_HEX:		(void)strlcat(lfmt, "x", sizeof(lfmt));	break;
 	}
 
 	n = snprintf(buf, blen, lfmt, data);

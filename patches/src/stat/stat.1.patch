@@ -1,0 +1,44 @@
+--- stat.1.orig	2020-06-30 11:07:47.431704771 -0400
++++ stat.1	2020-07-03 23:54:46.410538296 -0400
+@@ -71,9 +71,8 @@
+ .Fa st_mtime ,
+ .Fa st_ctime ,
+ .Fa st_blksize ,
+-.Fa st_blocks ,
+ and
+-.Fa st_flags
++.Fa st_blocks
+ fields, in that order.
+ .Pp
+ The options are as follows:
+@@ -317,13 +316,11 @@
+ .It Cm r
+ Device number for character and block device special files
+ .Pq Fa st_rdev .
+-.It Cm a , m , c , B
++.It Cm a , m , c
+ The time
+ .Ar file
+-was last accessed or modified, or when the inode was last changed, or
+-the birth time of the inode
+-.Pq Fa st_atime , st_mtime , st_ctime , st_birthtime .
+-If the file system does not support birth time, the value is undefined.
++was last accessed or modified or when the inode was last changed
++.Pq Fa st_atime , st_mtime , st_ctime .
+ .It Cm z
+ The size of
+ .Ar file
+@@ -336,13 +333,6 @@
+ .It Cm k
+ Optimal file system I/O operation block size
+ .Pq Fa st_blksize .
+-.It Cm f
+-User defined flags for
+-.Ar file
+-.Pq Fa st_flags .
+-.It Cm v
+-Inode generation number
+-.Pq Fa st_gen .
+ .El
+ .Pp
+ The following four field specifiers are not drawn directly from the
