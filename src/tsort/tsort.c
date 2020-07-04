@@ -1,4 +1,4 @@
-/* $OpenBSD: tsort.c,v 1.36 2017/05/20 09:31:19 espie Exp $ */
+/* $OpenBSD: tsort.c,v 1.37 2019/07/11 17:28:32 mestre Exp $ */
 /* ex:ts=8 sw=4:
  *
  * Copyright (c) 1999-2004 Marc Espie <espie@openbsd.org>
@@ -16,8 +16,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "config.h"
-
 #include <assert.h>
 #include <ctype.h>
 #include <err.h>
@@ -28,8 +26,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "ohash.h"
-#include "compat.h"
+#include <ohash.h>
 
 /* The complexity of topological sorting is O(e), where e is the
  * size of input.  While reading input, vertices have to be identified,
@@ -208,7 +205,7 @@ ereallocarray(void *p, size_t n, size_t s)
  ***/
 
 /* Inserting and finding nodes in the hash structure.
- * We handle interval strings for efficiency wrt getline.  */
+ * We handle interval strings for efficiency wrt fgetln.  */
 static struct node *
 new_node(const char *start, const char *end)
 {
@@ -308,7 +305,7 @@ read_pairs(FILE *f, struct ohash *h, int reverse, const char *name,
 	int 		toggle;
 	struct node 	*a;
 	size_t 		size;
-	ssize_t		slen;
+	ssize_t 	slen;
 	char 		*str;
 
 	toggle = 1;
@@ -319,7 +316,7 @@ read_pairs(FILE *f, struct ohash *h, int reverse, const char *name,
 	while ((slen = getline(&str, &size, f)) != -1) {
 		char *sentinel;
 
-		sentinel = str + size;
+		sentinel = str + slen;
 		for (;;) {
 			char *e;
 
@@ -364,7 +361,7 @@ read_hints(FILE *f, struct ohash *h, int quiet, const char *name,
 {
 	char 		*str;
 	size_t 		size;
-	ssize_t		slen;
+	ssize_t 	slen;
 
 	str = NULL;
 	slen = 0;
@@ -372,7 +369,7 @@ read_hints(FILE *f, struct ohash *h, int quiet, const char *name,
 	while ((slen = getline(&str, &size, f)) != -1) {
 		char *sentinel;
 
-		sentinel = str + size;
+		sentinel = str + slen;
 		for (;;) {
 			char *e;
 			struct node *a;
@@ -1003,6 +1000,7 @@ main(int argc, char *argv[])
 	struct ohash 	pairs;
 
 	parse_args(argc, argv, &pairs);
+
 	return tsort(&pairs);
 }
 
