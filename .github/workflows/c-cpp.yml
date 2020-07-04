@@ -13,6 +13,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: Install libdb5.3-dev
+      run: apt-get install libdb5.3-dev
     - name: autogen
       run: ./autogen.sh
     - name: configure
