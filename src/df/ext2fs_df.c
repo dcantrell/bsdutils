@@ -38,8 +38,6 @@
  *	@(#)ffs_vfsops.c	8.14 (Berkeley) 11/28/94
  */
 
-#include "config.h"
-
 #include <sys/types.h>
 #include <sys/mount.h>
 #include <ufs/ext2fs/ext2fs.h>

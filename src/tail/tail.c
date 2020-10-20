@@ -1,4 +1,4 @@
-/*	$OpenBSD: tail.c,v 1.21 2016/02/03 12:23:57 halex Exp $	*/
+/*	$OpenBSD: tail.c,v 1.22 2019/01/04 15:04:28 martijn Exp $	*/
 
 /*-
  * Copyright (c) 1991, 1993
@@ -32,8 +32,6 @@
  * SUCH DAMAGE.
  */
 
-#include "config.h"
-
 #include <sys/types.h>
 #include <sys/stat.h>
 
@@ -45,10 +43,8 @@
 #include <unistd.h>
 
 #include "extern.h"
-#include "compat.h"
 
 int fflag, rflag, rval;
-int is_stdin;
 
 static void obsolete(char **);
 static void usage(void);
@@ -62,6 +58,9 @@ main(int argc, char *argv[])
 	int ch;
 	int i;
 	char *p;
+
+	if (pledge("stdio rpath", NULL) == -1)
+		err(1, "pledge");
 
 	/*
 	 * Tail's options are weird.  First, -n10 is the same as -n-10, not
@@ -168,9 +167,11 @@ main(int argc, char *argv[])
 			forward(tf, i, style, off);
 	}
 	else {
+		if (pledge("stdio", NULL) == -1)
+			err(1, "pledge");
+
 		tf[0].fname = "stdin";
 		tf[0].fp = stdin;
-		is_stdin = 1;
 
 		if (fstat(fileno(stdin), &(tf[0].sb))) {
 			ierr(tf[0].fname);
@@ -256,9 +257,7 @@ obsolete(char *argv[])
 				errx(1, "illegal option -- %s", *argv);
 			}
 			*p++ = *argv[0];
-			len = start + len + 4 - p;
-			(void)strncpy(p, ap, len);
-			p[len - 1] = '\0';
+			(void)strlcpy(p, ap, start + len + 4 - p);
 			*argv = start;
 			continue;
 

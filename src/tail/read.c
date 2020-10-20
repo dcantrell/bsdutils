@@ -33,8 +33,6 @@
  * SUCH DAMAGE.
  */
 
-#include "config.h"
-
 #include <sys/types.h>
 #include <sys/stat.h>
 
@@ -46,7 +44,6 @@
 #include <unistd.h>
 
 #include "extern.h"
-#include "compat.h"
 
 /*
  * bytes -- read bytes to an offset from the end and display.

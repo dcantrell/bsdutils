@@ -34,8 +34,6 @@
  * SUCH DAMAGE.
  */
 
-#include "config.h"
-
 #include <sys/types.h>
 #include <sys/mount.h>
 #include <ufs/ffs/fs.h>

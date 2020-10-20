@@ -1,4 +1,4 @@
-/*	$OpenBSD: df.c,v 1.59 2016/08/14 21:07:40 krw Exp $	*/
+/*	$OpenBSD: df.c,v 1.60 2019/06/28 13:34:59 deraadt Exp $	*/
 /*	$NetBSD: df.c,v 1.21.2.1 1995/11/01 00:06:11 jtc Exp $	*/
 
 /*
@@ -35,11 +35,9 @@
  * SUCH DAMAGE.
  */
 
-#include "config.h"
-
 #include <sys/stat.h>
 #include <sys/mount.h>
-#include <sys/vfs.h>
+#include <sys/statvfs.h>
 
 #include <err.h>
 #include <errno.h>
@@ -49,31 +47,32 @@
 #include <string.h>
 #include <unistd.h>
 
+extern char *__progname;
+
 int		 bread(int, off_t, void *, int);
-static void	 bsdprint(struct statfs *, long, int);
+static void	 bsdprint(struct statvfs *, long, int);
 char		*getmntpt(char *);
 static void	 maketypelist(char *);
-static void	 posixprint(struct statfs *, long, int);
-static void	 prthuman(struct statfs *sfsp, unsigned long long);
+static void	 posixprint(struct statvfs *, long, int);
+static void	 prthuman(struct statvfs *sfsp, unsigned long long);
 static void	 prthumanval(long long);
-static void	 prtstat(struct statfs *, int, int, int);
-static long	 regetmntinfo(struct statfs **, long);
+static void	 prtstat(struct statvfs *, int, int, int);
+static long	 regetmntinfo(struct statvfs **, long);
 static int	 selected(const char *);
 static void usage(void);
 
-extern int	 e2fs_df(int, char *, struct statfs *);
-extern int	 ffs_df(int, char *, struct statfs *);
-static int	 raw_df(char *, struct statfs *);
+extern int	 e2fs_df(int, char *, struct statvfs *);
+extern int	 ffs_df(int, char *, struct statvfs *);
+static int	 raw_df(char *, struct statvfs *);
 
 int	hflag, iflag, kflag, lflag, nflag, Pflag;
 char	**typelist = NULL;
-extern char *__progname;
 
 int
 main(int argc, char *argv[])
 {
 	struct stat stbuf;
-	struct statfs *mntbuf;
+	struct statvfs *mntbuf;
 	long mntsize;
 	int ch, i;
 	int width, maxwidth;
@@ -124,12 +123,12 @@ main(int argc, char *argv[])
 	if (!*argv) {
 		mntsize = regetmntinfo(&mntbuf, mntsize);
 	} else {
-		mntbuf = calloc(argc, sizeof(struct statfs));
+		mntbuf = calloc(argc, sizeof(struct statvfs));
 		if (mntbuf == NULL)
 			err(1, NULL);
 		mntsize = 0;
 		for (; *argv; argv++) {
-			if (stat(*argv, &stbuf) < 0) {
+			if (stat(*argv, &stbuf) == -1) {
 				if ((mntpt = getmntpt(*argv)) == 0) {
 					warn("%s", *argv);
 					continue;
@@ -141,10 +140,10 @@ main(int argc, char *argv[])
 			} else
 				mntpt = *argv;
 			/*
-			 * Statfs does not take a `wait' flag, so we cannot
+			 * Statvfs does not take a `wait' flag, so we cannot
 			 * implement nflag here.
 			 */
-			if (!statfs(mntpt, &mntbuf[mntsize]))
+			if (!statvfs(mntpt, &mntbuf[mntsize]))
 				if (lflag && (mntbuf[mntsize].f_flags & MNT_LOCAL) == 0)
 					warnx("%s is not a local file system",
 					    *argv);
@@ -179,7 +178,7 @@ char *
 getmntpt(char *name)
 {
 	long mntsize, i;
-	struct statfs *mntbuf;
+	struct statvfs *mntbuf;
 
 	mntsize = getmntinfo(&mntbuf, MNT_NOWAIT);
 	for (i = 0; i < mntsize; i++) {
@@ -244,13 +243,13 @@ maketypelist(char *fslist)
 /*
  * Make a pass over the filesystem info in ``mntbuf'' filtering out
  * filesystem types not in ``fsmask'' and possibly re-stating to get
- * current (not cached) info.  Returns the new count of valid statfs bufs.
+ * current (not cached) info.  Returns the new count of valid statvfs bufs.
  */
 static long
-regetmntinfo(struct statfs **mntbufp, long mntsize)
+regetmntinfo(struct statvfs **mntbufp, long mntsize)
 {
 	int i, j;
-	struct statfs *mntbuf;
+	struct statvfs *mntbuf;
 
 	if (!lflag && typelist == NULL)
 		return (nflag ? mntsize : getmntinfo(mntbufp, MNT_WAIT));
@@ -265,7 +264,7 @@ regetmntinfo(struct statfs **mntbufp, long mntsize)
 		if (nflag)
 			mntbuf[j] = mntbuf[i];
 		else
-			(void)statfs(mntbuf[i].f_mntonname, &mntbuf[j]);
+			(void)statvfs(mntbuf[i].f_mntonname, &mntbuf[j]);
 		j++;
 	}
 	return (j);
@@ -289,7 +288,7 @@ prthumanval(long long bytes)
 }
 
 static void
-prthuman(struct statfs *sfsp, unsigned long long used)
+prthuman(struct statvfs *sfsp, unsigned long long used)
 {
 	prthumanval(sfsp->f_blocks * sfsp->f_bsize);
 	prthumanval(used * sfsp->f_bsize);
@@ -297,7 +296,7 @@ prthuman(struct statfs *sfsp, unsigned long long used)
 }
 
 /*
- * Convert statfs returned filesystem size into BLOCKSIZE units.
+ * Convert statvfs returned filesystem size into BLOCKSIZE units.
  * Attempts to avoid overflow for large filesystems.
  */
 #define fsbtoblk(num, fsbs, bs) \
@@ -308,7 +307,7 @@ prthuman(struct statfs *sfsp, unsigned long long used)
  * Print out status about a filesystem.
  */
 static void
-prtstat(struct statfs *sfsp, int maxwidth, int headerlen, int blocksize)
+prtstat(struct statvfs *sfsp, int maxwidth, int headerlen, int blocksize)
 {
 	u_int64_t used, inodes;
 	int64_t availblks;
@@ -339,7 +338,7 @@ prtstat(struct statfs *sfsp, int maxwidth, int headerlen, int blocksize)
  * Print in traditional BSD format.
  */
 static void
-bsdprint(struct statfs *mntbuf, long mntsize, int maxwidth)
+bsdprint(struct statvfs *mntbuf, long mntsize, int maxwidth)
 {
 	int i;
 	char *header;
@@ -376,12 +375,12 @@ bsdprint(struct statfs *mntbuf, long mntsize, int maxwidth)
  * Print in format defined by POSIX 1002.2, invoke with -P option.
  */
 static void
-posixprint(struct statfs *mntbuf, long mntsize, int maxwidth)
+posixprint(struct statvfs *mntbuf, long mntsize, int maxwidth)
 {
 	int i;
 	int blocksize;
 	char *blockstr;
-	struct statfs *sfsp;
+	struct statvfs *sfsp;
 	long long used, avail;
 	double percentused;
 
@@ -417,11 +416,11 @@ posixprint(struct statfs *mntbuf, long mntsize, int maxwidth)
 }
 
 static int
-raw_df(char *file, struct statfs *sfsp)
+raw_df(char *file, struct statvfs *sfsp)
 {
 	int rfd, ret = -1;
 
-	if ((rfd = open(file, O_RDONLY)) < 0) {
+	if ((rfd = open(file, O_RDONLY)) == -1) {
 		warn("%s", file);
 		return (-1);
 	}

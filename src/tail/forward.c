@@ -1,4 +1,4 @@
-/*	$OpenBSD: forward.c,v 1.31 2016/07/05 05:06:27 jsg Exp $	*/
+/*	$OpenBSD: forward.c,v 1.33 2019/06/28 13:35:04 deraadt Exp $	*/
 /*	$NetBSD: forward.c,v 1.7 1996/02/13 16:49:10 ghudson Exp $	*/
 
 /*-
@@ -33,30 +33,25 @@
  * SUCH DAMAGE.
  */
 
-#include "config.h"
-
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/epoll.h>
+#include <sys/event.h>
 
 #include <err.h>
 #include <errno.h>
 #include <stdio.h>
-#include <stdio_ext.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
 #include "extern.h"
 
-#include "compat.h"
-
 static int rlines(struct tailfile *, off_t);
 static inline void tfprint(FILE *fp);
 static int tfqueue(struct tailfile *tf);
 static const struct timespec *tfreopen(struct tailfile *tf);
 
-static int efd = -1;
+static int kq = -1;
 
 /*
  * forward -- display the file, from an offset, forward.
@@ -85,17 +80,16 @@ forward(struct tailfile *tf, int nfiles, enum STYLE style, off_t origoff)
 {
 	int ch;
 	struct tailfile *ctf, *ltf;
-	struct epoll_event ev;
+	struct kevent ke;
 	const struct timespec *ts = NULL;
 	int i;
 	int nevents;
-	struct epoll_event events[1];
-
-	if ((efd = epoll_create(1)) == -1)
-		err(1, "epoll_create");
 
 	if (nfiles < 1)
 		return;
+
+	if (fflag && (kq = kqueue()) == -1)
+		warn("kqueue");
 
 	for (i = 0; i < nfiles; i++) {
 		off_t off = origoff;
@@ -190,18 +184,20 @@ forward(struct tailfile *tf, int nfiles, enum STYLE style, off_t origoff)
 	ltf = &(tf[i-1]);
 
 	(void)fflush(stdout);
-	if (!fflag || efd < 0)
+	if (!fflag || kq == -1)
 		return;
 
 	while (1) {
-		if ((nevents = epoll_wait(efd, events, 1, -1)) == -1) {
-			warn("epoll_wait");
-			return;
+		if ((nevents = kevent(kq, NULL, 0, &ke, 1, ts)) <= 0) {
+			if (errno == EINTR) {
+				close(kq);
+				return;
+			}
 		}
 
-		ctf = (struct tailfile *) events[i].data.ptr;
+		ctf = ke.udata;
 		if (nevents > 0) {
-			if (events[i].events & EPOLLIN) {
+			if (ke.filter == EVFILT_READ) {
 				if (ctf != ltf) {
 					printfname(ctf->fname);
 					ltf = ctf;
@@ -216,15 +212,22 @@ forward(struct tailfile *tf, int nfiles, enum STYLE style, off_t origoff)
 				}
 				(void)fflush(stdout);
 				clearerr(ctf->fp);
-			} else if ((events[i].events & EPOLLPRI) || (events[i].events & EPOLLERR) || (events[i].events & EPOLLHUP)) {
-				/*
-				 * File was deleted or renamed.
-				 *
-				 * Continue to look at it until
-				 * a new file reappears with
-				 * the same name. 
-				 */
-				(void) tfreopen(ctf);
+			} else if (ke.filter == EVFILT_VNODE) {
+				if (ke.fflags & (NOTE_DELETE | NOTE_RENAME)) {
+					/*
+					 * File was deleted or renamed.
+					 *
+					 * Continue to look at it until
+					 * a new file reappears with
+					 * the same name. 
+					 */
+					(void) tfreopen(ctf);
+				} else if (ke.fflags & NOTE_TRUNCATE) {
+					warnx("%s has been truncated, "
+					    "resetting.", ctf->fname);
+					fpurge(ctf->fp);
+					rewind(ctf->fp);
+				}
 			}
 		}
 		ts = tfreopen(NULL);
@@ -296,22 +299,28 @@ tfprint(FILE *fp)
 static int
 tfqueue(struct tailfile *tf)
 {
-	struct epoll_event ev;
+	struct kevent ke[2];
 	int i = 1;
 
-	if (efd < 0) {
+	if (kq < 0) {
 		errno = EBADF;
 		return -1;
 	}
 
-	ev.events = EPOLLIN | EPOLLPRI | EPOLLERR | EPOLLHUP;
-	ev.data.ptr = (void *) tf;
+	EV_SET(&(ke[0]), fileno(tf->fp), EVFILT_READ,
+	    EV_ENABLE | EV_ADD | EV_CLEAR, 0, 0, tf);
 
-	if (epoll_ctl(efd, EPOLL_CTL_ADD, fileno(tf->fp), &ev) == -1) {
+	if (S_ISREG(tf->sb.st_mode)) {
+		i = 2;
+		EV_SET(&(ke[1]), fileno(tf->fp), EVFILT_VNODE,
+		    EV_ENABLE | EV_ADD | EV_CLEAR,
+		    NOTE_DELETE | NOTE_RENAME | NOTE_TRUNCATE,
+		    0, tf);
+	}
+	if (kevent(kq, ke, i, NULL, 0, NULL) == -1) {
 		ierr(tf->fname);
 		return -1;
 	}
-
 	return 0;
 }
 
@@ -326,7 +335,8 @@ tfreopen(struct tailfile *tf) {
 	struct tailfile			**treopen, *ttf;
 	int				  i;
 
-	if (tf && ((stat(tf->fname, &sb) != 0) || sb.st_ino != tf->sb.st_ino)) {
+	if (tf && !(tf->fp == stdin) &&
+	    ((stat(tf->fname, &sb) != 0) || sb.st_ino != tf->sb.st_ino)) {
 		if (afiles < ++nfiles) {
 			afiles += AFILESINCR;
 			treopen = reallocarray(reopen, afiles, sizeof(*reopen));
