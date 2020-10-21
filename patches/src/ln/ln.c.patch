@@ -1,0 +1,32 @@
+--- ln.c.orig	2020-10-20 20:36:20.699447267 -0400
++++ ln.c	2020-10-20 20:54:02.489663519 -0400
+@@ -58,9 +58,6 @@
+ 	int ch, exitval;
+ 	char *sourcedir;
+ 
+-	if (pledge("stdio rpath cpath", NULL) == -1)
+-		err(1, "pledge");
+-
+ 	while ((ch = getopt(argc, argv, "fhLnPs")) != -1)
+ 		switch (ch) {
+ 		case 'f':
+@@ -128,7 +125,8 @@
+ 		}
+ 		/* Only symbolic links to directories. */
+ 		if (S_ISDIR(sb.st_mode)) {
+-			warnc(EISDIR, "%s", target);
++			errno = EISDIR;
++			warn("%s", target);
+ 			return (1);
+ 		}
+ 	}
+@@ -143,7 +141,8 @@
+ 		}
+ 		n = snprintf(path, sizeof(path), "%s/%s", source, p);
+ 		if (n < 0 || n >= sizeof(path)) {
+-			warnc(ENAMETOOLONG, "%s/%s", source, p);
++			errno = ENAMETOOLONG;
++			warn("%s/%s", source, p);
+ 			return (1);
+ 		}
+ 		source = path;

@@ -1,6 +1,6 @@
---- xargs.c.orig	2020-06-29 12:42:43.624119515 -0400
-+++ xargs.c	2020-06-29 15:32:11.722447246 -0400
-@@ -54,6 +54,8 @@
+--- xargs.c.orig	2020-10-20 12:54:34.119175466 -0400
++++ xargs.c	2020-10-20 17:40:00.846091996 -0400
+@@ -51,6 +51,8 @@
  
  #include "pathnames.h"
  
@@ -9,7 +9,7 @@
  static void	parse_input(int, char *[]);
  static void	prerun(int, char *[]);
  static int	prompt(void);
-@@ -105,9 +107,6 @@
+@@ -100,9 +102,6 @@
  	if ((arg_max = sysconf(_SC_ARG_MAX)) == -1)
  		errx(1, "sysconf(_SC_ARG_MAX) failed");
  
@@ -19,7 +19,7 @@
  	nline = arg_max - 4 * 1024;
  	while (*ep != NULL) {
  		/* 1 byte for each '\0' */
-@@ -589,7 +588,7 @@
+@@ -584,7 +583,7 @@
  			if (WTERMSIG(status) != SIGPIPE) {
  				if (WTERMSIG(status) < NSIG)
  					warnx("%s terminated by SIG%s", name,
@@ -28,14 +28,20 @@
  				else
  					warnx("%s terminated by signal %d",
  					    name, WTERMSIG(status));
-@@ -617,8 +616,8 @@
+@@ -606,13 +605,14 @@
+ 	char *response;
+ 	FILE *ttyfp;
+ 	int doit = 0;
++	ssize_t r = 0;
+ 
+ 	if ((ttyfp = fopen(_PATH_TTY, "r")) == NULL)
  		return (2);	/* Indicate that the TTY failed to open. */
- 	(void)fprintf(stderr, "?...");
- 	(void)fflush(stderr);
--	if ((response = fgetln(ttyfp, &rsize)) == NULL ||
--	    regcomp(&cre, nl_langinfo(YESEXPR), REG_BASIC) != 0) {
-+	if (getline(&response, &rsize, ttyfp) == -1 ||
-+	    regcomp(&cre, nl_langinfo(YESEXPR), 0) != 0) {
- 		(void)fclose(ttyfp);
- 		return (0);
- 	}
+ 	fprintf(stderr, "?...");
+ 	fflush(stderr);
+-	response = fgetln(ttyfp, &rsize);
+-	doit = response != NULL && (*response == 'y' || *response == 'Y');
++	r = getline(&response, &rsize, ttyfp);
++	doit = r != -1 && response != NULL && (*response == 'y' || *response == 'Y');
+ 	fclose(ttyfp);
+ 	return (doit);
+ }

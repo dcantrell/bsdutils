@@ -1,4 +1,4 @@
-/*	$OpenBSD: who.c,v 1.28 2018/08/08 22:55:14 deraadt Exp $	*/
+/*	$OpenBSD: who.c,v 1.29 2020/08/27 15:20:31 semarie Exp $	*/
 /*	$NetBSD: who.c,v 1.4 1994/12/07 04:28:49 jtc Exp $	*/
 
 /*
