@@ -113,6 +113,8 @@ done
 
 # Explicit removals for things that Linux does not support
 rm ${CWD}/src/chmod/chflags.1
+rm ${CWD}/src/df/ext2fs_df.c
+rm ${CWD}/src/df/ffs_df.c
 
 # 'compat' is our static library with a subset of BSD library functions
 cp -p lib/libc/gen/pwcache.c ${CWD}/compat

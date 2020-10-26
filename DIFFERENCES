@@ -484,3 +484,40 @@ is non-zero:
 There may be other <sys/time.h> functions we encounter that are
 specific to OpenBSD, in which case we will just adjust them to a
 functionally equivalent glibc alternative.
+
+
+getmntinfo()
+------------
+OpenBSD provides a function called getmntinfo() which returns an array
+of mounted filesystems.  This includes the device node name, directory
+mounted on, filesystem stats, and other information.  Linux has no
+equivalent to this.  The combined structure in OpenBSD contains
+information that you would get from getmntent() and statvfs() on
+Linux.  The first thing you have to do on Linux is loop over the
+mounted filesystems using getmntent().  Later you can open the mounted
+filesystem to get a FILE * and then call statvfs() on that to get data
+like free space and size and such.
+
+To make df(1) easier to port, we have implemented a getmntinfo() with
+a combined data type called struct mntinfo.  The new getmntinfo()
+function creates an array of struct mntinfo entries of mounted
+filesystems containing the combined data from both getmntent() and
+statvfs() on Linux.  There is also a corresponding freemntinfo() call
+to free the memory allocated for the array.
+
+This change does make df(1) the most different command in the port,
+but there is no other easy way under Linux to get the mounted
+filesystem information.
+
+
+MNT_WAIT, MNT_NOWAIT, MNT_LOCAL
+-------------------------------
+These flags are not available through the corresponding Linux APIs.
+These have been dropped from function calls trying to use them.
+
+
+MFSNAMELEN
+----------
+This constant does not exist on Linux, but filesystem names are
+NUL-terminated strings anyway so we can use strcmp().  Where
+MFSNAMELEN is used, it has been removed.

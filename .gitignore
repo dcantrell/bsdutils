@@ -37,6 +37,7 @@ src/csplit/csplit
 src/cut/cut
 src/date/date
 src/dd/dd
+src/df/df
 src/dirname/dirname
 src/du/du
 src/echo/echo
