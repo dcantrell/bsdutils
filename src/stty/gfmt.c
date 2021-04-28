@@ -1,6 +1,3 @@
-/*	$OpenBSD: gfmt.c,v 1.9 2016/03/23 14:52:42 mmcc Exp $	*/
-/*	$NetBSD: gfmt.c,v 1.10 1996/05/07 18:20:08 jtc Exp $	*/
-
 /*-
  * Copyright (c) 1991, 1993, 1994
  *	The Regents of the University of California.  All rights reserved.
@@ -30,18 +27,28 @@
  * SUCH DAMAGE.
  */
 
+#ifndef lint
+#if 0
+static char sccsid[] = "@(#)gfmt.c	8.6 (Berkeley) 4/2/94";
+#endif
+#endif /* not lint */
+#include <sys/cdefs.h>
+__FBSDID("$FreeBSD$");
+
 #include <sys/types.h>
 
 #include <err.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-#include <termios.h>
 
 #include "stty.h"
 #include "extern.h"
 
+static void gerr(const char *s) __dead2;
+
 static void
-gerr(char *s)
+gerr(const char *s)
 {
 	if (s)
 		errx(1, "illegal gfmt1 option -- %s", s);
@@ -50,21 +57,23 @@ gerr(char *s)
 }
 
 void
-gprint(struct termios *tp, struct winsize *wp, int ldisc)
+gprint(struct termios *tp, struct winsize *wp __unused, int ldisc __unused)
 {
-	const struct cchar *cp;
+	struct cchar *cp;
 
-	(void)printf("gfmt1:cflag=%x:iflag=%x:lflag=%x:oflag=%x:",
-	    tp->c_cflag, tp->c_iflag, tp->c_lflag, tp->c_oflag);
+	(void)printf("gfmt1:cflag=%lx:iflag=%lx:lflag=%lx:oflag=%lx:",
+	    (u_long)tp->c_cflag, (u_long)tp->c_iflag, (u_long)tp->c_lflag,
+	    (u_long)tp->c_oflag);
 	for (cp = cchars1; cp->name; ++cp)
 		(void)printf("%s=%x:", cp->name, tp->c_cc[cp->sub]);
-	(void)printf("ispeed=%d:ospeed=%d\n", cfgetispeed(tp), cfgetospeed(tp));
+	(void)printf("ispeed=%lu:ospeed=%lu\n",
+	    (u_long)cfgetispeed(tp), (u_long)cfgetospeed(tp));
 }
 
 void
 gread(struct termios *tp, char *s)
 {
-	const struct cchar *cp;
+	struct cchar *cp;
 	char *ep, *p;
 	long tmp;
 
@@ -77,7 +86,7 @@ gread(struct termios *tp, char *s)
 		if (!(ep = strchr(p, '=')))
 			gerr(p);
 		*ep++ = '\0';
-		(void)sscanf(ep, "%lx", &tmp);
+		tmp = strtoul(ep, NULL, 0x10);
 
 #define	CHK(s)	(*p == s[0] && !strcmp(p, s))
 		if (CHK("cflag")) {
@@ -89,7 +98,7 @@ gread(struct termios *tp, char *s)
 			continue;
 		}
 		if (CHK("ispeed")) {
-			(void)sscanf(ep, "%ld", &tmp);
+			tmp = strtoul(ep, NULL, 10);
 			tp->c_ispeed = tmp;
 			continue;
 		}
@@ -102,12 +111,14 @@ gread(struct termios *tp, char *s)
 			continue;
 		}
 		if (CHK("ospeed")) {
-			(void)sscanf(ep, "%ld", &tmp);
+			tmp = strtoul(ep, NULL, 10);
 			tp->c_ospeed = tmp;
 			continue;
 		}
 		for (cp = cchars1; cp->name != NULL; ++cp)
 			if (CHK(cp->name)) {
+				if (cp->sub == VMIN || cp->sub == VTIME)
+					tmp = strtoul(ep, NULL, 10);
 				tp->c_cc[cp->sub] = tmp;
 				break;
 			}

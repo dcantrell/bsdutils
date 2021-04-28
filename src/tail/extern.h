@@ -1,7 +1,6 @@
-/*	$OpenBSD: extern.h,v 1.13 2019/01/04 15:04:28 martijn Exp $	*/
-/*	$NetBSD: extern.h,v 1.3 1994/11/23 07:42:00 jtc Exp $	*/
-
 /*-
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
  * Copyright (c) 1991, 1993
  *	The Regents of the University of California.  All rights reserved.
  *
@@ -30,28 +29,53 @@
  * SUCH DAMAGE.
  *
  *	@(#)extern.h	8.1 (Berkeley) 6/6/93
+ *
+ * $FreeBSD$
  */
 
-#define	WR(p, size) \
-	if (write(STDOUT_FILENO, p, size) != size) \
-		oerr();
+#define	WR(p, size) do { \
+	ssize_t res; \
+	res = write(STDOUT_FILENO, p, size); \
+	if (res != (ssize_t)size) { \
+		if (res == -1) \
+			oerr(); \
+		else \
+			errx(1, "stdout"); \
+	} \
+} while (0)
 
-struct tailfile {
-	char		*fname;
-	FILE		*fp;
-	struct stat	 sb;
+#define TAILMAPLEN (4<<20)
+
+struct mapinfo {
+	off_t	mapoff;
+	off_t	maxoff;
+	size_t	maplen;
+	char	*start;
+	int	fd;
 };
+
+struct file_info {
+	FILE *fp;
+	char *file_name;
+	struct stat st;
+};
+
+typedef struct file_info file_info_t;
 
 enum STYLE { NOTSET = 0, FBYTES, FLINES, RBYTES, RLINES, REVERSE };
 
-void forward(struct tailfile *, int, enum STYLE, off_t);
-void reverse(struct tailfile *, int, enum STYLE, off_t);
+void follow(file_info_t *, enum STYLE, off_t);
+void forward(FILE *, const char *, enum STYLE, off_t, struct stat *);
+void reverse(FILE *, const char *, enum STYLE, off_t, struct stat *);
 
-int bytes(struct tailfile *, off_t);
-int lines(struct tailfile *, off_t);
+int bytes(FILE *, const char *, off_t);
+int lines(FILE *, const char *, off_t);
 
 void ierr(const char *);
 void oerr(void);
-void printfname(const char *);
+int mapprint(struct mapinfo *, off_t, off_t);
+int maparound(struct mapinfo *, off_t);
+void printfn(const char *, int);
 
-extern int fflag, rflag, rval;
+extern int Fflag, fflag, qflag, rflag, rval, no_files;
+extern fileargs_t *fa;

@@ -1,7 +1,6 @@
-/*	$OpenBSD: extern.h,v 1.6 2003/06/03 02:56:20 millert Exp $	*/
-/*	$NetBSD: extern.h,v 1.4 1995/11/01 00:45:22 pk Exp $	*/
-
 /*-
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
  * Copyright (c) 1991, 1993
  *	The Regents of the University of California.  All rights reserved.
  *
@@ -30,20 +29,25 @@
  * SUCH DAMAGE.
  *
  *	@(#)extern.h	8.1 (Berkeley) 6/6/93
+ * $FreeBSD$
  */
+
+#include <limits.h>
+
+#define	NCHARS_SB	(UCHAR_MAX + 1)	/* Number of single-byte characters. */
+#define	OOBCH		-1		/* Out of band character value. */
 
 typedef struct {
 	enum { STRING1, STRING2 } which;
-	enum { EOS, INFINITE, NORMAL, RANGE, SEQUENCE, SET } state;
-	int	 cnt;			/* character count */
-	int	 lastch;		/* last character */
-	int	equiv[2];		/* equivalence set */
-	int	*set;			/* set of characters */
-	unsigned char	*str;		/* user's string */
+	enum { EOS, INFINITE, NORMAL, RANGE, SEQUENCE,
+	       CCLASS, CCLASS_UPPER, CCLASS_LOWER, SET } state;
+	int		cnt;		/* character count */
+	wint_t		lastch;		/* last character */
+	wctype_t	cclass;		/* character class from wctype() */
+	wint_t		equiv[NCHARS_SB];	/* equivalence set */
+	wint_t		*set;		/* set of characters */
+	char		*str;		/* user's string */
 } STR;
 
-#include <limits.h>
-#define	NCHARS	(UCHAR_MAX + 1)		/* Number of possible characters. */
-#define	OOBCH	(UCHAR_MAX + 1)		/* Out of band character value. */
-
-int	 next(STR *);
+wint_t	 next(STR *);
+int charcoll(const void *, const void *);

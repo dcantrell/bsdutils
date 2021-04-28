@@ -1,7 +1,6 @@
-/*	$OpenBSD: misc.c,v 1.23 2018/04/07 18:52:39 cheloha Exp $	*/
-/*	$NetBSD: misc.c,v 1.4 1995/03/21 09:04:10 cgd Exp $	*/
-
 /*-
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
  * Copyright (c) 1991, 1993, 1994
  *	The Regents of the University of California.  All rights reserved.
  *
@@ -34,70 +33,125 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/types.h>
-#include <sys/time.h>
+#ifndef lint
+#if 0
+static char sccsid[] = "@(#)misc.c	8.3 (Berkeley) 4/2/94";
+#endif
+#endif /* not lint */
+#include <sys/cdefs.h>
+__FBSDID("$FreeBSD$");
 
+#include <sys/types.h>
+
+#include <err.h>
 #include <errno.h>
+#include <inttypes.h>
+#include <libutil.h>
+#include <signal.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include <unistd.h>
 
 #include "dd.h"
 #include "extern.h"
 
-/*
- * From <sys/time.h> on OpenBSD.  Not used in any other bsdutils commands
- * so just putting it in this file.
- */
-#define timespecsub(tsp, usp, vsp)                                \
-        do {                                                      \
-                (vsp)->tv_sec = (tsp)->tv_sec - (usp)->tv_sec;    \
-                (vsp)->tv_nsec = (tsp)->tv_nsec - (usp)->tv_nsec; \
-                if ((vsp)->tv_nsec < 0) {                         \
-                        (vsp)->tv_sec--;                          \
-                        (vsp)->tv_nsec += 1000000000L;            \
-                }                                                 \
-        } while (0)
+double
+secs_elapsed(void)
+{
+	struct timespec end, ts_res;
+	double secs, res;
+
+	if (clock_gettime(CLOCK_MONOTONIC, &end))
+		err(1, "clock_gettime");
+	if (clock_getres(CLOCK_MONOTONIC, &ts_res))
+		err(1, "clock_getres");
+	secs = (end.tv_sec - st.start.tv_sec) + \
+	       (end.tv_nsec - st.start.tv_nsec) * 1e-9;
+	res = ts_res.tv_sec + ts_res.tv_nsec * 1e-9;
+	if (secs < res)
+		secs = res;
+
+	return (secs);
+}
 
 void
 summary(void)
 {
-	struct timespec elapsed, now;
-	double nanosecs;
+	double secs;
 
 	if (ddflags & C_NOINFO)
 		return;
 
-	clock_gettime(CLOCK_MONOTONIC, &now);
-	timespecsub(&now, &st.start, &elapsed);
-	nanosecs = ((double)elapsed.tv_sec * 1000000000) + elapsed.tv_nsec;
-	if (nanosecs == 0)
-		nanosecs = 1;
+	if (ddflags & C_PROGRESS)
+		fprintf(stderr, "\n");
 
-	/* Be async safe: use dprintf(3). */
-	dprintf(STDERR_FILENO, "%zu+%zu records in\n%zu+%zu records out\n",
+	secs = secs_elapsed();
+
+	(void)fprintf(stderr,
+	    "%ju+%ju records in\n%ju+%ju records out\n",
 	    st.in_full, st.in_part, st.out_full, st.out_part);
-
-	if (st.swab) {
-		dprintf(STDERR_FILENO, "%zu odd length swab %s\n",
-		    st.swab, (st.swab == 1) ? "block" : "blocks");
-	}
-	if (st.trunc) {
-		dprintf(STDERR_FILENO, "%zu truncated %s\n",
-		    st.trunc, (st.trunc == 1) ? "block" : "blocks");
-	}
+	if (st.swab)
+		(void)fprintf(stderr, "%ju odd length swab %s\n",
+		     st.swab, (st.swab == 1) ? "block" : "blocks");
+	if (st.trunc)
+		(void)fprintf(stderr, "%ju truncated %s\n",
+		     st.trunc, (st.trunc == 1) ? "block" : "blocks");
 	if (!(ddflags & C_NOXFER)) {
-		dprintf(STDERR_FILENO,
-		    "%lld bytes transferred in %lld.%03ld secs "
-		    "(%0.0f bytes/sec)\n", (long long)st.bytes,
-		    (long long)elapsed.tv_sec, elapsed.tv_nsec / 1000000,
-		    ((double)st.bytes * 1000000000) / nanosecs);
+		(void)fprintf(stderr,
+		    "%ju bytes transferred in %.6f secs (%.0f bytes/sec)\n",
+		    st.bytes, secs, st.bytes / secs);
 	}
+	need_summary = 0;
 }
 
 void
-terminate(int signo)
+progress(void)
 {
+	static int outlen;
+	char si[4 + 1 + 2 + 1];		/* 123 <space> <suffix> NUL */
+	char iec[4 + 1 + 3 + 1];	/* 123 <space> <suffix> NUL */
+	char persec[4 + 1 + 2 + 1];	/* 123 <space> <suffix> NUL */
+	char *buf;
+	double secs;
+
+	secs = secs_elapsed();
+	humanize_number(si, sizeof(si), (int64_t)st.bytes, "B", HN_AUTOSCALE,
+	    HN_DECIMAL | HN_DIVISOR_1000);
+	humanize_number(iec, sizeof(iec), (int64_t)st.bytes, "B", HN_AUTOSCALE,
+	    HN_DECIMAL | HN_IEC_PREFIXES);
+	humanize_number(persec, sizeof(persec), (int64_t)(st.bytes / secs), "B",
+	    HN_AUTOSCALE, HN_DECIMAL | HN_DIVISOR_1000);
+	asprintf(&buf, "  %'ju bytes (%s, %s) transferred %.3fs, %s/s",
+	    (uintmax_t)st.bytes, si, iec, secs, persec);
+	outlen = fprintf(stderr, "%-*s\r", outlen, buf) - 1;
+	fflush(stderr);
+	free(buf);
+	need_progress = 0;
+}
+
+/* ARGSUSED */
+void
+siginfo_handler(int signo __unused)
+{
+
+	need_summary = 1;
+}
+
+/* ARGSUSED */
+void
+sigalarm_handler(int signo __unused)
+{
+
+	need_progress = 1;
+}
+
+/* ARGSUSED */
+void
+terminate(int sig)
+{
+
 	summary();
-	_exit(128 + signo);
+	_exit(sig == 0 ? 0 : 1);
 }

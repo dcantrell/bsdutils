@@ -1,6 +1,3 @@
-/*	$OpenBSD: key.c,v 1.18 2019/06/28 13:35:00 deraadt Exp $	*/
-/*	$NetBSD: key.c,v 1.11 1995/09/07 06:57:11 jtc Exp $	*/
-
 /*-
  * Copyright (c) 1991, 1993, 1994
  *	The Regents of the University of California.  All rights reserved.
@@ -30,23 +27,26 @@
  * SUCH DAMAGE.
  */
 
+#ifndef lint
+#if 0
+static char sccsid[] = "@(#)key.c	8.3 (Berkeley) 4/2/94";
+#endif
+#endif /* not lint */
+#include <sys/cdefs.h>
+__FBSDID("$FreeBSD$");
+
 #include <sys/types.h>
-#include <sys/ioctl.h>
 
 #include <err.h>
-#include <errno.h>
-#include <limits.h>
-#include <stdio.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
-#include <termios.h>
 
 #include "stty.h"
 #include "extern.h"
 
-#include "compat.h"
-
 __BEGIN_DECLS
+static int c_key(const void *, const void *);
 void	f_all(struct info *);
 void	f_cbreak(struct info *);
 void	f_columns(struct info *);
@@ -55,7 +55,6 @@ void	f_ek(struct info *);
 void	f_everything(struct info *);
 void	f_extproc(struct info *);
 void	f_ispeed(struct info *);
-void	f_lcase(struct info *);
 void	f_nl(struct info *);
 void	f_ospeed(struct info *);
 void	f_raw(struct info *);
@@ -67,7 +66,7 @@ void	f_tty(struct info *);
 __END_DECLS
 
 static struct key {
-	char *name;				/* name */
+	const char *name;			/* name */
 	void (*f)(struct info *);		/* function */
 #define	F_NEEDARG	0x01			/* needs an argument */
 #define	F_OFFOK		0x02			/* can turn off */
@@ -83,7 +82,6 @@ static struct key {
 	{ "everything",	f_everything,	0 },
 	{ "extproc",	f_extproc,	F_OFFOK },
 	{ "ispeed",	f_ispeed,	F_NEEDARG },
-	{ "lcase", 	f_lcase,	0 },
 	{ "new",	f_tty,		0 },
 	{ "nl",		f_nl,		F_OFFOK },
 	{ "old",	f_tty,		0 },
@@ -100,7 +98,7 @@ static int
 c_key(const void *a, const void *b)
 {
 
-	return (strcmp(((struct key *)a)->name, ((struct key *)b)->name));
+        return (strcmp(((const struct key *)a)->name, ((const struct key *)b)->name));
 }
 
 int
@@ -156,11 +154,8 @@ f_cbreak(struct info *ip)
 void
 f_columns(struct info *ip)
 {
-	const char *error;
 
-	ip->win.ws_col = strtonum(ip->arg, 0, USHRT_MAX, &error);
-	if (error)
-		err(1, "cols %s", ip->arg);
+	ip->win.ws_col = atoi(ip->arg);
 	ip->wset = 1;
 }
 
@@ -196,53 +191,21 @@ f_everything(struct info *ip)
 void
 f_extproc(struct info *ip)
 {
-	struct termios tio;
-	errno = 0;
-
-	if (tcgetattr(ip->fd, &tio) == -1) {
-		err(1, "extproc");
-		return;
-	}
 
 	if (ip->off) {
-		tio.c_lflag &= ~EXTPROC;
+		int tmp = 0;
+		(void)ioctl(ip->fd, TIOCEXT, &tmp);
 	} else {
-		tio.c_lflag |= EXTPROC;
+		int tmp = 1;
+		(void)ioctl(ip->fd, TIOCEXT, &tmp);
 	}
-
-	if (tcsetattr(ip->fd, TCSANOW, &tio) == -1) {
-		err(1, "extproc");
-		return;
-	}
-
-	ip->set = 1;
 }
 
 void
 f_ispeed(struct info *ip)
 {
-	const char *errstr;
-	speed_t speed;
-	
-	speed = strtonum(ip->arg, 0, UINT_MAX, &errstr);
-	if (errstr)
-		err(1, "ispeed %s", ip->arg);
-	cfsetispeed(&ip->t, speed);
-	ip->set = 1;
-}
 
-void
-f_lcase(struct info *ip)
-{
-	if (ip->off) {
-		ip->t.c_iflag &= ~IUCLC;
-		ip->t.c_oflag &= ~OLCUC;
-		ip->t.c_lflag &= ~XCASE;
-	} else {
-		ip->t.c_iflag |= IUCLC;
-		ip->t.c_oflag |= OLCUC;
-		ip->t.c_lflag |= XCASE;
-	}
+	cfsetispeed(&ip->t, (speed_t)atoi(ip->arg));
 	ip->set = 1;
 }
 
@@ -263,13 +226,8 @@ f_nl(struct info *ip)
 void
 f_ospeed(struct info *ip)
 {
-	const char *errstr;
-	speed_t speed;
-	
-	speed = strtonum(ip->arg, 0, UINT_MAX, &errstr);
-	if (errstr)
-		err(1, "ospeed %s", ip->arg);
-	cfsetospeed(&ip->t, speed);
+
+	cfsetospeed(&ip->t, (speed_t)atoi(ip->arg));
 	ip->set = 1;
 }
 
@@ -290,25 +248,23 @@ f_raw(struct info *ip)
 void
 f_rows(struct info *ip)
 {
-	const char *error;
 
-	ip->win.ws_row = strtonum(ip->arg, 0, USHRT_MAX, &error);
-	if (error)
-		err(1, "rows %s", ip->arg);
+	ip->win.ws_row = atoi(ip->arg);
 	ip->wset = 1;
 }
 
 void
 f_sane(struct info *ip)
 {
+	struct termios def;
 
-	ip->t.c_cflag = TTYDEF_CFLAG | (ip->t.c_cflag & (CLOCAL|CRTSCTS));
-	ip->t.c_iflag = TTYDEF_IFLAG;
-	ip->t.c_iflag |= ICRNL;
+	cfmakesane(&def);
+	ip->t.c_cflag = def.c_cflag | (ip->t.c_cflag & CLOCAL);
+	ip->t.c_iflag = def.c_iflag;
 	/* preserve user-preference flags in lflag */
-#define	LKEEP	(ECHOKE|ECHOE|ECHOK|ECHOPRT|ECHOCTL|VWERASE|TOSTOP|NOFLSH)
-	ip->t.c_lflag = TTYDEF_LFLAG | (ip->t.c_lflag & LKEEP);
-	ip->t.c_oflag = TTYDEF_OFLAG;
+#define	LKEEP	(ECHOKE|ECHOE|ECHOK|ECHOPRT|ECHOCTL|ALTWERASE|TOSTOP|NOFLSH)
+	ip->t.c_lflag = def.c_lflag | (ip->t.c_lflag & LKEEP);
+	ip->t.c_oflag = def.c_oflag;
 	ip->set = 1;
 }
 
@@ -323,7 +279,7 @@ void
 f_speed(struct info *ip)
 {
 
-	(void)printf("%d\n", cfgetospeed(&ip->t));
+	(void)printf("%lu\n", (u_long)cfgetospeed(&ip->t));
 }
 
 void
@@ -331,7 +287,7 @@ f_tty(struct info *ip)
 {
 	int tmp;
 
-	tmp = N_TTY;
-	if (ioctl(ip->fd, TIOCSETD, &tmp) == -1)
+	tmp = TTYDISC;
+	if (ioctl(ip->fd, TIOCSETD, &tmp) < 0)
 		err(1, "TIOCSETD");
 }

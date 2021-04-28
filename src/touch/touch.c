@@ -1,7 +1,6 @@
-/*	$OpenBSD: touch.c,v 1.26 2019/03/10 15:11:52 schwarze Exp $	*/
-/*	$NetBSD: touch.c,v 1.11 1995/08/31 22:10:06 jtc Exp $	*/
-
-/*
+/*-
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
  * Copyright (c) 1993
  *	The Regents of the University of California.  All rights reserved.
  *
@@ -30,6 +29,20 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/cdefs.h>
+
+__FBSDID("$FreeBSD$");
+
+#ifndef lint
+static const char copyright[] =
+"@(#) Copyright (c) 1993\n\
+	The Regents of the University of California.  All rights reserved.\n";
+#endif
+
+#ifndef lint
+static const char sccsid[] = "@(#)touch.c	8.1 (Berkeley) 6/6/93";
+#endif
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/time.h>
@@ -38,30 +51,41 @@
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <libgen.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
 
-#include "compat.h"
-
-void		stime_arg1(char *, struct timespec *);
-void		stime_arg2(char *, int, struct timespec *);
-void		stime_argd(char *, struct timespec *);
-void		stime_file(char *, struct timespec *);
-static void usage(void);
+static void	stime_arg1(const char *, struct timespec *);
+static void	stime_arg2(const char *, int, struct timespec *);
+static void	stime_darg(const char *, struct timespec *);
+static void	stime_file(const char *, struct timespec *);
+static int	timeoffset(const char *);
+static void	usage(const char *);
 
 int
 main(int argc, char *argv[])
 {
-	struct timespec	 ts[2];
-	int		 aflag, cflag, mflag, ch, fd, len, rval, timeset;
-	char		*p;
+	struct stat sb;
+	struct timespec ts[2];
+	int atflag;
+	int Aflag, aflag, cflag, mflag, ch, fd, len, rval, timeset;
+	char *p;
+	char *myname;
 
-	aflag = cflag = mflag = timeset = 0;
-	while ((ch = getopt(argc, argv, "acd:fmr:t:")) != -1)
-		switch (ch) {
+	myname = basename(argv[0]);
+	Aflag = aflag = cflag = mflag = timeset = 0;
+	atflag = 0;
+	ts[0].tv_sec = ts[1].tv_sec = 0;
+	ts[0].tv_nsec = ts[1].tv_nsec = UTIME_NOW;
+
+	while ((ch = getopt(argc, argv, "A:acd:fhmr:t:")) != -1)
+		switch(ch) {
+		case 'A':
+			Aflag = timeoffset(optarg);
+			break;
 		case 'a':
 			aflag = 1;
 			break;
@@ -70,9 +94,14 @@ main(int argc, char *argv[])
 			break;
 		case 'd':
 			timeset = 1;
-			stime_argd(optarg, ts);
+			stime_darg(optarg, ts);
 			break;
 		case 'f':
+			/* No-op for compatibility. */
+			break;
+		case 'h':
+			cflag = 1;
+			atflag = AT_SYMLINK_NOFOLLOW;
 			break;
 		case 'm':
 			mflag = 1;
@@ -86,31 +115,44 @@ main(int argc, char *argv[])
 			stime_arg1(optarg, ts);
 			break;
 		default:
-			usage();
+			usage(myname);
 		}
 	argc -= optind;
 	argv += optind;
 
-	/* Default is both -a and -m. */
 	if (aflag == 0 && mflag == 0)
 		aflag = mflag = 1;
 
-	/*
-	 * If no -r or -t flag, at least two operands, the first of which
-	 * is an 8 or 10 digit number, use the obsolete time specification.
-	 */
-	if (!timeset && argc > 1) {
-		(void)strtol(argv[0], &p, 10);
-		len = p - argv[0];
-		if (*p == '\0' && (len == 8 || len == 10)) {
-			timeset = 1;
-			stime_arg2(*argv++, len == 10, ts);
+	if (timeset) {
+		if (Aflag) {
+			/*
+			 * We're setting the time to an offset from a specified
+			 * time.  God knows why, but it means that we can set
+			 * that time once and for all here.
+			 */
+			if (aflag)
+				ts[0].tv_sec += Aflag;
+			if (mflag)
+				ts[1].tv_sec += Aflag;
+			Aflag = 0;		/* done our job */
 		}
+	} else {
+		/*
+		 * If no -r or -t flag, at least two operands, the first of
+		 * which is an 8 or 10 digit number, use the obsolete time
+		 * specification, otherwise use the current time.
+		 */
+		if (argc > 1) {
+			strtol(argv[0], &p, 10);
+			len = p - argv[0];
+			if (*p == '\0' && (len == 8 || len == 10)) {
+				timeset = 1;
+				stime_arg2(*argv++, len == 10, ts);
+			}
+		}
+		/* Both times default to the same. */
+		ts[1] = ts[0];
 	}
-
-	/* Otherwise use the current time of day. */
-	if (!timeset)
-		ts[0].tv_nsec = ts[1].tv_nsec = UTIME_NOW;
 
 	if (!aflag)
 		ts[0].tv_nsec = UTIME_OMIT;
@@ -118,154 +160,234 @@ main(int argc, char *argv[])
 		ts[1].tv_nsec = UTIME_OMIT;
 
 	if (*argv == NULL)
-		usage();
+		usage(myname);
+
+	if (Aflag)
+		cflag = 1;
 
 	for (rval = 0; *argv; ++argv) {
-		/* Update the file's timestamp if it exists. */
-		if (! utimensat(AT_FDCWD, *argv, ts, 0))
-			continue;
-		if (errno != ENOENT) {
-			rval = 1;
-			warn("%s", *argv);
-			continue;
+		/* See if the file exists. */
+		if (fstatat(AT_FDCWD, *argv, &sb, atflag) != 0) {
+			if (errno != ENOENT) {
+				rval = 1;
+				warn("%s", *argv);
+				continue;
+			}
+			if (!cflag) {
+				/* Create the file. */
+				fd = open(*argv,
+				    O_WRONLY | O_CREAT, DEFFILEMODE);
+				if (fd == -1 || fstat(fd, &sb) || close(fd)) {
+					rval = 1;
+					warn("%s", *argv);
+					continue;
+				}
+
+				/* If using the current time, we're done. */
+				if (!timeset)
+					continue;
+			} else
+				continue;
 		}
 
-		/* Didn't exist; should we create it? */
-		if (cflag)
+		/*
+		 * We're adjusting the times based on the file times, not a
+		 * specified time (that gets handled above).
+		 */
+		if (Aflag) {
+			if (aflag) {
+				ts[0] = sb.st_atim;
+				ts[0].tv_sec += Aflag;
+			}
+			if (mflag) {
+				ts[1] = sb.st_mtim;
+				ts[1].tv_sec += Aflag;
+			}
+		}
+
+		if (!utimensat(AT_FDCWD, *argv, ts, atflag))
 			continue;
 
-		/* Create the file. */
-		fd = open(*argv, O_WRONLY | O_CREAT, DEFFILEMODE);
-		if (fd == -1 || futimens(fd, ts) || close(fd)) {
-			rval = 1;
-			warn("%s", *argv);
-		}
+		rval = 1;
+		warn("%s", *argv);
 	}
-	return rval;
+	exit(rval);
 }
 
-#define	ATOI2(s)	((s) += 2, ((s)[-2] - '0') * 10 + ((s)[-1] - '0'))
+#define	ATOI2(ar)	((ar)[0] - '0') * 10 + ((ar)[1] - '0'); (ar) += 2;
 
-void
-stime_arg1(char *arg, struct timespec *tsp)
+static void
+stime_arg1(const char *arg, struct timespec *tvp)
 {
-	struct tm	*lt;
-	time_t		 tmptime;
-	int		 yearset;
-	char		*dot, *p;
-					/* Start with the current time. */
-	tmptime = time(NULL);
-	if ((lt = localtime(&tmptime)) == NULL)
+	time_t now;
+	struct tm *t;
+	int yearset;
+	char *p;
+
+	now = time(NULL);
+	if ((t = localtime(&now)) == NULL)
 		err(1, "localtime");
 					/* [[CC]YY]MMDDhhmm[.SS] */
-	for (p = arg, dot = NULL; *p != '\0'; p++) {
-		if (*p == '.' && dot == NULL)
-			dot = p;
-		else if (!isdigit((unsigned char)*p))
-			goto terr;
-	}
-	if (dot == NULL)
-		lt->tm_sec = 0;		/* Seconds defaults to 0. */
+	if ((p = strchr(arg, '.')) == NULL)
+		t->tm_sec = 0;		/* Seconds defaults to 0. */
 	else {
-		*dot++ = '\0';
-		if (strlen(dot) != 2)
+		if (strlen(p + 1) != 2)
 			goto terr;
-		lt->tm_sec = ATOI2(dot);
-		if (lt->tm_sec > 61)	/* Could be leap second. */
-			goto terr;
+		*p++ = '\0';
+		t->tm_sec = ATOI2(p);
 	}
 
 	yearset = 0;
-	switch (strlen(arg)) {
+	switch(strlen(arg)) {
 	case 12:			/* CCYYMMDDhhmm */
-		lt->tm_year = (ATOI2(arg) * 100) - 1900;
+		t->tm_year = ATOI2(arg);
+		t->tm_year *= 100;
 		yearset = 1;
 		/* FALLTHROUGH */
 	case 10:			/* YYMMDDhhmm */
 		if (yearset) {
 			yearset = ATOI2(arg);
-			lt->tm_year += yearset;
+			t->tm_year += yearset;
 		} else {
 			yearset = ATOI2(arg);
-			/* POSIX logic: [00,68]=>20xx, [69,99]=>19xx */
-			lt->tm_year = yearset;
 			if (yearset < 69)
-				lt->tm_year += 100;
+				t->tm_year = yearset + 2000;
+			else
+				t->tm_year = yearset + 1900;
 		}
+		t->tm_year -= 1900;	/* Convert to UNIX time. */
 		/* FALLTHROUGH */
 	case 8:				/* MMDDhhmm */
-		lt->tm_mon = ATOI2(arg);
-		if (lt->tm_mon > 12 || lt->tm_mon == 0)
-			goto terr;
-		--lt->tm_mon;		/* Convert from 01-12 to 00-11 */
-		lt->tm_mday = ATOI2(arg);
-		if (lt->tm_mday > 31 || lt->tm_mday == 0)
-			goto terr;
-		lt->tm_hour = ATOI2(arg);
-		if (lt->tm_hour > 23)
-			goto terr;
-		lt->tm_min = ATOI2(arg);
-		if (lt->tm_min > 59)
-			goto terr;
+		t->tm_mon = ATOI2(arg);
+		--t->tm_mon;		/* Convert from 01-12 to 00-11 */
+		t->tm_mday = ATOI2(arg);
+		t->tm_hour = ATOI2(arg);
+		t->tm_min = ATOI2(arg);
 		break;
 	default:
 		goto terr;
 	}
 
-	lt->tm_isdst = -1;		/* Figure out DST. */
-	tsp[0].tv_sec = tsp[1].tv_sec = mktime(lt);
-	if (tsp[0].tv_sec == -1)
-terr:		errx(1,
-	"out of range or illegal time specification: [[CC]YY]MMDDhhmm[.SS]");
+	t->tm_isdst = -1;		/* Figure out DST. */
+	tvp[0].tv_sec = tvp[1].tv_sec = mktime(t);
+	if (tvp[0].tv_sec == -1)
+		goto terr;
 
-	tsp[0].tv_nsec = tsp[1].tv_nsec = 0;
+	tvp[0].tv_nsec = tvp[1].tv_nsec = 0;
+	return;
+
+terr:
+	errx(1, "out of range or illegal time specification: [[CC]YY]MMDDhhmm[.SS]");
 }
 
-void
-stime_arg2(char *arg, int year, struct timespec *tsp)
+static void
+stime_arg2(const char *arg, int year, struct timespec *tvp)
 {
-	struct tm	*lt;
-	time_t		 tmptime;
-					/* Start with the current time. */
-	tmptime = time(NULL);
-	if ((lt = localtime(&tmptime)) == NULL)
+	time_t now;
+	struct tm *t;
+
+	now = time(NULL);
+	if ((t = localtime(&now)) == NULL)
 		err(1, "localtime");
 
-	lt->tm_mon = ATOI2(arg);	/* MMDDhhmm[YY] */
-	if (lt->tm_mon > 12 || lt->tm_mon == 0)
-		goto terr;
-	--lt->tm_mon;			/* Convert from 01-12 to 00-11 */
-	lt->tm_mday = ATOI2(arg);
-	if (lt->tm_mday > 31 || lt->tm_mday == 0)
-		goto terr;
-	lt->tm_hour = ATOI2(arg);
-	if (lt->tm_hour > 23)
-		goto terr;
-	lt->tm_min = ATOI2(arg);
-	if (lt->tm_min > 59)
-		goto terr;
+	t->tm_mon = ATOI2(arg);		/* MMDDhhmm[yy] */
+	--t->tm_mon;			/* Convert from 01-12 to 00-11 */
+	t->tm_mday = ATOI2(arg);
+	t->tm_hour = ATOI2(arg);
+	t->tm_min = ATOI2(arg);
 	if (year) {
-		year = ATOI2(arg);
-		/* POSIX logic: [00,68]=>20xx, [69,99]=>19xx */
-		lt->tm_year = year;
-		if (year < 69)
-			lt->tm_year += 100;
+		t->tm_year = ATOI2(arg);
+		if (t->tm_year < 39)	/* support 2000-2038 not 1902-1969 */
+			t->tm_year += 100;
 	}
-	lt->tm_sec = 0;
 
-	lt->tm_isdst = -1;		/* Figure out DST. */
-	tsp[0].tv_sec = tsp[1].tv_sec = mktime(lt);
-	if (tsp[0].tv_sec == -1)
-terr:		errx(1,
-	"out of range or illegal time specification: MMDDhhmm[YY]");
+	t->tm_isdst = -1;		/* Figure out DST. */
+	tvp[0].tv_sec = tvp[1].tv_sec = mktime(t);
+	if (tvp[0].tv_sec == -1)
+		errx(1,
+	"out of range or illegal time specification: MMDDhhmm[yy]");
 
-	tsp[0].tv_nsec = tsp[1].tv_nsec = 0;
+	tvp[0].tv_nsec = tvp[1].tv_nsec = 0;
 }
 
-void
-stime_file(char *fname, struct timespec *tsp)
+static void
+stime_darg(const char *arg, struct timespec *tvp)
 {
-	struct stat	sb;
+	struct tm t = { .tm_sec = 0 };
+	const char *fmt, *colon;
+	char *p;
+	int val, isutc = 0;
+
+	tvp[0].tv_nsec = 0;
+	t.tm_isdst = -1;
+	colon = strchr(arg, ':');
+	if (colon == NULL || strchr(colon + 1, ':') == NULL)
+		goto bad;
+	fmt = strchr(arg, 'T') != NULL ? "%Y-%m-%dT%H:%M:%S" :
+	    "%Y-%m-%d %H:%M:%S";
+	p = strptime(arg, fmt, &t);
+	if (p == NULL)
+		goto bad;
+	/* POSIX: must have at least one digit after dot */
+	if ((*p == '.' || *p == ',') && isdigit((unsigned char)p[1])) {
+		p++;
+		val = 100000000;
+		while (isdigit((unsigned char)*p)) {
+			tvp[0].tv_nsec += val * (*p - '0');
+			p++;
+			val /= 10;
+		}
+	}
+	if (*p == 'Z') {
+		isutc = 1;
+		p++;
+	}
+	if (*p != '\0')
+		goto bad;
+
+	tvp[0].tv_sec = isutc ? timegm(&t) : mktime(&t);
+
+	tvp[1] = tvp[0];
+	return;
+
+bad:
+	errx(1, "out of range or illegal time specification: YYYY-MM-DDThh:mm:SS[.frac][tz]");
+}
+
+/* Calculate a time offset in seconds, given an arg of the format [-]HHMMSS. */
+int
+timeoffset(const char *arg)
+{
+	int offset;
+	int isneg;
+
+	offset = 0;
+	isneg = *arg == '-';
+	if (isneg)
+		arg++;
+	switch (strlen(arg)) {
+	default:				/* invalid */
+		errx(1, "Invalid offset spec, must be [-][[HH]MM]SS");
+
+	case 6:					/* HHMMSS */
+		offset = ATOI2(arg);
+		/* FALLTHROUGH */
+	case 4:					/* MMSS */
+		offset = offset * 60 + ATOI2(arg);
+		/* FALLTHROUGH */
+	case 2:					/* SS */
+		offset = offset * 60 + ATOI2(arg);
+	}
+	if (isneg)
+		return (-offset);
+	else
+		return (offset);
+}
+
+static void
+stime_file(const char *fname, struct timespec *tsp)
+{
+	struct stat sb;
 
 	if (stat(fname, &sb))
 		err(1, "%s", fname);
@@ -273,58 +395,12 @@ stime_file(char *fname, struct timespec *tsp)
 	tsp[1] = sb.st_mtim;
 }
 
-void
-stime_argd(char *arg, struct timespec *tsp)
-{
-	struct tm	tm;
-	char		*frac, *p;
-	int		utc = 0;
-
-	/* accept YYYY-MM-DD(T| )hh:mm:ss[(.|,)frac][Z] */
-	memset(&tm, 0, sizeof(tm));
-	p = strptime(arg, "%F", &tm);
-	if (p == NULL || (*p != 'T' && *p != ' '))
-		goto terr;
-	p = strptime(p + 1, "%T", &tm);
-	if (p == NULL)
-		goto terr;
-	tsp[0].tv_nsec = 0;
-	if (*p == '.' || *p == ',') {
-		frac = ++p;
-		while (isdigit((unsigned char)*p)) {
-			if (p - frac < 9) {
-				tsp[0].tv_nsec = tsp[0].tv_nsec * 10 +
-				    *p - '0';
-			}
-			p++;
-		}
-		if (p == frac)
-			goto terr;
-
-		/* fill in the trailing zeros */
-		while (p - frac-- < 9)
-			tsp[0].tv_nsec *= 10;
-	}
-	if (*p == 'Z') {
-		utc = 1;
-		p++;
-	}
-	if (*p != '\0')
-		goto terr;
-
-	tm.tm_isdst = -1;
-	tsp[0].tv_sec = utc ? timegm(&tm) : mktime(&tm);
-	if (tsp[0].tv_sec == -1)
-terr:		errx(1,
-  "out of range or illegal time specification: YYYY-MM-DDThh:mm:ss[.frac][Z]");
-	tsp[1] = tsp[0];
-}
-
 static void
-usage(void)
+usage(const char *myname)
 {
-	(void)fprintf(stderr,
-"usage: touch [-acm] [-d ccyy-mm-ddTHH:MM:SS[.frac][Z]] [-r file]\n"
-"             [-t [[cc]yy]mmddHHMM[.SS]] file ...\n");
+	fprintf(stderr, "usage: %s [-A [-][[hh]mm]SS] [-achm] [-r file] "
+		"[-t [[CC]YY]MMDDhhmm[.SS]]\n"
+		"       [-d YYYY-MM-DDThh:mm:SS[.frac][tz]] "
+		"file ...\n", myname);
 	exit(1);
 }

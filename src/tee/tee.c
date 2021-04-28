@@ -1,7 +1,6 @@
-/*	$OpenBSD: tee.c,v 1.12 2017/07/11 13:14:59 bluhm Exp $	*/
-/*	$NetBSD: tee.c,v 1.5 1994/12/09 01:43:39 jtc Exp $	*/
-
-/*
+/*-
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
  * Copyright (c) 1988, 1993
  *	The Regents of the University of California.  All rights reserved.
  *
@@ -30,10 +29,25 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/queue.h>
+#ifndef lint
+static const char copyright[] =
+"@(#) Copyright (c) 1988, 1993\n\
+	The Regents of the University of California.  All rights reserved.\n";
+#endif /* not lint */
 
+#ifndef lint
+#if 0
+static char sccsid[] = "@(#)tee.c	8.1 (Berkeley) 6/6/93";
+#endif
+static const char rcsid[] =
+  "$FreeBSD$";
+#endif /* not lint */
+
+#include <sys/capsicum.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
+#include <capsicum_helpers.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -43,69 +57,62 @@
 #include <string.h>
 #include <unistd.h>
 
-struct list {
-	SLIST_ENTRY(list) next;
+typedef struct _list {
+	struct _list *next;
 	int fd;
-	char *name;
-};
-SLIST_HEAD(, list) head;
+	const char *name;
+} LIST;
+static LIST *head;
 
-static void
-add(int fd, char *name)
-{
-	struct list *p;
-
-	if ((p = malloc(sizeof(*p))) == NULL)
-		err(1, NULL);
-	p->fd = fd;
-	p->name = name;
-	SLIST_INSERT_HEAD(&head, p, next);
-}
+static void add(int, const char *);
+static void usage(void);
 
 int
 main(int argc, char *argv[])
 {
-	struct list *p;
-	int fd;
-	ssize_t n, rval, wval;
+	LIST *p;
+	int n, fd, rval, wval;
 	char *bp;
 	int append, ch, exitval;
-	char buf[8192];
-
-	SLIST_INIT(&head);
+	char *buf;
+#define	BSIZE (8 * 1024)
 
 	append = 0;
-	while ((ch = getopt(argc, argv, "ai")) != -1) {
-		switch(ch) {
+	while ((ch = getopt(argc, argv, "ai")) != -1)
+		switch((char)ch) {
 		case 'a':
 			append = 1;
 			break;
 		case 'i':
 			(void)signal(SIGINT, SIG_IGN);
 			break;
+		case '?':
 		default:
-			(void)fprintf(stderr, "usage: tee [-ai] [file ...]\n");
-			return 1;
+			usage();
 		}
-	}
 	argv += optind;
 	argc -= optind;
 
+	if ((buf = malloc(BSIZE)) == NULL)
+		err(1, "malloc");
+
+	if (caph_limit_stdin() == -1 || caph_limit_stderr() == -1)
+		err(EXIT_FAILURE, "unable to limit stdio");
+
 	add(STDOUT_FILENO, "stdout");
 
-	exitval = 0;
-	while (*argv) {
-		if ((fd = open(*argv, O_WRONLY | O_CREAT |
-		    (append ? O_APPEND : O_TRUNC), DEFFILEMODE)) == -1) {
+	for (exitval = 0; *argv; ++argv)
+		if ((fd = open(*argv, append ? O_WRONLY|O_CREAT|O_APPEND :
+		    O_WRONLY|O_CREAT|O_TRUNC, DEFFILEMODE)) < 0) {
 			warn("%s", *argv);
 			exitval = 1;
 		} else
 			add(fd, *argv);
-		argv++;
-	}
 
-	while ((rval = read(STDIN_FILENO, buf, sizeof(buf))) > 0) {
-		SLIST_FOREACH(p, &head, next) {
+	if (caph_enter() < 0)
+		err(EXIT_FAILURE, "unable to enter capability mode");
+	while ((rval = read(STDIN_FILENO, buf, BSIZE)) > 0)
+		for (p = head; p; p = p->next) {
 			n = rval;
 			bp = buf;
 			do {
@@ -117,18 +124,37 @@ main(int argc, char *argv[])
 				bp += wval;
 			} while (n -= wval);
 		}
-	}
-	if (rval == -1) {
-		warn("read");
-		exitval = 1;
+	if (rval < 0)
+		err(1, "read");
+	exit(exitval);
+}
+
+static void
+usage(void)
+{
+	(void)fprintf(stderr, "usage: tee [-ai] [file ...]\n");
+	exit(1);
+}
+
+static void
+add(int fd, const char *name)
+{
+	LIST *p;
+	cap_rights_t rights;
+
+	if (fd == STDOUT_FILENO) {
+		if (caph_limit_stdout() == -1)
+			err(EXIT_FAILURE, "unable to limit stdout");
+	} else {
+		cap_rights_init(&rights, CAP_WRITE, CAP_FSTAT);
+		if (caph_rights_limit(fd, &rights) < 0)
+			err(EXIT_FAILURE, "unable to limit rights");
 	}
 
-	SLIST_FOREACH(p, &head, next) {
-		if (close(p->fd) == -1) {
-			warn("%s", p->name);
-			exitval = 1;
-		}
-	}
-
-	return exitval;
+	if ((p = malloc(sizeof(LIST))) == NULL)
+		err(1, "malloc");
+	p->fd = fd;
+	p->name = name;
+	p->next = head;
+	head = p;
 }

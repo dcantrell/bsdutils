@@ -1,6 +1,3 @@
-.\"	$OpenBSD: du.1,v 1.37 2020/01/30 17:54:30 schwarze Exp $
-.\"	$NetBSD: du.1,v 1.6 1996/10/18 07:20:31 thorpej Exp $
-.\"
 .\" Copyright (c) 1990, 1993
 .\"	The Regents of the University of California.  All rights reserved.
 .\"
@@ -29,90 +26,132 @@
 .\" SUCH DAMAGE.
 .\"
 .\"	@(#)du.1	8.2 (Berkeley) 4/1/94
+.\" $FreeBSD$
 .\"
-.Dd $Mdocdate: January 30 2020 $
+.Dd August 1, 2019
 .Dt DU 1
 .Os
 .Sh NAME
 .Nm du
 .Nd display disk usage statistics
 .Sh SYNOPSIS
-.Nm du
-.Op Fl achkrsx
+.Nm
+.Op Fl Aclnx
 .Op Fl H | L | P
-.Op Fl d Ar depth
+.Op Fl g | h | k | m
+.Op Fl a | s | d Ar depth
+.Op Fl B Ar blocksize
+.Op Fl I Ar mask
+.Op Fl t Ar threshold
 .Op Ar
 .Sh DESCRIPTION
 The
 .Nm
-utility displays the file system block usage for each
-.Ar file
-argument
+utility displays the file system block usage for each file argument
 and for each directory in the file hierarchy rooted in each directory
 argument.
-Note that the system block usage is usually greater than
-the actual size of the file.
 If no file is specified, the block usage of the hierarchy rooted in
 the current directory is displayed.
 .Pp
 The options are as follows:
-.Bl -tag -width Ds
-.It Fl a
-Display entries for files in addition to entries for directories.
-.It Fl c
-Display the grand total after all the arguments have been processed.
-.It Fl d Ar depth
-Do not display entries for files and directories more than
-.Ar depth
-levels deep;
-.Fl d Cm 0
-has the same effect as
-.Fl s .
-Overrides earlier
-.Fl d
+.Bl -tag -width indent
+.It Fl A
+Display the apparent size instead of the disk usage.
+This can be helpful when operating on compressed volumes or sparse files.
+.It Fl B Ar blocksize
+Calculate block counts in
+.Ar blocksize
+byte blocks.
+This is different from the
+.Fl h , k , m ,
+.Fl Fl si
 and
-.Fl s
-options.
+.Fl g
+options or setting
+.Ev BLOCKSIZE
+and gives an estimate of how much space the examined file hierarchy would
+require on a filesystem with the given
+.Ar blocksize .
+Unless in
+.Fl A
+mode,
+.Ar blocksize
+is rounded up to the next multiple of 512.
 .It Fl H
-Symbolic links on the command line are followed.
-Symbolic links encountered in the tree traversal are not followed.
-.It Fl h
-"Human-readable" output.
-Use unit suffixes: Byte, Kilobyte, Megabyte,
-Gigabyte, Terabyte, Petabyte, Exabyte in order to reduce the number of
-digits to four or less.
-.It Fl k
-By default, all sizes are reported in 512-byte block counts.
-The
-.Fl k
-option causes the numbers to be reported in kilobyte counts.
+Symbolic links on the command line are followed, symbolic links in file
+hierarchies are not followed.
+.It Fl I Ar mask
+Ignore files and directories matching the specified
+.Ar mask .
 .It Fl L
-All symbolic links are followed.
+Symbolic links on the command line and in file hierarchies are followed.
 .It Fl P
 No symbolic links are followed.
+This is the default.
+.It Fl a
+Display an entry for each file in a file hierarchy.
+.It Fl c
+Display a grand total.
+.It Fl d Ar depth
+Display an entry for all files and directories
+.Ar depth
+directories deep.
+.It Fl g
+Display block counts in 1073741824-byte (1 GiB) blocks.
+.It Fl h
+.Dq Human-readable
+output.
+Use unit suffixes: Byte, Kilobyte, Megabyte,
+Gigabyte, Terabyte and Petabyte based on powers of 1024.
+.It Fl k
+Display block counts in 1024-byte (1 kiB) blocks.
+.It Fl l
+If a file has multiple hard links, count its size multiple times.
+The default behavior of
+.Nm
+is to count files with multiple hard links only once.
+When the
+.Fl l
+option is specified, the hard link checks are disabled, and these files
+are counted (and displayed) as many times as they are found.
+.It Fl m
+Display block counts in 1048576-byte (1 MiB) blocks.
+.It Fl n
+Ignore files and directories with user
+.Dq nodump
+flag
+.Pq Dv UF_NODUMP
+set.
 .It Fl r
 Generate messages about directories that cannot be read, files
 that cannot be opened, and so on.
-This is the default.
+This is the default case.
+This option exists solely for conformance with
+.St -xpg4 .
 .It Fl s
-Display only the total for each of the specified files and directories.
-Overrides earlier
-.Fl d
-options.
+Display an entry for each specified file.
+(Equivalent to
+.Fl d Li 0 )
+.It Fl Fl si
+.Dq Human-readable
+output.
+Use unit suffixes: Byte, Kilobyte, Megabyte,
+Gigabyte, Terabyte and Petabyte based on powers of 1000.
+.It Fl t Ar threshold
+Display only entries for which size exceeds
+.Ar threshold .
+If
+.Ar threshold
+is negative, display only entries for which size is less than the absolute
+value of
+.Ar threshold .
 .It Fl x
 File system mount points are not traversed.
 .El
 .Pp
-It is not an error to specify more than one of
-the mutually exclusive options
-.Fl h
-and
-.Fl k .
-Where more than one of these options is specified,
-the last option given overrides the others.
-.Pp
+The
 .Nm
-counts the storage used by symbolic links and not the files they
+utility counts the storage used by symbolic links and not the files they
 reference unless the
 .Fl H
 or
@@ -122,39 +161,64 @@ If either the
 .Fl H
 or
 .Fl L
-options are specified, storage used by any symbolic links which are
-followed is not counted or displayed.
+option is specified, storage used by any symbolic links which are
+followed is not counted (or displayed).
 The
 .Fl H ,
-.Fl L ,
+.Fl L
 and
 .Fl P
 options override each other and the command's actions are determined
 by the last one specified.
 .Pp
-Files having multiple hard links are counted (and displayed) a single
-time per
-.Nm
-execution.
+The
+.Fl h , k , m
+and
+.Fl Fl si
+options all override each other; the last one specified determines
+the block counts used.
 .Sh ENVIRONMENT
 .Bl -tag -width BLOCKSIZE
 .It Ev BLOCKSIZE
-Block counts will be displayed in units of this size block, unless the
-.Fl k
+If the environment variable
+.Ev BLOCKSIZE
+is set, and the
+.Fl h , k , m
 or
-.Fl h
-option is specified.
+.Fl Fl si
+options are not specified, the block counts will be displayed in units of
+that block size.
+If
+.Ev BLOCKSIZE
+is not set, and the
+.Fl h , k , m
+or
+.Fl Fl si
+options are not specified, the block counts will be displayed in 512-byte
+blocks.
 .El
-.Sh EXIT STATUS
-.Ex -std du
 .Sh EXAMPLES
-Display a summary of files and folders in the current directory,
-sorted by size:
+Show disk usage for all files in the current directory.
+Output is in human-readable form:
 .Pp
-.Dl $ du -sh * .??* | sort -h
+.Dl # du -ah
+.Pp
+Summarize disk usage in the current directory:
+.Pp
+.Dl # du -hs
+.Pp
+Summarize disk usage for a specific directory:
+.Pp
+.Dl # du -hs /home
+.Pp
+Show name and size of all C files in a specific directory.
+Also display a grand total at the end:
+.Pp
+.Dl # du -ch /usr/src/sys/kern/*.c
 .Sh SEE ALSO
 .Xr df 1 ,
-.Xr fts_open 3 ,
+.Xr chflags 2 ,
+.Xr fts 3 ,
 .Xr symlink 7 ,
 .Xr quot 8
 .Sh STANDARDS
@@ -192,7 +256,7 @@ The
 option first appeared in
 .At III
 and is available since
-.Ox 2.3 .
+.Fx 3.5 .
 The
 .Fl k
 and
@@ -215,18 +279,14 @@ are available since
 .Bx 4.4 Lite1 ,
 .Fl c
 since
-.Ox 2.1 .
+.Fx 2.2.6 .
 The
 .Fl d
 option first appeared in
-.Fx 2.2
-and is available since
-.Ox 5.7 ,
+.Fx 2.2 ,
 .Fl h
 first appeared in
-.Fx 4.0
-and is available since
-.Ox 2.9 .
+.Fx 4.0 .
 .Sh AUTHORS
 .An -nosplit
 This version of
@@ -235,10 +295,4 @@ was written by
 .An Chris Newcomb
 for
 .Bx 4.3 Reno
-in 1989 and incorporates later contributions from
-.An Elan Amir ,
-.An Keith Bostic ,
-.An Luke Mewburn ,
-.An Matt Bing ,
-and
-.An Can Erkin Acar Aq Mt canacar@openbsd.org .
+in 1989.

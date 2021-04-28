@@ -1,6 +1,6 @@
-/*	$OpenBSD: chroot.c,v 1.14 2015/05/19 16:05:12 millert Exp $	*/
-
-/*
+/*-
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
  * Copyright (c) 1988, 1993
  *	The Regents of the University of California.  All rights reserved.
  *
@@ -29,10 +29,24 @@
  * SUCH DAMAGE.
  */
 
+#if 0
+#ifndef lint
+static const char copyright[] =
+"@(#) Copyright (c) 1988, 1993\n\
+	The Regents of the University of California.  All rights reserved.\n";
+#endif /* not lint */
+
+#ifndef lint
+static char sccsid[] = "@(#)chroot.c	8.1 (Berkeley) 6/9/93";
+#endif /* not lint */
+#endif
+#include <sys/cdefs.h>
+__FBSDID("$FreeBSD$");
+
 #include <sys/types.h>
+
 #include <ctype.h>
 #include <err.h>
-#include <errno.h>
 #include <grp.h>
 #include <limits.h>
 #include <paths.h>
@@ -42,29 +56,41 @@
 #include <string.h>
 #include <unistd.h>
 
-int		main(int, char **);
-void	usage(void);
+static void usage(void);
 
 int
-main(int argc, char **argv)
+main(int argc, char *argv[])
 {
-	struct group	*grp;
-	struct passwd	*pwd;
+	struct group	*gp;
+	struct passwd	*pw;
+	char		*endp, *p, *user, *group, *grouplist;
 	const char	*shell;
-	char		*group, *grouplist;
-	gid_t		gidlist[NGROUPS_MAX];
-	int		ch, ngids;
+	gid_t		gid, *gidlist;
+	uid_t		uid;
+	int		ch, gids;
+	long		ngroups_max;
 
-	ngids = 0;
-	pwd = NULL;
-	grouplist = NULL;
-	while ((ch = getopt(argc, argv, "g:")) != -1) {
+	gid = 0;
+	uid = 0;
+	user = group = grouplist = NULL;
+	while ((ch = getopt(argc, argv, "G:g:u:")) != -1) {
 		switch(ch) {
+		case 'u':
+			user = optarg;
+			if (*user == '\0')
+				usage();
+			break;
 		case 'g':
+			group = optarg;
+			if (*group == '\0')
+				usage();
+			break;
+		case 'G':
 			grouplist = optarg;
 			if (*grouplist == '\0')
 				usage();
 			break;
+		case '?':
 		default:
 			usage();
 		}
@@ -75,50 +101,84 @@ main(int argc, char **argv)
 	if (argc < 1)
 		usage();
 
-	while ((group = strsep(&grouplist, ",")) != NULL) {
-		if (*group == '\0')
+	if (group != NULL) {
+		if (isdigit((unsigned char)*group)) {
+			gid = (gid_t)strtoul(group, &endp, 0);
+			if (*endp != '\0')
+				goto getgroup;
+		} else {
+ getgroup:
+			if ((gp = getgrnam(group)) != NULL)
+				gid = gp->gr_gid;
+			else
+				errx(1, "no such group `%s'", group);
+		}
+	}
+
+	ngroups_max = sysconf(_SC_NGROUPS_MAX) + 1;
+	if ((gidlist = malloc(sizeof(gid_t) * ngroups_max)) == NULL)
+		err(1, "malloc");
+	for (gids = 0;
+	    (p = strsep(&grouplist, ",")) != NULL && gids < ngroups_max; ) {
+		if (*p == '\0')
 			continue;
 
-		if (ngids == NGROUPS_MAX)
-			errx(1, "too many supplementary groups provided");
-		if ((grp = getgrnam(group)) == NULL)
-			errx(1, "no such group `%s'", group);
-		gidlist[ngids++] = grp->gr_gid;
+		if (isdigit((unsigned char)*p)) {
+			gidlist[gids] = (gid_t)strtoul(p, &endp, 0);
+			if (*endp != '\0')
+				goto getglist;
+		} else {
+ getglist:
+			if ((gp = getgrnam(p)) != NULL)
+				gidlist[gids] = gp->gr_gid;
+			else
+				errx(1, "no such group `%s'", p);
+		}
+		gids++;
+	}
+	if (p != NULL && gids == ngroups_max)
+		errx(1, "too many supplementary groups provided");
+
+	if (user != NULL) {
+		if (isdigit((unsigned char)*user)) {
+			uid = (uid_t)strtoul(user, &endp, 0);
+			if (*endp != '\0')
+				goto getuser;
+		} else {
+ getuser:
+			if ((pw = getpwnam(user)) != NULL)
+				uid = pw->pw_uid;
+			else
+				errx(1, "no such user `%s'", user);
+		}
 	}
 
-	if (ngids != 0) {
-		if (setgid(gidlist[0]) != 0)
-			err(1, "setgid");
-		if (setgroups(ngids, gidlist) != 0)
-			err(1, "setgroups");
-	}
-
-	if (chroot(argv[0]) != 0 || chdir("/") != 0)
+	if (chdir(argv[0]) == -1 || chroot(".") == -1)
 		err(1, "%s", argv[0]);
 
-	if (pwd != NULL) {
-		if (setuid(pwd->pw_uid) != 0)
-			err(1, "setuid");
-	}
+	if (gids && setgroups(gids, gidlist) == -1)
+		err(1, "setgroups");
+	if (group && setgid(gid) == -1)
+		err(1, "setgid");
+	if (user && setuid(uid) == -1)
+		err(1, "setuid");
 
 	if (argv[1]) {
 		execvp(argv[1], &argv[1]);
 		err(1, "%s", argv[1]);
 	}
 
-	if ((shell = getenv("SHELL")) == NULL || *shell == '\0')
+	if (!(shell = getenv("SHELL")))
 		shell = _PATH_BSHELL;
 	execlp(shell, shell, "-i", (char *)NULL);
 	err(1, "%s", shell);
 	/* NOTREACHED */
 }
 
-void
+static void
 usage(void)
 {
-	extern char *__progname;
-
-	(void)fprintf(stderr, "usage: %s [-g group,group,...] "
-	    "newroot [command]\n", __progname);
+	(void)fprintf(stderr, "usage: chroot [-g group] [-G group,group,...] "
+	    "[-u user] newroot [command]\n");
 	exit(1);
 }

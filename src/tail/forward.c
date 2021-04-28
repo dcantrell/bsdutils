@@ -1,7 +1,6 @@
-/*	$OpenBSD: forward.c,v 1.33 2019/06/28 13:35:04 deraadt Exp $	*/
-/*	$NetBSD: forward.c,v 1.7 1996/02/13 16:49:10 ghudson Exp $	*/
-
 /*-
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
  * Copyright (c) 1991, 1993
  *	The Regents of the University of California.  All rights reserved.
  *
@@ -33,12 +32,24 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/cdefs.h>
+
+#ifndef lint
+__attribute__ ((unused)) static const char sccsid[] = "@(#)forward.c	8.1 (Berkeley) 6/6/93";
+#endif
+
+#include <sys/param.h>
+#include <sys/mount.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/time.h>
+#include <sys/mman.h>
 #include <sys/event.h>
 
 #include <err.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -46,12 +57,20 @@
 
 #include "extern.h"
 
-static int rlines(struct tailfile *, off_t);
-static inline void tfprint(FILE *fp);
-static int tfqueue(struct tailfile *tf);
-static const struct timespec *tfreopen(struct tailfile *tf);
+static void rlines(FILE *, const char *fn, off_t, struct stat *);
+static int show(file_info_t *);
+static void set_events(file_info_t *files);
 
-static int kq = -1;
+/* defines for inner loop actions */
+#define USE_SLEEP	0
+#define USE_KQUEUE	1
+#define ADD_EVENTS	2
+
+static struct kevent *ev;
+static int action = USE_SLEEP;
+static int kq;
+
+static const file_info_t *last;
 
 /*
  * forward -- display the file, from an offset, forward.
@@ -72,310 +91,340 @@ static int kq = -1;
  *	NOREG	cyclically read characters into a wrap-around buffer
  *
  * RLINES
- *	REG	step back until the correct offset is reached.
+ *	REG	mmap the file and step back until reach the correct offset.
  *	NOREG	cyclically read lines into a wrap-around array of buffers
  */
 void
-forward(struct tailfile *tf, int nfiles, enum STYLE style, off_t origoff)
+forward(FILE *fp, const char *fn, enum STYLE style, off_t off, struct stat *sbp)
 {
 	int ch;
-	struct tailfile *ctf, *ltf;
-	struct kevent ke;
-	const struct timespec *ts = NULL;
-	int i;
-	int nevents;
 
-	if (nfiles < 1)
-		return;
-
-	if (fflag && (kq = kqueue()) == -1)
-		warn("kqueue");
-
-	for (i = 0; i < nfiles; i++) {
-		off_t off = origoff;
-		if (nfiles > 1)
-			printfname(tf[i].fname);
-
-		switch(style) {
-		case FBYTES:
-			if (off == 0)
-				break;
-			if (S_ISREG(tf[i].sb.st_mode)) {
-				if (tf[i].sb.st_size < off)
-					off = tf[i].sb.st_size;
-				if (fseeko(tf[i].fp, off, SEEK_SET) == -1) {
-					ierr(tf[i].fname);
-					return;
-				}
-			} else while (off--)
-				if ((ch = getc(tf[i].fp)) == EOF) {
-					if (ferror(tf[i].fp)) {
-						ierr(tf[i].fname);
-						return;
-					}
-					break;
-				}
+	switch(style) {
+	case FBYTES:
+		if (off == 0)
 			break;
-		case FLINES:
-			if (off == 0)
-				break;
-			for (;;) {
-				if ((ch = getc(tf[i].fp)) == EOF) {
-					if (ferror(tf[i].fp)) {
-						ierr(tf[i].fname);
-						return;
-					}
-					break;
-				}
-				if (ch == '\n' && !--off)
-					break;
-			}
-			break;
-		case RBYTES:
-			if (S_ISREG(tf[i].sb.st_mode)) {
-				if (tf[i].sb.st_size >= off &&
-				    fseeko(tf[i].fp, -off, SEEK_END) == -1) {
-					ierr(tf[i].fname);
-					return;
-				}
-			} else if (off == 0) {
-				while (getc(tf[i].fp) != EOF)
-					;
-				if (ferror(tf[i].fp)) {
-					ierr(tf[i].fname);
-					return;
-				}
-			} else {
-				if (bytes(&(tf[i]), off))
-					return;
-			}
-			break;
-		case RLINES:
-			if (S_ISREG(tf[i].sb.st_mode)) {
-				if (!off) {
-					if (fseeko(tf[i].fp, (off_t)0,
-					    SEEK_END) == -1) {
-						ierr(tf[i].fname);
-						return;
-					}
-				} else if (rlines(&(tf[i]), off) != 0)
-					lines(&(tf[i]), off);
-			} else if (off == 0) {
-				while (getc(tf[i].fp) != EOF)
-					;
-				if (ferror(tf[i].fp)) {
-					ierr(tf[i].fname);
-					return;
-				}
-			} else {
-				if (lines(&(tf[i]), off))
-					return;
-			}
-			break;
-		default:
-			err(1, "Unsupported style");
-		}
-
-		tfprint(tf[i].fp);
-		if (fflag && tfqueue(&(tf[i])) == -1)
-			warn("Unable to follow %s", tf[i].fname);
-
-	}
-	ltf = &(tf[i-1]);
-
-	(void)fflush(stdout);
-	if (!fflag || kq == -1)
-		return;
-
-	while (1) {
-		if ((nevents = kevent(kq, NULL, 0, &ke, 1, ts)) <= 0) {
-			if (errno == EINTR) {
-				close(kq);
+		if (S_ISREG(sbp->st_mode)) {
+			if (sbp->st_size < off)
+				off = sbp->st_size;
+			if (fseeko(fp, off, SEEK_SET) == -1) {
+				ierr(fn);
 				return;
 			}
-		}
-
-		ctf = ke.udata;
-		if (nevents > 0) {
-			if (ke.filter == EVFILT_READ) {
-				if (ctf != ltf) {
-					printfname(ctf->fname);
-					ltf = ctf;
+		} else while (off--)
+			if ((ch = getc(fp)) == EOF) {
+				if (ferror(fp)) {
+					ierr(fn);
+					return;
 				}
-				clearerr(ctf->fp);
-				tfprint(ctf->fp);
-				if (ferror(ctf->fp)) {
-					ierr(ctf->fname);
-					fclose(ctf->fp);
-					warn("Lost file %s", ctf->fname);
-					continue;
-				}
-				(void)fflush(stdout);
-				clearerr(ctf->fp);
-			} else if (ke.filter == EVFILT_VNODE) {
-				if (ke.fflags & (NOTE_DELETE | NOTE_RENAME)) {
-					/*
-					 * File was deleted or renamed.
-					 *
-					 * Continue to look at it until
-					 * a new file reappears with
-					 * the same name. 
-					 */
-					(void) tfreopen(ctf);
-				} else if (ke.fflags & NOTE_TRUNCATE) {
-					warnx("%s has been truncated, "
-					    "resetting.", ctf->fname);
-					fpurge(ctf->fp);
-					rewind(ctf->fp);
-				}
+				break;
 			}
+		break;
+	case FLINES:
+		if (off == 0)
+			break;
+		for (;;) {
+			if ((ch = getc(fp)) == EOF) {
+				if (ferror(fp)) {
+					ierr(fn);
+					return;
+				}
+				break;
+			}
+			if (ch == '\n' && !--off)
+				break;
 		}
-		ts = tfreopen(NULL);
+		break;
+	case RBYTES:
+		if (S_ISREG(sbp->st_mode)) {
+			if (sbp->st_size >= off &&
+			    fseeko(fp, -off, SEEK_END) == -1) {
+				ierr(fn);
+				return;
+			}
+		} else if (off == 0) {
+			while (getc(fp) != EOF);
+			if (ferror(fp)) {
+				ierr(fn);
+				return;
+			}
+		} else
+			if (bytes(fp, fn, off))
+				return;
+		break;
+	case RLINES:
+		if (S_ISREG(sbp->st_mode))
+			if (!off) {
+				if (fseeko(fp, (off_t)0, SEEK_END) == -1) {
+					ierr(fn);
+					return;
+				}
+			} else
+				rlines(fp, fn, off, sbp);
+		else if (off == 0) {
+			while (getc(fp) != EOF);
+			if (ferror(fp)) {
+				ierr(fn);
+				return;
+			}
+		} else
+			if (lines(fp, fn, off))
+				return;
+		break;
+	default:
+		break;
 	}
+
+	while ((ch = getc(fp)) != EOF)
+		if (putchar(ch) == EOF)
+			oerr();
+	if (ferror(fp)) {
+		ierr(fn);
+		return;
+	}
+	(void)fflush(stdout);
 }
 
 /*
  * rlines -- display the last offset lines of the file.
  */
-static int
-rlines(struct tailfile *tf, off_t off)
+static void
+rlines(FILE *fp, const char *fn, off_t off, struct stat *sbp)
 {
-	off_t pos;
-	int ch;
+	struct mapinfo map;
+	off_t curoff, size;
+	int i;
 
-	pos = tf->sb.st_size;
-	if (pos == 0)
-		return (0);
+	if (!(size = sbp->st_size))
+		return;
+	map.start = NULL;
+	map.fd = fileno(fp);
+	map.mapoff = map.maxoff = size;
 
 	/*
-	 * Position before char.
-	 * Last char is special, ignore it whether newline or not.
+	 * Last char is special, ignore whether newline or not. Note that
+	 * size == 0 is dealt with above, and size == 1 sets curoff to -1.
 	 */
-	pos -= 2;
-	ch = EOF;
-	for (; off > 0 && pos >= 0; pos--) {
-		/* A seek per char isn't a problem with a smart stdio */
-		if (fseeko(tf[0].fp, pos, SEEK_SET) == -1) {
-			ierr(tf->fname);
-			return (1);
+	curoff = size - 2;
+	while (curoff >= 0) {
+		if (curoff < map.mapoff && maparound(&map, curoff) != 0) {
+			ierr(fn);
+			return;
 		}
-		if ((ch = getc(tf[0].fp)) == '\n')
-			off--;
-		else if (ch == EOF) {
-			if (ferror(tf[0].fp)) {
-				ierr(tf->fname);
-				return (1);
+		for (i = curoff - map.mapoff; i >= 0; i--)
+			if (map.start[i] == '\n' && --off == 0)
+				break;
+		/* `i' is either the map offset of a '\n', or -1. */
+		curoff = map.mapoff + i;
+		if (i >= 0)
+			break;
+	}
+	curoff++;
+	if (mapprint(&map, curoff, size - curoff) != 0) {
+		ierr(fn);
+		exit(1);
+	}
+
+	/* Set the file pointer to reflect the length displayed. */
+	if (fseeko(fp, sbp->st_size, SEEK_SET) == -1) {
+		ierr(fn);
+		return;
+	}
+	if (map.start != NULL && munmap(map.start, map.maplen)) {
+		ierr(fn);
+		return;
+	}
+}
+
+static int
+show(file_info_t *file)
+{
+	int ch;
+
+	while ((ch = getc(file->fp)) != EOF) {
+		if (last != file && no_files > 1) {
+			if (!qflag)
+				printfn(file->file_name, 1);
+			last = file;
+		}
+		if (putchar(ch) == EOF)
+			oerr();
+	}
+	(void)fflush(stdout);
+	if (ferror(file->fp)) {
+		fclose(file->fp);
+		file->fp = NULL;
+		ierr(file->file_name);
+		return 0;
+	}
+	clearerr(file->fp);
+	return 1;
+}
+
+static void
+set_events(file_info_t *files)
+{
+	int i, n = 0;
+	file_info_t *file;
+	struct timespec ts;
+	struct statfs sf;
+
+	ts.tv_sec = 0;
+	ts.tv_nsec = 0;
+
+	action = USE_KQUEUE;
+	for (i = 0, file = files; i < no_files; i++, file++) {
+		if (! file->fp)
+			continue;
+
+		if (fstatfs(fileno(file->fp), &sf) == 0 &&
+		    (sf.f_flags & MNT_LOCAL) == 0) {
+			action = USE_SLEEP;
+			return;
+		}
+
+		if (Fflag && fileno(file->fp) != STDIN_FILENO) {
+			EV_SET(&ev[n], fileno(file->fp), EVFILT_VNODE,
+			    EV_ADD | EV_ENABLE | EV_CLEAR,
+			    NOTE_DELETE | NOTE_RENAME, 0, 0);
+			n++;
+		}
+		EV_SET(&ev[n], fileno(file->fp), EVFILT_READ,
+		    EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, 0);
+		n++;
+	}
+
+	if (kevent(kq, ev, n, NULL, 0, &ts) < 0) {
+		action = USE_SLEEP;
+	}
+}
+
+/*
+ * follow -- display the file, from an offset, forward.
+ *
+ */
+void
+follow(file_info_t *files, enum STYLE style, off_t off)
+{
+	int active, ev_change, i, n = -1;
+	struct stat sb2;
+	file_info_t *file;
+	FILE *ftmp;
+	struct timespec ts;
+
+	/* Position each of the files */
+
+	file = files;
+	active = 0;
+	n = 0;
+	for (i = 0; i < no_files; i++, file++) {
+		if (file->fp) {
+			active = 1;
+			n++;
+			if (no_files > 1 && !qflag)
+				printfn(file->file_name, 1);
+			forward(file->fp, file->file_name, style, off, &file->st);
+			if (Fflag && fileno(file->fp) != STDIN_FILENO)
+				n++;
+		}
+	}
+	if (!Fflag && !active)
+		return;
+
+	last = --file;
+
+	kq = kqueue();
+	if (kq < 0)
+		err(1, "kqueue");
+	ev = malloc(n * sizeof(struct kevent));
+	if (! ev)
+	    err(1, "Couldn't allocate memory for kevents.");
+	set_events(files);
+
+	for (;;) {
+		ev_change = 0;
+		if (Fflag) {
+			for (i = 0, file = files; i < no_files; i++, file++) {
+				if (!file->fp) {
+					file->fp =
+					    fileargs_fopen(fa, file->file_name,
+					    "r");
+					if (file->fp != NULL &&
+					    fstat(fileno(file->fp), &file->st)
+					    == -1) {
+						fclose(file->fp);
+						file->fp = NULL;
+					}
+					if (file->fp != NULL)
+						ev_change++;
+					continue;
+				}
+				if (fileno(file->fp) == STDIN_FILENO)
+					continue;
+				ftmp = fileargs_fopen(fa, file->file_name, "r");
+				if (ftmp == NULL ||
+				    fstat(fileno(file->fp), &sb2) == -1) {
+					if (errno != ENOENT)
+						ierr(file->file_name);
+					show(file);
+					if (file->fp != NULL) {
+						fclose(file->fp);
+						file->fp = NULL;
+					}
+					if (ftmp != NULL) {
+						fclose(ftmp);
+					}
+					ev_change++;
+					continue;
+				}
+
+				if (sb2.st_ino != file->st.st_ino ||
+				    sb2.st_dev != file->st.st_dev ||
+				    sb2.st_nlink == 0) {
+					show(file);
+					fclose(file->fp);
+					file->fp = ftmp;
+					memcpy(&file->st, &sb2,
+					    sizeof(struct stat));
+					ev_change++;
+				} else {
+					fclose(ftmp);
+				}
 			}
+		}
+
+		for (i = 0, file = files; i < no_files; i++, file++)
+			if (file->fp && !show(file))
+				ev_change++;
+
+		if (ev_change)
+			set_events(files);
+
+		switch (action) {
+		case USE_KQUEUE:
+			ts.tv_sec = 1;
+			ts.tv_nsec = 0;
+			/*
+			 * In the -F case we set a timeout to ensure that
+			 * we re-stat the file at least once every second.
+			 */
+			n = kevent(kq, NULL, 0, ev, 1, Fflag ? &ts : NULL);
+			if (n < 0)
+				err(1, "kevent");
+			if (n == 0) {
+				/* timeout */
+				break;
+			} else if (ev->filter == EVFILT_READ && ev->data < 0) {
+				/* file shrank, reposition to end */
+				if (lseek(ev->ident, (off_t)0, SEEK_END) == -1) {
+					ierr(file->file_name);
+					continue;
+				}
+			}
+			break;
+
+		case USE_SLEEP:
+			(void) usleep(250000);
 			break;
 		}
 	}
-	/* If we read until start of file, put back last read char */
-	if (pos < 0 && off > 0 && ch != EOF && ungetc(ch, tf[0].fp) == EOF) {
-		ierr(tf->fname);
-		return (1);
-	}
-
-	while (!feof(tf[0].fp) && (ch = getc(tf[0].fp)) != EOF)
-		if (putchar(ch) == EOF)
-			oerr();
-	if (ferror(tf[0].fp)) {
-		ierr(tf->fname);
-		return (1);
-	}
-
-	return (0);
-}
-
-static inline void
-tfprint(FILE *fp)
-{
-	int ch;
-
-	while (!feof(fp) && (ch = getc(fp)) != EOF)
-		if (putchar(ch) == EOF)
-			oerr();
-}
-
-static int
-tfqueue(struct tailfile *tf)
-{
-	struct kevent ke[2];
-	int i = 1;
-
-	if (kq < 0) {
-		errno = EBADF;
-		return -1;
-	}
-
-	EV_SET(&(ke[0]), fileno(tf->fp), EVFILT_READ,
-	    EV_ENABLE | EV_ADD | EV_CLEAR, 0, 0, tf);
-
-	if (S_ISREG(tf->sb.st_mode)) {
-		i = 2;
-		EV_SET(&(ke[1]), fileno(tf->fp), EVFILT_VNODE,
-		    EV_ENABLE | EV_ADD | EV_CLEAR,
-		    NOTE_DELETE | NOTE_RENAME | NOTE_TRUNCATE,
-		    0, tf);
-	}
-	if (kevent(kq, ke, i, NULL, 0, NULL) == -1) {
-		ierr(tf->fname);
-		return -1;
-	}
-	return 0;
-}
-
-#define AFILESINCR 8
-static const struct timespec *
-tfreopen(struct tailfile *tf) {
-	static struct tailfile		**reopen = NULL;
-	static int			  nfiles = 0, afiles = 0;
-	static const struct timespec	  ts = {1, 0};
-
-	struct stat			  sb;
-	struct tailfile			**treopen, *ttf;
-	int				  i;
-
-	if (tf && !(tf->fp == stdin) &&
-	    ((stat(tf->fname, &sb) != 0) || sb.st_ino != tf->sb.st_ino)) {
-		if (afiles < ++nfiles) {
-			afiles += AFILESINCR;
-			treopen = reallocarray(reopen, afiles, sizeof(*reopen));
-			if (treopen)
-				reopen = treopen;
-			else
-				afiles -= AFILESINCR;
-		}
-		if (nfiles <= afiles) {
-			for (i = 0; i < nfiles - 1; i++)
-				if (strcmp(reopen[i]->fname, tf->fname) == 0)
-					break;
-			if (i < nfiles - 1)
-				nfiles--;
-			else
-				reopen[nfiles-1] = tf;
-		} else {
-			warnx("Lost track of %s", tf->fname);
-			nfiles--;
-		}
-	}
-
-	for (i = 0; i < nfiles; i++) {
-		ttf = reopen[i];
-		if (stat(ttf->fname, &sb) == -1)
-			continue;
-		if (sb.st_ino != ttf->sb.st_ino) {
-			(void) memcpy(&(ttf->sb), &sb, sizeof(ttf->sb));
-			ttf->fp = freopen(ttf->fname, "r", ttf->fp);
-			if (ttf->fp == NULL)
-				ierr(ttf->fname);
-			else {
-				warnx("%s has been replaced, reopening.",
-				    ttf->fname);
-				tfqueue(ttf);
-			}
-		}
-		reopen[i] = reopen[--nfiles];
-	}
-
-	return nfiles ? &ts : NULL;
 }

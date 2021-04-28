@@ -1,5 +1,3 @@
-.\"	$OpenBSD: pr.1,v 1.27 2014/06/04 07:57:27 jmc Exp $
-.\"
 .\" Copyright (c) 1991 Keith Muller.
 .\" Copyright (c) 1993
 .\"	The Regents of the University of California.  All rights reserved.
@@ -31,36 +29,76 @@
 .\" OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 .\" SUCH DAMAGE.
 .\"
-.\"     from: @(#)pr.1	8.1 (Berkeley) 6/6/93
+.\"     @(#)pr.1	8.3 (Berkeley) 4/18/94
+.\" $FreeBSD$
 .\"
-.Dd $Mdocdate: June 4 2014 $
+.Dd July 3, 2004
 .Dt PR 1
 .Os
 .Sh NAME
 .Nm pr
 .Nd print files
 .Sh SYNOPSIS
-.Nm pr
-.Op Cm + Ns Ar page
+.Nm
+.Bk -words
+.Op Ar \&+page
+.Ek
+.Bk -words
 .Op Fl Ar column
-.Op Fl adFfmrt
-.Op Fl e Ns Oo Ar char Oc Ns Op Ar gap
+.Ek
+.Op Fl adFfmprt
+.Bk -words
+.Oo
+.Op Fl e
+.Op Ar char
+.Op Ar gap
+.Oc
+.Ek
+.Bk -words
+.Op Fl L Ar locale
+.Ek
+.Bk -words
 .Op Fl h Ar header
-.Op Fl i Ns Oo Ar char Oc Ns Op Ar gap
+.Ek
+.Bk -words
+.Oo
+.Op Fl i
+.Op Ar char
+.Op Ar gap
+.Oc
+.Ek
+.Bk -words
 .Op Fl l Ar lines
-.Op Fl n Ns Oo Ar char Oc Ns Op Ar width
+.Ek
+.Bk -words
 .Op Fl o Ar offset
-.Op Fl s Ns Op Ar char
+.Ek
+.Bk -words
+.Oo
+.Op Fl s
+.Op Ar char
+.Oc
+.Ek
+.Bk -words
+.Oo
+.Op Fl n
+.Op Ar char
+.Op Ar width
+.Oc
+.Ek
+.Bk -words
 .Op Fl w Ar width
+.Ek
+.Op -
 .Op Ar
 .Sh DESCRIPTION
 The
-.Nm pr
+.Nm
 utility is a printing and pagination filter for text files.
 When multiple input files are specified, each is read, formatted,
 and written to standard output.
 By default, the input is separated into 66-line pages, each with
-.Bl -bullet -offset indent
+.Bl -bullet
 .It
 A 5-line header with the page number, date, time, and
 the pathname of the file.
@@ -68,47 +106,28 @@ the pathname of the file.
 A 5-line trailer consisting of blank lines.
 .El
 .Pp
-Optionally, the trailer can be replaced by a
-.Em <form-feed>
-where this is more appropriate for the output device being used and
-.Em <tab> Ns s
-can be expanded to input relative
-.Em <spaces> Ns s
-or
-.Em <space> Ns s
-can be contracted to output relative
-.Em <tab> Ns s .
-The
-.Nm pr
-utility also interprets
-.Em <form-feed> Ns s
-in the input as the logical end of pages.
+If standard output is associated with a terminal,
+diagnostic messages are suppressed until the
+.Nm
+utility has completed processing.
 .Pp
 When multiple column output is specified,
 text columns are of equal width.
 By default text columns are separated by at least one
 .Em <blank> .
-Input lines that do not fit into a text column are truncated, except
-in the default single columns output mode.
-.Pp
-Error messages are written to standard error during the printing
-process (if output is redirected) or after all successful
-file printing is complete (when printing to a terminal).
-If
-.Nm pr
-receives an interrupt while printing to a terminal, it
-flushes all accumulated error messages to the screen before
-terminating.
-.Pp
-The options are as follows:
-.Bl -tag -width Ds
-.It Cm + Ns Ar page
+Input lines that do not fit into a text column are truncated.
+Lines are not truncated under single column output.
+.Sh OPTIONS
+In the following option descriptions, column, lines, offset, page, and
+width are positive decimal integers and gap is a nonnegative decimal integer.
+.Bl -tag -width 4n
+.It Ar \&+page
 Begin output at page number
 .Ar page
 of the formatted input.
 .It Fl Ar column
 Produce output that is
-.Ar column Ns s
+.Ar columns
 wide (default is 1) that is written vertically
 down each column in the order in which the text
 is received from the input file.
@@ -122,15 +141,19 @@ This option should not be used with
 When used with
 .Fl t ,
 the minimum number of lines is used to display the output.
+(To columnify and reshape text files more generally and without additional
+formatting, see the
+.Xr rs 1
+utility.)
 .It Fl a
 Modify the effect of the
-.Fl Ar column
+.Fl column
 option so that the columns are filled across the page in a round-robin order
 (e.g., when column is 2, the first input line heads column
 1, the second heads column 2, the third is the second line
 in column 1, etc.).
 This option requires the use of the
-.Fl Ar column
+.Fl column
 option.
 .It Fl d
 Produce output that is double spaced.
@@ -139,7 +162,10 @@ An extra
 character is output following every
 .Em <newline>
 found in the input.
-.It Fl e Ns Oo Ar char Oc Ns Op Ar gap
+.It Fl e Xo
+.Op Ar char Ns
+.Op Ar gap
+.Xc
 Expand each input
 .Em <tab>
 to the next greater column
@@ -155,7 +181,7 @@ All
 .Em <tab>
 characters in the input are expanded into the appropriate
 number of
-.Em <space> Ns s.
+.Em <space>s .
 If any nondigit character,
 .Ar char ,
 is specified, it is used as the input tab character.
@@ -168,23 +194,26 @@ sequence of
 .Em <newline>
 characters.
 .It Fl f
-Same as the
+Same as
 .Fl F
-option.
+but pause before beginning the first page if standard output is a terminal.
 .It Fl h Ar header
 Use the string
 .Ar header
 to replace the
 .Ar file name
 in the header line.
-.It Fl i Ns Oo Ar char Oc Ns Op Ar gap
+.It Fl i Xo
+.Op Ar char Ns
+.Op Ar gap
+.Xc
 In output, replace multiple
-.Em <space> Ns s
+.Em <space>s
 with
-.Em <tab> Ns s
+.Em <tab>s
 whenever two or more
 adjacent
-.Em <space> Ns s
+.Em <space>s
 reach column positions
 .Ar gap+1 ,
 .Ar 2*gap+1 ,
@@ -200,6 +229,11 @@ If any nondigit character,
 is specified, it is used as the output
 .Em <tab>
 character.
+.It Fl L Ar locale
+Use
+.Ar locale
+specified as argument instead of one found in environment.
+Use "C" to reset locale to default.
 .It Fl l Ar lines
 Override the 66 line default and reset the page length to
 .Ar lines .
@@ -207,7 +241,7 @@ If
 .Ar lines
 is not greater than the sum of both the header and trailer
 depths (in lines), the
-.Nm pr
+.Nm
 utility suppresses output of both the header and trailer, as if the
 .Fl t
 option were in effect.
@@ -225,7 +259,10 @@ The options
 and
 .Fl i
 are assumed.
-.It Fl n Ns Oo Ar char Oc Ns Op Ar width
+.It Fl n Xo
+.Op Ar char Ns
+.Op Ar width
+.Xc
 Provide
 .Ar width
 digit line numbering.
@@ -251,18 +288,23 @@ columns are truncated.
 .It Fl o Ar offset
 Each line of output is preceded by
 .Ar offset
-.Em <spaces> Ns s.
+.Em <spaces>s .
 If the
 .Fl o
 option is not specified, the default is zero.
 The space taken is in addition to the output line width.
+.It Fl p
+Pause before each page if the standard output is a terminal.
+.Nm
+will write an alert character to standard error and wait for a carriage
+return to be read on the terminal.
 .It Fl r
 Write no diagnostic reports on failure to open a file.
-.It Fl s Ns Op Ar char
+.It Fl s Ar char
 Separate text columns by the single character
 .Ar char
 instead of by the appropriate number of
-.Em <space> Ns s
+.Em <space>s
 (default for
 .Ar char
 is the
@@ -294,93 +336,54 @@ If no
 operands are specified, or if a
 .Ar file
 operand is
-.Sq - ,
+.Sq Fl ,
 the standard input is used.
 The standard input is used only if no
 .Ar file
 operands are specified, or if a
 .Ar file
 operand is
-.Sq - .
+.Sq Fl .
 .El
+.Pp
+The
+.Fl s
+option does not allow the option letter to be separated from its
+argument, and the options
+.Fl e ,
+.Fl i ,
+and
+.Fl n
+require that both arguments, if present, not be separated from the option
+letter.
 .Sh EXIT STATUS
-.Ex -std pr
+.Ex -std
+.Sh DIAGNOSTICS
+If
+.Nm
+receives an interrupt while printing to a terminal, it
+flushes all accumulated error messages to the screen before
+terminating.
+.Pp
+Error messages are written to standard error during the printing
+process (if output is redirected) or after all successful
+file printing is complete (when printing to a terminal).
 .Sh SEE ALSO
 .Xr cat 1 ,
 .Xr more 1 ,
-.Xr ascii 7
+.Xr rs 1
 .Sh STANDARDS
 The
 .Nm
-utility is compliant with the
-.St -p1003.1-2008
-specification.
-.Pp
-The flag
-.Op Fl f
-is marked by
-.St -p1003.1-2008
-as being an
-X/Open System Interfaces
-option.
-.Pp
-.St -p1003.1-2008
-is relatively silent concerning the
-handling of input characters beyond the behavior dictated by the
-.Nm pr
-required command
-options.
+utility is
+.St -p1003.1-2001
+compatible.
 .Sh HISTORY
 A
 .Nm
 command appeared in
 .At v1 .
-.Sh CAVEATS
-The interpretation of
-.Em <form-feed> Ns s
-in the input stream is that they are special
-.Em <newline> Ns s
-which have the side effect of causing a page break.
-While this works
-correctly for all cases, strict interpretation also implies that the
-common convention of placing a
-.Em <form-feed>
-on a line by itself is actually interpreted as a blank line, page break,
-blank line.
-.Pp
-The
-.Nm pr
-utility is intended to paginate input containing basic
-.Xr ascii 7
-text formatting and input streams containing non-printing
-.Em <control-characters> ,
-.Em <escape-sequences>
-or long lines may result in formatting errors.
-.Pp
-The
-.Nm pr
-utility does not currently understand over-printing using
-.Em <back-space>
-or
-.Em <return>
-characters, and except in the case of unmodified single-column output,
-use of these characters will cause formatting errors.
 .Sh BUGS
-The lack of a line wrapping option, and the specification that truncation
-does not apply to single-column output frequently results in formatting
-errors when input lines are longer than actual line width of the output device.
-.Pp
-The default width of 72 is archaic and non-obvious since it is normally
-ignored in the default single column mode.
-Using the
-.Fl m
-option with one column provides a way to truncate single column output but
-there's no way to wrap long lines to a fixed line width.
-.Pp
-The default of
-.Em <tab>
-for the separator for the
-.Fl n
-and
-.Fl s
-options often results in lines apparently wider than expected.
+The
+.Nm
+utility does not recognize multibyte characters.

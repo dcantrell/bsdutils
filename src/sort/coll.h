@@ -1,6 +1,8 @@
-/*	$OpenBSD: coll.h,v 1.2 2019/05/13 17:00:12 schwarze Exp $	*/
+/*	$FreeBSD$	*/
 
 /*-
+ * SPDX-License-Identifier: BSD-2-Clause-FreeBSD
+ *
  * Copyright (C) 2009 Gabor Kovesdan <gabor@FreeBSD.org>
  * Copyright (C) 2012 Oleg Moskalenko <mom040267@gmail.com>
  * All rights reserved.
@@ -36,7 +38,8 @@
 /*
  * Sort hint data for -n
  */
-struct n_hint {
+struct n_hint
+{
 	unsigned long long	 n1;
 	unsigned char		 si;
 	bool			 empty;
@@ -46,7 +49,8 @@ struct n_hint {
 /*
  * Sort hint data for -g
  */
-struct g_hint {
+struct g_hint
+{
 	double			 d;
 	bool			 nan;
 	bool			 notnum;
@@ -55,49 +59,67 @@ struct g_hint {
 /*
  * Sort hint data for -M
  */
-struct M_hint {
+struct M_hint
+{
 	int			 m;
+};
+
+/*
+ * Sort hint data for -R
+ *
+ * This stores the first 12 bytes of the digest rather than the full output to
+ * avoid increasing the size of the 'key_hint' object via the 'v' union.
+ */
+struct R_hint
+{
+	unsigned char		 cached[12];
 };
 
 /*
  * Status of a sort hint object
  */
-typedef enum {
+typedef enum
+{
 	HS_ERROR = -1, HS_UNINITIALIZED = 0, HS_INITIALIZED = 1
 } hint_status;
 
 /*
  * Sort hint object
  */
-struct key_hint {
+struct key_hint
+{
 	hint_status		status;
 	union
 	{
 		struct n_hint		nh;
 		struct g_hint		gh;
 		struct M_hint		Mh;
+		struct R_hint		Rh;
 	}			v;
 };
 
 /*
  * Key value
  */
-struct key_value {
+struct key_value
+{
 	struct bwstring		*k; /* key string */
 	struct key_hint		 hint[0]; /* key sort hint */
-};
+} __packed;
 
 /*
  * Set of keys container object.
  */
-struct keys_array {
+struct keys_array
+{
 	struct key_value	 key[0];
 };
 
 /*
  * Parsed -k option data
  */
-struct key_specs {
+struct key_specs
+{
 	struct sort_mods	 sm;
 	size_t			 c1;
 	size_t			 c2;
@@ -110,7 +132,8 @@ struct key_specs {
 /*
  * Single entry in sort list.
  */
-struct sort_list_item {
+struct sort_list_item
+{
 	struct bwstring		*str;
 	struct keys_array	 ka;
 };
@@ -123,12 +146,21 @@ typedef int (*listcoll_t)(struct sort_list_item **ss1, struct sort_list_item **s
 extern struct key_specs *keys;
 extern size_t keys_num;
 
+/*
+ * Main localised symbols. These must be wint_t as they may hold WEOF.
+ */
+extern wint_t symbol_decimal_point;
+extern wint_t symbol_thousands_sep;
+extern wint_t symbol_negative_sign;
+extern wint_t symbol_positive_sign;
+
 /* funcs */
 
 cmpcoll_t get_sort_func(struct sort_mods *sm);
 
 struct keys_array *keys_array_alloc(void);
 size_t keys_array_size(void);
+struct key_value *get_key_from_keys_array(struct keys_array *ka, size_t ind);
 void set_key_on_keys_array(struct keys_array *ka, struct bwstring *s, size_t ind);
 void clean_keys_array(const struct bwstring *s, struct keys_array *ka);
 
@@ -142,7 +174,7 @@ int top_level_str_coll(const struct bwstring *, const struct bwstring *);
 int key_coll(struct keys_array *ks1, struct keys_array *ks2, size_t offset);
 int str_list_coll(struct bwstring *str1, struct sort_list_item **ss2);
 int list_coll_by_str_only(struct sort_list_item **ss1, struct sort_list_item **ss2);
-int list_coll(const void *ss1, const void *ss2);
+int list_coll(struct sort_list_item **ss1, struct sort_list_item **ss2);
 int list_coll_offset(struct sort_list_item **ss1, struct sort_list_item **ss2, size_t offset);
 
 listcoll_t get_list_call_func(size_t offset);

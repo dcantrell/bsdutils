@@ -1,7 +1,6 @@
-/*	$OpenBSD: date.c,v 1.56 2019/08/08 02:17:51 cheloha Exp $	*/
-/*	$NetBSD: date.c,v 1.11 1995/09/07 06:21:05 jtc Exp $	*/
-
-/*
+/*-
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
  * Copyright (c) 1985, 1987, 1988, 1993
  *	The Regents of the University of California.  All rights reserved.
  *
@@ -30,67 +29,131 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/types.h>
+#ifndef lint
+static char const copyright[] =
+"@(#) Copyright (c) 1985, 1987, 1988, 1993\n\
+	The Regents of the University of California.  All rights reserved.\n";
+#endif /* not lint */
+
+#if 0
+#ifndef lint
+static char sccsid[] = "@(#)date.c	8.2 (Berkeley) 4/28/95";
+#endif /* not lint */
+#endif
+
+#include <sys/cdefs.h>
+__FBSDID("$FreeBSD$");
+
+#include <sys/param.h>
 #include <sys/time.h>
+#include <sys/stat.h>
 
 #include <ctype.h>
 #include <err.h>
-#include <fcntl.h>
-#include <limits.h>
+#include <locale.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
-#include <time.h>
 #include <unistd.h>
-#include <util.h>
-#include <utmp.h>
+#include <utmpx.h>
 
-#include "compat.h"
+#include "vary.h"
 
-extern	char *__progname;
+#ifndef	TM_YEAR_BASE
+#define	TM_YEAR_BASE	1900
+#endif
 
-time_t tval;
-int jflag;
-int slidetime;
+static time_t tval;
 
-static void setthetime(char *, const char *);
 static void badformat(void);
+static void iso8601_usage(const char *);
+static void multipleformats(void);
+static void printdate(const char *);
+static void printisodate(struct tm *);
+static void setthetime(const char *, const char *, int);
 static void usage(void);
+
+static const struct iso8601_fmt {
+	const char *refname;
+	const char *format_string;
+} iso8601_fmts[] = {
+	{ "date", "%Y-%m-%d" },
+	{ "hours", "T%H" },
+	{ "minutes", ":%M" },
+	{ "seconds", ":%S" },
+};
+static const struct iso8601_fmt *iso8601_selected;
+
+static const char *rfc2822_format = "%a, %d %b %Y %T %z";
 
 int
 main(int argc, char *argv[])
 {
-	const char *errstr;
-	struct tm *tp;
 	int ch, rflag;
-	char *format, buf[1024], *outzone = NULL;
-	const char *pformat = NULL;
+	bool Iflag, jflag, Rflag;
+	const char *format;
+	char buf[1024];
+	char *fmt;
+	char *tmp;
+	struct vary *v;
+	const struct vary *badv;
+	struct tm *lt;
+	struct stat sb;
+	size_t i;
 
+	v = NULL;
+	fmt = NULL;
+	(void) setlocale(LC_TIME, "");
 	rflag = 0;
-	while ((ch = getopt(argc, argv, "af:jr:uz:")) != -1)
-		switch(ch) {
-		case 'a':
-			slidetime = 1;
+	Iflag = jflag = Rflag = 0;
+	while ((ch = getopt(argc, argv, "f:I::jnRr:uv:")) != -1)
+		switch((char)ch) {
+		case 'f':
+			fmt = optarg;
 			break;
-		case 'f':		/* parse with strptime */
-			pformat = optarg;
+		case 'I':
+			if (Rflag)
+				multipleformats();
+			Iflag = 1;
+			if (optarg == NULL) {
+				iso8601_selected = iso8601_fmts;
+				break;
+			}
+			for (i = 0; i < nitems(iso8601_fmts); i++)
+				if (strcmp(optarg, iso8601_fmts[i].refname) == 0)
+					break;
+			if (i == nitems(iso8601_fmts))
+				iso8601_usage(optarg);
+
+			iso8601_selected = &iso8601_fmts[i];
 			break;
-		case 'j':		/* don't set */
-			jflag = 1;
+		case 'j':
+			jflag = 1;	/* don't set time */
+			break;
+		case 'n':
+			break;
+		case 'R':		/* RFC 2822 datetime format */
+			if (Iflag)
+				multipleformats();
+			Rflag = 1;
 			break;
 		case 'r':		/* user specified seconds */
 			rflag = 1;
-			tval = strtonum(optarg, LLONG_MIN, LLONG_MAX, &errstr);
-			if (errstr)
-				errx(1, "seconds is %s: %s", errstr, optarg);
+			tval = strtoq(optarg, &tmp, 0);
+			if (*tmp != 0) {
+				if (stat(optarg, &sb) == 0)
+					tval = sb.st_mtim.tv_sec;
+				else
+					usage();
+			}
 			break;
 		case 'u':		/* do everything in UTC */
-			if (setenv("TZ", "UTC", 1) == -1)
-				err(1, "cannot unsetenv TZ");
+			(void)setenv("TZ", "UTC0", 1);
 			break;
-		case 'z':
-			outzone = optarg;
+		case 'v':
+			v = vary_append(v, optarg);
 			break;
 		default:
 			usage();
@@ -101,64 +164,117 @@ main(int argc, char *argv[])
 	if (!rflag && time(&tval) == -1)
 		err(1, "time");
 
-	format = "%a %b %e %H:%M:%S %Z %Y";
+	format = "%+";
+
+	if (Rflag)
+		format = rfc2822_format;
 
 	/* allow the operands in any order */
 	if (*argv && **argv == '+') {
+		if (Iflag)
+			multipleformats();
 		format = *argv + 1;
-		argv++;
-		argc--;
+		++argv;
 	}
 
 	if (*argv) {
-		setthetime(*argv, pformat);
-		argv++;
-		argc--;
-	}
+		setthetime(fmt, *argv, jflag);
+		++argv;
+	} else if (fmt != NULL)
+		usage();
 
 	if (*argv && **argv == '+') {
+		if (Iflag)
+			multipleformats();
 		format = *argv + 1;
-		argc--;
 	}
 
-	if (argc > 0)
-		errx(1, "too many arguments");
+	lt = localtime(&tval);
+	if (lt == NULL)
+		errx(1, "invalid time");
+	badv = vary_apply(v, lt);
+	if (badv) {
+		fprintf(stderr, "%s: Cannot apply date adjustment\n",
+			badv->arg);
+		vary_destroy(v);
+		usage();
+	}
+	vary_destroy(v);
 
-	if (outzone)
-		setenv("TZ", outzone, 1);
+	if (Iflag)
+		printisodate(lt);
 
-	tp = localtime(&tval);
-	if (tp == NULL)
-		errx(1, "conversion error");
-	(void)strftime(buf, sizeof(buf), format, tp);
-	(void)printf("%s\n", buf);
-	return 0;
+	if (format == rfc2822_format)
+		/*
+		 * When using RFC 2822 datetime format, don't honor the
+		 * locale.
+		 */
+		setlocale(LC_TIME, "C");
+
+	(void)strftime(buf, sizeof(buf), format, lt);
+	printdate(buf);
 }
 
-#define	ATOI2(ar)	((ar) += 2, ((ar)[-2] - '0') * 10 + ((ar)[-1] - '0'))
-void
-setthetime(char *p, const char *pformat)
+static void
+printdate(const char *buf)
 {
-	struct tm *lt, tm;
+	(void)printf("%s\n", buf);
+	if (fflush(stdout))
+		err(1, "stdout");
+	exit(EXIT_SUCCESS);
+}
+
+static void
+printisodate(struct tm *lt)
+{
+	const struct iso8601_fmt *it;
+	char fmtbuf[32], buf[32], tzbuf[8];
+
+	fmtbuf[0] = 0;
+	for (it = iso8601_fmts; it <= iso8601_selected; it++)
+		strlcat(fmtbuf, it->format_string, sizeof(fmtbuf));
+
+	(void)strftime(buf, sizeof(buf), fmtbuf, lt);
+
+	if (iso8601_selected > iso8601_fmts) {
+		(void)strftime(tzbuf, sizeof(tzbuf), "%z", lt);
+		memmove(&tzbuf[4], &tzbuf[3], 3);
+		tzbuf[3] = ':';
+		strlcat(buf, tzbuf, sizeof(buf));
+	}
+
+	printdate(buf);
+}
+
+#define	ATOI2(s)	((s) += 2, ((s)[-2] - '0') * 10 + ((s)[-1] - '0'))
+
+static void
+setthetime(const char *fmt, const char *p, int jflag)
+{
+	struct utmpx utx;
+	struct tm *lt;
 	struct timeval tv;
-	char *dot, *t;
-	time_t now;
-	int yearset = 0;
+	const char *dot, *t;
+	int century;
 
 	lt = localtime(&tval);
+	if (lt == NULL)
+		errx(1, "invalid time");
+	lt->tm_isdst = -1;		/* divine correct DST */
 
-	lt->tm_isdst = -1;			/* correct for DST */
-
-	if (pformat) {
-		tm = *lt;
-		if (strptime(p, pformat, &tm) == NULL) {
-			fprintf(stderr, "trouble %s %s\n", p, pformat);
+	if (fmt != NULL) {
+		t = strptime(p, fmt, lt);
+		if (t == NULL) {
+			fprintf(stderr, "Failed conversion of ``%s''"
+				" using format ``%s''\n", p, fmt);
 			badformat();
-		}
-		lt = &tm;
+		} else if (*t != '\0')
+			fprintf(stderr, "Warning: Ignoring %ld extraneous"
+				" characters in date string (%s)\n",
+				(long) strlen(t), t);
 	} else {
 		for (t = p, dot = NULL; *t; ++t) {
-			if (isdigit((unsigned char)*t))
+			if (isdigit(*t))
 				continue;
 			if (*t == '.' && dot == NULL) {
 				dot = t;
@@ -167,8 +283,8 @@ setthetime(char *p, const char *pformat)
 			badformat();
 		}
 
-		if (dot != NULL) {			/* .SS */
-			*dot++ = '\0';
+		if (dot != NULL) {			/* .ss */
+			dot++; /* *dot++ = '\0'; */
 			if (strlen(dot) != 2)
 				badformat();
 			lt->tm_sec = ATOI2(dot);
@@ -177,27 +293,33 @@ setthetime(char *p, const char *pformat)
 		} else
 			lt->tm_sec = 0;
 
-		switch (strlen(p)) {
+		century = 0;
+		/* if p has a ".ss" field then let's pretend it's not there */
+		switch (strlen(p) - ((dot != NULL) ? 3 : 0)) {
 		case 12:				/* cc */
-			lt->tm_year = (ATOI2(p) * 100) - 1900;
-			yearset = 1;
+			lt->tm_year = ATOI2(p) * 100 - TM_YEAR_BASE;
+			century = 1;
 			/* FALLTHROUGH */
 		case 10:				/* yy */
-			if (!yearset) {
-				/* mask out current year, leaving only century */
-				lt->tm_year = ((lt->tm_year / 100) * 100);
+			if (century)
+				lt->tm_year += ATOI2(p);
+			else {
+				lt->tm_year = ATOI2(p);
+				if (lt->tm_year < 69)	/* hack for 2000 ;-} */
+					lt->tm_year += 2000 - TM_YEAR_BASE;
+				else
+					lt->tm_year += 1900 - TM_YEAR_BASE;
 			}
-			lt->tm_year += ATOI2(p);
 			/* FALLTHROUGH */
 		case 8:					/* mm */
 			lt->tm_mon = ATOI2(p);
-			if ((lt->tm_mon > 12) || !lt->tm_mon)
+			if (lt->tm_mon > 12)
 				badformat();
-			--lt->tm_mon;			/* time struct is 0 - 11 */
+			--lt->tm_mon;		/* time struct is 0 - 11 */
 			/* FALLTHROUGH */
 		case 6:					/* dd */
 			lt->tm_mday = ATOI2(p);
-			if ((lt->tm_mday > 31) || !lt->tm_mday)
+			if (lt->tm_mday > 31)
 				badformat();
 			/* FALLTHROUGH */
 		case 4:					/* HH */
@@ -215,37 +337,27 @@ setthetime(char *p, const char *pformat)
 		}
 	}
 
-	/* convert broken-down time to UTC clock time */
+	/* convert broken-down time to GMT clock time */
 	if ((tval = mktime(lt)) == -1)
-		errx(1, "specified date is outside allowed range");
+		errx(1, "nonexistent time");
 
-	if (jflag)
-		return;
-
-	/* set the time */
-	if (slidetime) {
-		if ((now = time(NULL)) == -1)
-			err(1, "time");
-		tv.tv_sec = tval - now;
-		tv.tv_usec = 0;
-		if (adjtime(&tv, NULL) == -1)
-			err(1, "adjtime");
-	} else {
-#ifndef SMALL
-		logwtmp("|", "date", "");
-#endif
+	if (!jflag) {
+		utx.ut_type = OLD_TIME;
+		memset(utx.ut_id, 0, sizeof(utx.ut_id));
+		(void)gettimeofday(&utx.ut_tv, NULL);
+		pututxline(&utx);
 		tv.tv_sec = tval;
 		tv.tv_usec = 0;
-		if (settimeofday(&tv, NULL))
-			err(1, "settimeofday");
-#ifndef SMALL
-		logwtmp("{", "date", "");
-#endif
-	}
+		if (settimeofday(&tv, NULL) != 0)
+			err(1, "settimeofday (timeval)");
+		utx.ut_type = NEW_TIME;
+		(void)gettimeofday(&utx.ut_tv, NULL);
+		pututxline(&utx);
 
-	if ((p = getlogin()) == NULL)
-		p = "???";
-	syslog(LOG_AUTH | LOG_NOTICE, "date set by %s", p);
+		if ((p = getlogin()) == NULL)
+			p = "???";
+		syslog(LOG_AUTH | LOG_NOTICE, "date set by %s", p);
+	}
 }
 
 static void
@@ -256,11 +368,26 @@ badformat(void)
 }
 
 static void
+iso8601_usage(const char *badarg)
+{
+	errx(1, "invalid argument '%s' for -I", badarg);
+}
+
+static void
+multipleformats(void)
+{
+	errx(1, "multiple output formats specified");
+}
+
+static void
 usage(void)
 {
-	fprintf(stderr,
-	    "usage: %s [-aju] [-f pformat] [-r seconds]\n"
-	    "\t[-z output_zone] [+format] [[[[[[cc]yy]mm]dd]HH]MM[.SS]]\n",
-	    __progname);
+	(void)fprintf(stderr, "%s\n%s\n%s\n",
+	    "usage: date [-jnRu] [-r seconds|file] [-v[+|-]val[ymwdHMS]]",
+	    "            "
+	    "[-I[date | hours | minutes | seconds]]",
+	    "            "
+	    "[-f fmt date | [[[[[cc]yy]mm]dd]HH]MM[.ss]] [+format]"
+	    );
 	exit(1);
 }

@@ -1,6 +1,6 @@
-/*	$OpenBSD: env.c,v 1.17 2016/10/28 07:22:59 schwarze Exp $	*/
-
-/*
+/*-
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
  * Copyright (c) 1988, 1993, 1994
  *	The Regents of the University of California.  All rights reserved.
  *
@@ -29,66 +29,202 @@
  * SUCH DAMAGE.
  */
 
+#ifndef lint
+static const char copyright[] =
+"@(#) Copyright (c) 1988, 1993, 1994\n\
+	The Regents of the University of California.  All rights reserved.\n";
+#endif /* not lint */
+
+#if 0
+#ifndef lint
+static char sccsid[] = "@(#)env.c	8.3 (Berkeley) 4/2/94";
+#endif /* not lint */
+#endif
+
+#include <sys/cdefs.h>
+__FBSDID("$FreeBSD$");
+
+#include <sys/types.h>
+
 #include <err.h>
 #include <errno.h>
+#include <login_cap.h>
+#include <pwd.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
+#include "envopts.h"
+
+extern char **environ;
+
+int	 env_verbosity;
+
 static void usage(void);
 
-int
-main(int argc, char *argv[])
-{
-	extern char **environ;
-	extern int optind;
-	char **ep, *p;
-	int ch;
+/*
+ * Exit codes.
+ */
+#define EXIT_CANCELED      125 /* Internal error prior to exec attempt. */
+#define EXIT_CANNOT_INVOKE 126 /* Program located, but not usable. */
+#define EXIT_ENOENT        127 /* Could not find program to exec. */
 
-	while ((ch = getopt(argc, argv, "i-")) != -1)
+int
+main(int argc, char **argv)
+{
+	char *altpath, **ep, *p, **parg, term;
+	char *cleanenv[1];
+	char *login_class, *login_name;
+	struct passwd *pw;
+	login_cap_t *lc;
+	bool login_as_user;
+	uid_t uid;
+	int ch, want_clear;
+	int rtrn;
+
+	altpath = NULL;
+	login_class = NULL;
+	login_name = NULL;
+	pw = NULL;
+	lc = NULL;
+	login_as_user = false;
+	want_clear = 0;
+	term = '\n';
+	while ((ch = getopt(argc, argv, "-0iL:P:S:U:u:v")) != -1)
 		switch(ch) {
-		case '-':			/* obsolete */
+		case '-':
 		case 'i':
-			if ((environ = calloc(1, sizeof(char *))) == NULL)
-				err(126, "calloc");
+			want_clear = 1;
 			break;
+		case '0':
+			term = '\0';
+			break;
+		case 'U':
+			login_as_user = true;
+			/* FALLTHROUGH */
+		case 'L':
+			login_name = optarg;
+			break;
+		case 'P':
+			altpath = strdup(optarg);
+			break;
+		case 'S':
+			/*
+			 * The -S option, for "split string on spaces, with
+			 * support for some simple substitutions"...
+			 */
+			split_spaces(optarg, &optind, &argc, &argv);
+			break;
+		case 'u':
+			if (env_verbosity)
+				fprintf(stderr, "#env unset:\t%s\n", optarg);
+			rtrn = unsetenv(optarg);
+			if (rtrn == -1)
+				err(EXIT_FAILURE, "unsetenv %s", optarg);
+			break;
+		case 'v':
+			env_verbosity++;
+			if (env_verbosity > 1)
+				fprintf(stderr, "#env verbosity now at %d\n",
+				    env_verbosity);
+			break;
+		case '?':
 		default:
 			usage();
 		}
-	argc -= optind;
-	argv += optind;
-
-	for (; *argv && (p = strchr(*argv, '=')); ++argv) {
-		*p++ = '\0';
-		if (setenv(*argv, p, 1) == -1) {
-			/* reuse 126, it matches the problem most */
-			err(126, "setenv");
+	if (want_clear) {
+		environ = cleanenv;
+		cleanenv[0] = NULL;
+		if (env_verbosity)
+			fprintf(stderr, "#env clearing environ\n");
+	}
+	if (login_name != NULL) {
+		login_class = strchr(login_name, '/');
+		if (login_class)
+			*login_class++ = '\0';
+		if (*login_name != '\0' && strcmp(login_name, "-") != 0) {
+			pw = getpwnam(login_name);
+			if (pw == NULL) {
+				char *endp = NULL;
+				errno = 0;
+				uid = strtoul(login_name, &endp, 10);
+				if (errno == 0 && *endp == '\0')
+					pw = getpwuid(uid);
+			}
+			if (pw == NULL)
+				errx(EXIT_FAILURE, "no such user: %s", login_name);
 		}
-	}
-
-	if (*argv) {
 		/*
-		 * return 127 if the command to be run could not be
-		 * found; 126 if the command was found but could
-		 * not be invoked
+		 * Note that it is safe for pw to be null here; the libutil
+		 * code handles that, bypassing substitution of $ and using
+		 * the class "default" if no class name is given either.
 		 */
-		execvp(*argv, argv);
-		err((errno == ENOENT) ? 127 : 126, "%s", *argv);
+		if (login_class != NULL) {
+			lc = login_getclass(login_class);
+			if (lc == NULL)
+				errx(EXIT_FAILURE, "no such login class: %s",
+				    login_class);
+		} else {
+			lc = login_getpwclass(pw);
+			if (lc == NULL)
+				errx(EXIT_FAILURE, "login_getpwclass failed");
+		}
+
+		/*
+		 * This is not done with setusercontext() because that will
+		 * try and use ~/.login_conf even when we don't want it to.
+		 */
+		setclassenvironment(lc, pw, 1);
+		setclassenvironment(lc, pw, 0);
+		if (login_as_user) {
+			login_close(lc);
+			if ((lc = login_getuserclass(pw)) != NULL) {
+				setclassenvironment(lc, pw, 1);
+				setclassenvironment(lc, pw, 0);
+			}
+		}
+		endpwent();
+		if (lc != NULL)
+			login_close(lc);
 	}
-
+	for (argv += optind; *argv && (p = strchr(*argv, '=')); ++argv) {
+		if (env_verbosity)
+			fprintf(stderr, "#env setenv:\t%s\n", *argv);
+		*p = '\0';
+		rtrn = setenv(*argv, p + 1, 1);
+		*p = '=';
+		if (rtrn == -1)
+			err(EXIT_FAILURE, "setenv %s", *argv);
+	}
+	if (*argv) {
+		if (term == '\0')
+			errx(EXIT_CANCELED, "cannot specify command with -0");
+		if (altpath)
+			search_paths(altpath, argv);
+		if (env_verbosity) {
+			fprintf(stderr, "#env executing:\t%s\n", *argv);
+			for (parg = argv, argc = 0; *parg; parg++, argc++)
+				fprintf(stderr, "#env    arg[%d]=\t'%s'\n",
+				    argc, *parg);
+			if (env_verbosity > 1)
+				sleep(1);
+		}
+		execvp(*argv, argv);
+		err(errno == ENOENT ? EXIT_ENOENT : EXIT_CANNOT_INVOKE,
+		    "%s", *argv);
+	}
 	for (ep = environ; *ep; ep++)
-		(void)printf("%s\n", *ep);
-
-	return 0;
+		(void)printf("%s%c", *ep, term);
+	exit(0);
 }
 
 static void
 usage(void)
 {
-	extern char *__progname;
-
-	(void)fprintf(stderr, "usage: %s [-i] [name=value ...] "
-	    "[utility [argument ...]]\n", __progname);
+	(void)fprintf(stderr,
+	    "usage: env [-0iv] [-L|-U user[/class]] [-P utilpath] [-S string] [-u name]\n"
+	    "           [name=value ...] [utility [argument ...]]\n");
 	exit(1);
 }

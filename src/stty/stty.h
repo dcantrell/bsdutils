@@ -1,6 +1,3 @@
-/*	$OpenBSD: stty.h,v 1.5 2016/03/23 14:52:42 mmcc Exp $	*/
-/*	$NetBSD: stty.h,v 1.7 1996/05/07 18:20:11 jtc Exp $	*/
-
 /*-
  * Copyright (c) 1991, 1993
  *	The Regents of the University of California.  All rights reserved.
@@ -30,9 +27,11 @@
  * SUCH DAMAGE.
  *
  *	@(#)stty.h	8.1 (Berkeley) 5/31/93
+ * $FreeBSD$
  */
 
-#include <pty.h>
+#include <sys/ioctl.h>
+#include <termios.h>
 
 struct info {
 	int fd;					/* file descriptor */
@@ -40,7 +39,7 @@ struct info {
 	int off;				/* turn off */
 	int set;				/* need set */
 	int wset;				/* need window set */
-	char *arg;				/* argument */
+	const char *arg;			/* argument */
 	struct termios t;			/* terminal info */
 	struct winsize win;			/* window info */
 };

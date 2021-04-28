@@ -1,6 +1,4 @@
-.\"	$OpenBSD: stty.1,v 1.48 2020/01/16 16:46:46 schwarze Exp $
-.\"	$NetBSD: stty.1,v 1.10 1995/09/07 06:57:14 jtc Exp $
-.\"
+.\"-
 .\" Copyright (c) 1990, 1993, 1994
 .\"	The Regents of the University of California.  All rights reserved.
 .\"
@@ -31,25 +29,26 @@
 .\" OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 .\" SUCH DAMAGE.
 .\"
-.\"     @(#)stty.1	8.5 (Berkeley) 6/1/94
+.\"     @(#)stty.1	8.4 (Berkeley) 4/18/94
+.\" $FreeBSD$
 .\"
-.Dd $Mdocdate: January 16 2020 $
+.Dd October 20, 2018
 .Dt STTY 1
 .Os
 .Sh NAME
 .Nm stty
 .Nd set the options for a terminal device interface
 .Sh SYNOPSIS
-.Nm stty
+.Nm
 .Op Fl a | e | g
 .Op Fl f Ar file
-.Op Ar operands
+.Op Ar arguments
 .Sh DESCRIPTION
 The
 .Nm
 utility sets or reports on terminal
 characteristics for the device that is its standard input.
-If no options or operands are specified, it reports the settings of a subset
+If no options or arguments are specified, it reports the settings of a subset
 of characteristics as well as additional ones if they differ from their
 default values.
 Otherwise it modifies
@@ -57,26 +56,26 @@ the terminal state according to the specified arguments.
 Some combinations of arguments are mutually
 exclusive on some terminal types.
 .Pp
-The options are as follows:
-.Bl -tag -width Ds
+The following options are available:
+.Bl -tag -width indent
 .It Fl a
-Display all the current settings for the terminal to standard output.
+Display all the current settings for the terminal to standard output
+as per
+.St -p1003.2 .
 .It Fl e
 Display all the current settings for the terminal to standard output
 in the traditional
 .Bx
-.Dq all
-and
-.Dq everything
-formats.
-.It Fl f Ar file
+``all'' and ``everything'' formats.
+.It Fl f
 Open and use the terminal named by
 .Ar file
 rather than using standard input.
-The file is opened using the
+The file is opened
+using the
 .Dv O_NONBLOCK
 flag of
-.Xr open 2 ,
+.Fn open ,
 making it possible to
 set or display settings on a terminal that might otherwise
 block on the open.
@@ -84,20 +83,17 @@ block on the open.
 Display all the current settings for the terminal to standard output
 in a form that may be used as an argument to a subsequent invocation of
 .Nm
-to restore the current terminal state.
-The output does not contain any characters that require quoting,
-to avoid word expansion by the shell.
+to restore the current terminal state as per
+.St -p1003.2 .
 .El
 .Pp
 The following arguments are available to set the terminal
 characteristics:
-.Ss Control modes
+.Ss Control Modes:
 Control mode flags affect hardware characteristics associated with the
 terminal.
-This corresponds to the
-.Li c_cflag
-in the termios structure.
-.Bl -tag -width Ds
+This corresponds to the c_cflag in the termios structure.
+.Bl -tag -width Fl
 .It Cm parenb Pq Fl parenb
 Enable (disable) parity generation
 and detection.
@@ -138,8 +134,7 @@ to
 Stop asserting modem control
 (do not stop asserting modem control) on last close.
 .It Cm hup Pq Fl hup
-Same as
-.Cm hupcl
+Same as hupcl
 .Pq Fl hupcl .
 .It Cm cstopb Pq Fl cstopb
 Use two (one) stop bits per character.
@@ -150,12 +145,12 @@ Assume a line without (with) modem
 control.
 .It Cm crtscts Pq Fl crtscts
 Enable (disable) RTS/CTS flow control.
+.It Cm rtsdtr Pq Fl -rtsdtr
+Enable (disable) asserting RTS/DTR on open.
 .El
-.Ss Input modes
-This corresponds to the
-.Li c_iflag
-in the termios structure.
-.Bl -tag -width Ds
+.Ss Input Modes:
+This corresponds to the c_iflag in the termios structure.
+.Bl -tag -width Fl
 .It Cm ignbrk Pq Fl ignbrk
 Ignore (do not ignore) break on
 input.
@@ -165,10 +160,10 @@ Signal (do not signal)
 on
 break.
 .It Cm ignpar Pq Fl ignpar
-Ignore (do not ignore) parity
+Ignore (do not ignore) characters with parity
 errors.
 .It Cm parmrk Pq Fl parmrk
-Mark (do not mark) parity errors.
+Mark (do not mark) characters with parity errors.
 .It Cm inpck Pq Fl inpck
 Enable (disable) input parity
 checking.
@@ -190,9 +185,6 @@ Map (do not map)
 .Dv CR
 to
 .Dv NL
-on input.
-.It Cm iuclc Pq Fl iuclc
-Translate (do not translate) upper case to lower case
 on input.
 .It Cm ixon Pq Fl ixon
 Enable (disable)
@@ -228,16 +220,15 @@ If
 is set and the input queue limit has been reached,
 subsequent input causes the system to send an ASCII BEL
 character to the output queue (the terminal beeps at you).
-Otherwise, if
+Otherwise,
+if
 .Cm imaxbel
 is unset and the input queue is full, the next input character causes
 the entire input and output queues to be discarded.
 .El
-.Ss Output modes
-This corresponds to the
-.Li c_oflag
-of the termios structure.
-.Bl -tag -width Ds
+.Ss Output Modes:
+This corresponds to the c_oflag of the termios structure.
+.Bl -tag -width Fl
 .It Cm opost Pq Fl opost
 Post-process output (do not
 post-process output; ignore all other
@@ -249,32 +240,42 @@ to
 .Dv CR-NL
 on output.
 .It Cm ocrnl Pq Fl ocrnl
-Translate (do not translate) carriage return to newline on output.
+Map (do not map)
+.Dv CR
+to
+.Dv NL
+on output.
+.It Cm tab0 tab3
+Select tab expansion policy.
+.Cm tab0
+disables tab expansion, while
+.Cm tab3
+enables it.
 .It Cm onocr Pq Fl onocr
-Carriage return is not output (is output) at column 0.
+Do not (do) output CRs at column zero.
 .It Cm onlret Pq Fl onlret
-Newline performs (does not perform) carriage return on output.
-.It Cm olcuc Pq Fl olcuc
-Translate (do not translate) lower case to upper case on output.
-.It Cm oxtabs Pq Fl oxtabs
-Expand (do not expand) tabs to spaces on output.
+On the terminal NL performs (does not perform) the CR function.
 .El
-.Ss Local modes
+.Ss Local Modes:
 Local mode flags (lflags) affect various and sundry characteristics of terminal
 processing.
 Historically the term "local" pertained to new job control features
-implemented by Jim Kulp on a PDP 11/70 at IIASA.
-Later the driver ran on the first VAX at Evans Hall, UC Berkeley,
-where the job control details were greatly modified
-but the structure definitions and names remained essentially unchanged.
-The second interpretation of the
-.Sq l
-in lflag is
-.Dq line discipline flag
-which corresponds to the
-.Li c_lflag
-of the termios structure.
-.Bl -tag -width Ds
+implemented by Jim Kulp on a
+.Tn Pdp 11/70
+at
+.Tn IIASA .
+Later the driver ran on the first
+.Tn VAX
+at Evans Hall, UC Berkeley, where the job control details
+were greatly modified but the structure definitions and names
+remained essentially unchanged.
+The second interpretation of the 'l' in lflag
+is ``line discipline flag'' which corresponds to the
+.Ar c_lflag
+of the
+.Ar termios
+structure.
+.Bl -tag -width Fl
 .It Cm isig Pq Fl isig
 Enable (disable) the checking of
 characters against the special control
@@ -291,11 +292,8 @@ processing).
 .It Cm iexten Pq Fl iexten
 Enable (disable) any implementation
 defined special control characters
-not currently controlled by
-.Cm icanon ,
-.Cm isig ,
-or
-.Cm ixon .
+not currently controlled by icanon,
+isig, or ixon.
 .It Cm echo Pq Fl echo
 Echo back (do not echo back) every
 character typed.
@@ -327,15 +325,13 @@ is disabled.
 .It Cm echoctl Pq Fl echoctl
 If
 .Cm echoctl
-is set, echo control characters as
-.Ql ^X .
-Otherwise control characters echo as themselves.
+is set, echo control characters as ^X.
+Otherwise control characters
+echo as themselves.
 .It Cm echoprt Pq Fl echoprt
 For printing terminals.
-If set, echo erased characters backwards within
-.Ql \e
-and
-.Ql / .
+If set, echo erased characters backwards within ``\\''
+and ``/''.
 Otherwise, disable this feature.
 .It Cm noflsh Pq Fl noflsh
 Disable (enable) flush after
@@ -356,22 +352,23 @@ It also skips the first preceding character in its classification
 (as a convenience since the one preceding character could have been
 erased with simply an
 .Dv ERASE
-character).
+character.)
+.It Cm mdmbuf Pq Fl mdmbuf
+If set, flow control output based on condition of Carrier Detect.
+Otherwise
+writes return an error if Carrier Detect is low (and Carrier is not being
+ignored with the
+.Dv CLOCAL
+flag.)
 .It Cm flusho Pq Fl flusho
 Indicates output is (is not) being discarded.
 .It Cm pendin Pq Fl pendin
 Indicates input is (is not) pending after a switch from non-canonical
 to canonical mode and will be re-input when a read becomes pending
 or more input arrives.
-.It Cm xcase Pq Fl xcase
-Upper and lower case is (is not) handled canonically on input and output
-with
-.Cm iuclc
-and
-.Cm olcuc .
 .El
-.Ss Control characters
-.Bl -tag -width Ds -compact
+.Ss Control Characters:
+.Bl -tag -width Fl
 .It Ar control-character Ar string
 Set
 .Ar control-character
@@ -381,52 +378,48 @@ If string is a single character,
 the control character is set to
 that character.
 If string is the
-two character sequence
-.Ql ^-
-or the string
-.Dq undef
-the control character
-is disabled (i.e. set to
-.Brq Dv _POSIX_VDISABLE ) .
+two character sequence "^-" or the
+string "undef" the control character
+is disabled (i.e., set to
+.Pf { Dv _POSIX_VDISABLE Ns } . )
 .Pp
 Recognized control-characters:
-.Bl -column "character" "Subscript" "Description"
-.It Sy Control Ta Sy Subscript Ta Sy Description
-.It Sy character Ta "" Ta ""
-.It eof Ta Dv VEOF Ta "EOF character"
-.It eol Ta Dv VEOL Ta "EOL character"
-.It eol2 Ta Dv VEOL2 Ta "EOL2 character"
-.It erase Ta Dv VERASE Ta "ERASE character"
-.It werase Ta Dv VWERASE Ta "WERASE character"
-.It intr Ta Dv VINTR Ta "INTR character"
-.It kill Ta Dv VKILL Ta "KILL character"
-.It quit Ta Dv VQUIT Ta "QUIT character"
-.It susp Ta Dv VSUSP Ta "SUSP character"
-.It start Ta Dv VSTART Ta "START character"
-.It stop Ta Dv VSTOP Ta "STOP character"
-.It dsusp Ta Dv VDSUSP Ta "DSUSP character"
-.It lnext Ta Dv VLNEXT Ta "LNEXT character"
-.It reprint Ta Dv VREPRINT Ta "REPRINT character"
-.It status Ta Dv VSTATUS Ta "STATUS character"
+.Bd -ragged -offset indent
+.Bl -column character Subscript
+.It control- Ta \& Ta \&
+.It character Ta Subscript Ta Description
+.It _________ Ta _________ Ta _______________
+.It eof Ta Tn VEOF Ta EOF No character
+.It eol Ta Tn VEOL Ta EOL No character
+.It eol2 Ta Tn VEOL2 Ta EOL2 No character
+.It erase Ta Tn VERASE Ta ERASE No character
+.It erase2 Ta Tn VERASE2 Ta ERASE2 No character
+.It werase Ta Tn VWERASE Ta WERASE No character
+.It intr Ta Tn VINTR Ta INTR No character
+.It kill Ta Tn VKILL Ta KILL No character
+.It quit Ta Tn VQUIT Ta QUIT No character
+.It susp Ta Tn VSUSP Ta SUSP No character
+.It start Ta Tn VSTART Ta START No character
+.It stop Ta Tn VSTOP Ta STOP No character
+.It dsusp Ta Tn VDSUSP Ta DSUSP No character
+.It lnext Ta Tn VLNEXT Ta LNEXT No character
+.It reprint Ta Tn VREPRINT Ta REPRINT No character
+.It status Ta Tn VSTATUS Ta STATUS No character
 .El
-.Pp
+.Ed
 .It Cm min Ar number
 .It Cm time Ar number
-Set the value of
-.Cm min
-or
-.Cm time
-to
-.Ar number .
+Set the value of min or time to
+number.
 .Dv MIN
 and
 .Dv TIME
 are used in
-non-canonical mode input processing
+Non-Canonical mode input processing
 (-icanon).
 .El
-.Ss Combination modes
-.Bl -tag -width Ds
+.Ss Combination Modes:
+.Bl -tag -width Fl
 .It Ar saved settings
 Set the current terminal
 characteristics to the saved settings
@@ -434,35 +427,20 @@ produced by the
 .Fl g
 option.
 .It Cm evenp No or Cm parity
-Enable
-.Cm parenb
-and
-.Cm cs7 ;
-disable
-.Cm parodd .
+Enable parenb and cs7; disable
+parodd.
 .It Cm oddp
-Enable
-.Cm parenb ,
-.Cm cs7 ,
-and
-.Cm parodd .
+Enable parenb, cs7, and parodd.
 .It Fl parity , evenp , oddp
-Disable
-.Cm parenb
-and set
-.Cm cs8 .
+Disable parenb, and set cs8.
 .It Cm \&nl Pq Fl \&nl
-Enable (disable)
-.Cm icrnl .
-In addition,
-.Fl \&nl
-unsets
-.Cm inlcr
-and
-.Cm igncr .
+Enable (disable) icrnl.
+In addition
+-nl unsets inlcr and igncr.
 .It Cm ek
 Reset
-.Dv ERASE
+.Dv ERASE ,
+.Dv ERASE2 ,
 and
 .Dv KILL
 characters
@@ -474,12 +452,28 @@ Set the line discipline to the standard terminal line discipline
 .Dv TTYDISC .
 .It Cm crt Pq Fl crt
 Set (disable) all modes suitable for a CRT display device.
+.It Cm kerninfo Pq Fl kerninfo
+Enable (disable) the system generated status line associated with
+processing a
+.Dv STATUS
+character (usually set to ^T).
+The status line consists of the
+system load average, the current command name, its process ID, the
+event the process is waiting on (or the status of the process), the user
+and system times, percent cpu, and current memory usage.
+.Pp
+If the
+.Xr sysctl 8
+variable
+.Va kern.tty_info_kstacks
+is set to a non-zero value, the status message also includes the kernel program
+stack of the foreground thread.
 .It Cm columns Ar number
 The terminal size is recorded as having
 .Ar number
 columns.
 .It Cm cols Ar number
-This is an alias for
+is an alias for
 .Cm columns .
 .It Cm rows Ar number
 The terminal size is recorded as having
@@ -487,7 +481,7 @@ The terminal size is recorded as having
 rows.
 .It Cm dec
 Set modes suitable for users of Digital Equipment Corporation systems
-.Pf ( Dv ERASE ,
+.Dv ( ERASE ,
 .Dv KILL ,
 and
 .Dv INTR
@@ -495,7 +489,7 @@ characters are set to ^?, ^U, and ^C;
 .Dv ixany
 is disabled, and
 .Dv crt
-is enabled).
+is enabled.)
 .It Cm extproc Pq Fl extproc
 If set, this flag indicates that some amount of terminal processing is being
 performed by either the terminal hardware or by the remote side connected
@@ -505,16 +499,17 @@ If set, change the modes of the terminal so that no input or output processing
 is performed.
 If unset, change the modes of the terminal to some reasonable
 state that performs input and output processing.
-Note that since the terminal driver no longer has a single
+Note that since the
+terminal driver no longer has a single
 .Dv RAW
 bit, it is not possible to intuit what flags were set prior to setting
 .Cm raw .
 This means that unsetting
 .Cm raw
 may not put back all the setting that were previously in effect.
-To set the terminal into a raw state and then accurately restore it,
-the following shell code is recommended:
-.Bd -literal -offset indent
+To set the terminal into a raw state and then accurately restore it, the following
+shell code is recommended:
+.Bd -literal
 save_state=$(stty -g)
 stty raw
 \&...
@@ -524,10 +519,12 @@ stty "$save_state"
 The size of the terminal is printed as two numbers on a single line,
 first rows, then columns.
 .El
-.Ss Compatibility modes
+.Ss Compatibility Modes:
 These modes remain for compatibility with the previous version of
-the stty command.
-.Bl -tag -width Ds
+the
+.Nm
+command.
+.Bl -tag -width Fl
 .It Cm all
 Reports all the terminal modes as with
 .Cm stty Fl a
@@ -579,15 +576,11 @@ Same as
 .It Cm prterase Pq Fl prterase
 Same as
 .Cm echoprt .
-.It Cm lcase Pq Fl lcase
-Same as
-.Cm iuclc ,
-.Cm olcuc
-and
-.Cm xcase .
 .It Cm litout Pq Fl litout
 The converse of
 .Cm opost .
+.It Cm oxtabs Pq Fl oxtabs
+Expand (do not expand) tabs to spaces on output.
 .It Cm tabs Pq Fl tabs
 The converse of
 .Cm oxtabs .
@@ -602,90 +595,23 @@ Same as the control character
 .Cm reprint .
 .El
 .Sh EXIT STATUS
-.Ex -std stty
+.Ex -std
 .Sh SEE ALSO
+.Xr resizewin 1 ,
 .Xr termios 4 ,
-.Xr tty 4
+.Xr pstat 8
 .Sh STANDARDS
 The
 .Nm
-utility is compliant with the
-.St -p1003.1-2008
-specification.
-.Pp
+utility is expected to be
+.St -p1003.2
+compatible.
 The flags
-.Op Fl ef ,
-the operands
-.Cm altwerase ,
-.Cm cols ,
-.Cm columns ,
-.Cm crt ,
-.Cm crtscts ,
-.Cm dec ,
-.Cm echoke ,
-.Cm extproc ,
-.Cm flusho ,
-.Cm imaxbel ,
-.Cm onlcr ,
-.Cm oxtabs ,
-.Cm pendin ,
-.Cm rows ,
-.Cm size ,
-.Cm speed ,
+.Fl e
 and
-.Cm tty ,
-and the control characters
-eol2,
-dsusp,
-lnext,
-reprint,
-status,
-and
-werase
-are all extensions to that specification.
-.Pp
-The operands
-.Cm iuclc ,
-.Cm olcuc ,
-and
-.Cm xcase
-are marked by
-.St -p1003.1-2008
-as legacy items;
-the operands listed in
-.Sx Compatibility modes
-can also be considered legacy.
-.Pp
-The operands
-.Cm bs0-1 ,
-.Cm cr0-3 ,
-.Cm ff0-1 ,
-.Cm nl0-1 ,
-.Cm ocrnl ,
-.Cm ofdel ,
-.Cm ofill ,
-.Cm onlret ,
-.Cm onocr ,
-.Cm raw ,
-.Cm tab0-3 ,
-.Cm tabs ,
-and
-.Cm vt0-1
-are marked by
-.St -p1003.1-2008
-as being an X/Open System Interfaces option.
-Of those, only
-.Cm ocrnl ,
-.Cm onlret ,
-.Cm onocr ,
-.Cm raw ,
-and
-.Cm tabs
-are supported by this implementation of
-.Nm ,
-and behaviour for
-.Cm tabs
-differs.
+.Fl f
+are
+extensions to the standard.
 .Sh HISTORY
 A
 .Nm

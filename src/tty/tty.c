@@ -1,7 +1,6 @@
-/*	$OpenBSD: tty.c,v 1.11 2018/08/03 06:55:41 deraadt Exp $	*/
-/*	$NetBSD: tty.c,v 1.4 1994/12/07 00:46:57 jtc Exp $	*/
-
-/*
+/*-
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
  * Copyright (c) 1988, 1993
  *	The Regents of the University of California.  All rights reserved.
  *
@@ -30,11 +29,24 @@
  * SUCH DAMAGE.
  */
 
+#ifndef lint
+static const char copyright[] =
+"@(#) Copyright (c) 1988, 1993\n\
+	The Regents of the University of California.  All rights reserved.\n";
+#endif /* not lint */
+
+#ifndef lint
+#if 0
+static char sccsid[] = "@(#)tty.c	8.1 (Berkeley) 6/6/93";
+#endif
+#endif /* not lint */
+
+#include <sys/cdefs.h>
+__FBSDID("$FreeBSD$");
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <paths.h>
-#include <err.h>
 
 static void usage(void);
 
@@ -45,8 +57,8 @@ main(int argc, char *argv[])
 	char *t;
 
 	sflag = 0;
-	while ((ch = getopt(argc, argv, "s")) != -1) {
-		switch(ch) {
+	while ((ch = getopt(argc, argv, "s")) != -1)
+		switch (ch) {
 		case 's':
 			sflag = 1;
 			break;
@@ -55,17 +67,16 @@ main(int argc, char *argv[])
 			usage();
 			/* NOTREACHED */
 		}
-	}
 
 	t = ttyname(STDIN_FILENO);
 	if (!sflag)
 		puts(t ? t : "not a tty");
-	exit(t ? 0 : 1);
+	exit(t ? EXIT_SUCCESS : EXIT_FAILURE);
 }
 
 static void
 usage(void)
 {
-	fprintf(stderr, "usage: tty [-s]\n");
+	fprintf(stderr, "usage: %s [-s]\n", getprogname());
 	exit(2);
 }

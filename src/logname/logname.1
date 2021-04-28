@@ -1,6 +1,3 @@
-.\"	$OpenBSD: logname.1,v 1.14 2010/09/03 11:09:29 jmc Exp $
-.\"	$NetBSD: logname.1,v 1.5 1995/07/25 18:31:12 jtc Exp $
-.\"
 .\" Copyright (c) 1991, 1993
 .\"	The Regents of the University of California.  All rights reserved.
 .\"
@@ -32,21 +29,21 @@
 .\" SUCH DAMAGE.
 .\"
 .\"	@(#)logname.1	8.1 (Berkeley) 6/9/93
+.\" $FreeBSD$
 .\"
-.Dd $Mdocdate: September 3 2010 $
+.Dd June 9, 1993
 .Dt LOGNAME 1
 .Os
 .Sh NAME
 .Nm logname
 .Nd display user's login name
 .Sh SYNOPSIS
-.Nm logname
+.Nm
 .Sh DESCRIPTION
 The
 .Nm
 utility writes the user's login name to standard output followed by
-a newline
-.Pq Ql \en .
+a newline.
 .Pp
 The
 .Nm
@@ -57,7 +54,7 @@ and
 environment variables
 because the environment cannot be trusted.
 .Sh EXIT STATUS
-.Ex -std logname
+.Ex -std
 .Sh SEE ALSO
 .Xr who 1 ,
 .Xr whoami 1 ,
@@ -65,9 +62,8 @@ because the environment cannot be trusted.
 .Sh STANDARDS
 The
 .Nm
-utility is compliant with the
-.St -p1003.1-2008
-specification.
+utility is expected to conform to
+.St -p1003.2 .
 .Sh HISTORY
 The
 .Nm

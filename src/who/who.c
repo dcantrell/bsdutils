@@ -1,12 +1,8 @@
-/*	$OpenBSD: who.c,v 1.29 2020/08/27 15:20:31 semarie Exp $	*/
-/*	$NetBSD: who.c,v 1.4 1994/12/07 04:28:49 jtc Exp $	*/
-
-/*
- * Copyright (c) 1989, 1993
- *	The Regents of the University of California.  All rights reserved.
+/*-
+ * SPDX-License-Identifier: BSD-2-Clause-FreeBSD
  *
- * This code is derived from software contributed to Berkeley by
- * Michael Fischbein.
+ * Copyright (c) 2002 Tim J. Robbins.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -16,14 +12,11 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. Neither the name of the University nor the names of its contributors
- *    may be used to endorse or promote products derived from this software
- *    without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
  * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
@@ -33,267 +26,290 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/cdefs.h>
+__FBSDID("$FreeBSD$");
+
+#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/ioctl.h>
 #include <sys/stat.h>
+
+#include <err.h>
+#include <errno.h>
+#include <langinfo.h>
+#include <limits.h>
+#include <locale.h>
 #include <paths.h>
 #include <pwd.h>
-#include <utmp.h>
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
-#include <unistd.h>
+#include <string.h>
 #include <time.h>
-#include <err.h>
-#include <locale.h>
-#include "compat.h"
+#include <timeconv.h>
+#include <unistd.h>
+#include <utmpx.h>
 
-void  output(struct utmp *);
-void  output_labels(void);
-void  who_am_i(FILE *);
-void  usage(void);
-FILE *file(char *);
+static void	heading(void);
+static void	process_utmp(void);
+static void	quick(void);
+static void	row(const struct utmpx *);
+static int	ttywidth(void);
+static void	usage(void);
+static void	whoami(void);
 
-int only_current_term;		/* show info about the current terminal only */
-int show_term;			/* show term state */
-int show_idle;			/* show idle time */
-int show_labels;		/* show column labels */
-int show_quick;			/* quick, names only */
-
-#define NAME_WIDTH	8
-#define HOST_WIDTH	45
-
-int hostwidth = HOST_WIDTH;
-char *mytty;
+static int	Hflag;			/* Write column headings */
+static int	aflag;			/* Print all entries */
+static int	bflag;			/* Show date of the last reboot */
+static int	mflag;			/* Show info about current terminal */
+static int	qflag;			/* "Quick" mode */
+static int	sflag;			/* Show name, line, time */
+static int	Tflag;			/* Show terminal state */
+static int	uflag;			/* Show idle time */
 
 int
 main(int argc, char *argv[])
 {
-	struct utmp usr;
-	FILE *ufp;
-	char *t;
-	int c;
+	int ch;
 
-	setlocale(LC_ALL, "");
+	setlocale(LC_TIME, "");
 
-	if ((mytty = ttyname(0))) {
-		/* strip any directory component */
-		if ((t = strrchr(mytty, '/')))
-			mytty = t + 1;
-	}
-
-	only_current_term = show_term = show_idle = show_labels = 0;
-	show_quick = 0;
-	while ((c = getopt(argc, argv, "HmqTu")) != -1) {
-		switch (c) {
-		case 'H':
-			show_labels = 1;
+	while ((ch = getopt(argc, argv, "HTabmqsu")) != -1) {
+		switch (ch) {
+		case 'H':		/* Write column headings */
+			Hflag = 1;
 			break;
-		case 'm':
-			only_current_term = 1;
+		case 'T':		/* Show terminal state */
+			Tflag = 1;
 			break;
-		case 'q':
-			show_quick = 1;
+		case 'a':		/* Same as -bdlprtTu */
+			aflag = bflag = Tflag = uflag = 1;
 			break;
-		case 'T':
-			show_term = 1;
+		case 'b':		/* Show date of the last reboot */
+			bflag = 1;
 			break;
-		case 'u':
-			show_idle = 1;
+		case 'm':		/* Show info about current terminal */
+			mflag = 1;
+			break;
+		case 'q':		/* "Quick" mode */
+			qflag = 1;
+			break;
+		case 's':		/* Show name, line, time */
+			sflag = 1;
+			break;
+		case 'u':		/* Show idle time */
+			uflag = 1;
 			break;
 		default:
 			usage();
-			/* NOTREACHED */
+			/*NOTREACHED*/
 		}
 	}
 	argc -= optind;
 	argv += optind;
 
-	if (show_quick) {
-		only_current_term = show_term = show_idle = show_labels = 0;
+	if (argc >= 2 && strcmp(argv[0], "am") == 0 &&
+	    (strcmp(argv[1], "i") == 0 || strcmp(argv[1], "I") == 0)) {
+		/* "who am i" or "who am I", equivalent to -m */
+		mflag = 1;
+		argc -= 2;
+		argv += 2;
 	}
-	
-	if (show_term)
-		hostwidth -= 2;
-	if (show_idle)
-		hostwidth -= 6;
-
-	if (show_labels)
-		output_labels();
-
-	switch (argc) {
-	case 0:					/* who */
-		ufp = file(_PATH_UTMP);
-
-		if (only_current_term) {
-			who_am_i(ufp);
-		} else if (show_quick) {
-			int count = 0;
-	
-			while (fread((char *)&usr, sizeof(usr), 1, ufp) == 1) {
-				if (*usr.ut_name && *usr.ut_line) {
-					(void)printf("%-*.*s ", NAME_WIDTH,
-						UT_NAMESIZE, usr.ut_name);
-					if ((++count % 8) == 0)
-						(void) printf("\n");
-				}
-			}
-			if (count % 8)
-				(void) printf("\n");
-			(void) printf ("# users=%d\n", count);
-		} else {
-			/* only entries with both name and line fields */
-			while (fread((char *)&usr, sizeof(usr), 1, ufp) == 1)
-				if (*usr.ut_name && *usr.ut_line)
-					output(&usr);
-		}
-		break;
-	case 1:					/* who utmp_file */
-		ufp = file(*argv);
-
-		if (only_current_term) {
-			who_am_i(ufp);
-		} else if (show_quick) {
-			int count = 0;
-
-			while (fread((char *)&usr, sizeof(usr), 1, ufp) == 1) {
-				if (*usr.ut_name && *usr.ut_line) {
-					(void)printf("%-*.*s ", NAME_WIDTH,
-						UT_NAMESIZE, usr.ut_name);
-					if ((++count % 8) == 0)
-						(void) printf("\n");
-				}
-			}
-			if (count % 8)
-				(void) printf("\n");
-			(void) printf ("# users=%d\n", count);
-		} else {
-			/* all entries */
-			while (fread((char *)&usr, sizeof(usr), 1, ufp) == 1)
-				output(&usr);
-		}
-		break;
-	case 2:					/* who am i */
-		ufp = file(_PATH_UTMP);
-		who_am_i(ufp);
-		break;
-	default:
+	if (argc > 1)
 		usage();
-		/* NOTREACHED */
+
+	if (*argv != NULL) {
+		if (setutxdb(UTXDB_ACTIVE, *argv) != 0)
+			err(1, "%s", *argv);
 	}
+
+	if (qflag)
+		quick();
+	else {
+		if (sflag)
+			Tflag = uflag = 0;
+		if (Hflag)
+			heading();
+		if (mflag)
+			whoami();
+		else
+			process_utmp();
+	}
+
+	endutxent();
+
 	exit(0);
 }
 
-void
-who_am_i(FILE *ufp)
-{
-	struct utmp usr;
-	struct passwd *pw;
-
-	/* search through the utmp and find an entry for this tty */
-	if (mytty) {
-		while (fread((char *)&usr, sizeof(usr), 1, ufp) == 1)
-			if (*usr.ut_name && !strncmp(usr.ut_line, mytty, UT_LINESIZE)) {
-				output(&usr);
-				return;
-			}
-		/* well, at least we know what the tty is */
-		(void)strncpy(usr.ut_line, mytty, UT_LINESIZE);
-	} else
-		(void)strncpy(usr.ut_line, "tty??", UT_LINESIZE);
-
-	pw = getpwuid(getuid());
-	(void)strncpy(usr.ut_name, pw ? pw->pw_name : "?", UT_NAMESIZE);
-	(void)time((time_t *) &usr.ut_time);
-	*usr.ut_host = '\0';
-	output(&usr);
-}
-
-void
-output(struct utmp *up)
-{
-	struct stat sb;
-	char line[sizeof(_PATH_DEV) + sizeof (up->ut_line)];
-	char state = '?';
-	static time_t now = 0;
-	time_t idle = 0;
-
-	if (show_term || show_idle) {
-		if (now == 0)
-			time(&now);
-		
-		memset(line, 0, sizeof line);
-		strlcpy(line, _PATH_DEV, sizeof line);
-		strlcat(line, up->ut_line, sizeof line);
-
-		if (stat(line, &sb) == 0) {
-			state = (sb.st_mode & 020) ? '+' : '-';
-			idle = now - sb.st_atime;
-		} else {
-			state = '?';
-			idle = 0;
-		}
-		
-	}
-
-	(void)printf("%-*.*s ", NAME_WIDTH, UT_NAMESIZE, up->ut_name);
-
-	if (show_term) {
-		(void)printf("%c ", state);
-	}
-
-	(void)printf("%-*.*s ", UT_LINESIZE, UT_LINESIZE, up->ut_line);
-	(void)printf("%.12s ", ctime((long int *) &up->ut_time) + 4);
-
-	if (show_idle) {
-		if (idle < 60) 
-			(void)printf("  .   ");
-		else if (idle < (24 * 60 * 60))
-			(void)printf("%02d:%02d ", 
-				     ((int)idle / (60 * 60)),
-				     ((int)idle % (60 * 60)) / 60);
-		else
-			(void)printf(" old  ");
-	}
-	
-	if (*up->ut_host)
-		printf("  (%.*s)", hostwidth, up->ut_host);
-	(void)putchar('\n');
-}
-
-void
-output_labels(void)
-{
-	(void)printf("%-*.*s ", NAME_WIDTH, UT_NAMESIZE, "USER");
-
-	if (show_term)
-		(void)printf("S ");
-
-	(void)printf("%-*.*s ", UT_LINESIZE, UT_LINESIZE, "LINE");
-	(void)printf("WHEN         ");
-
-	if (show_idle)
-		(void)printf("IDLE  ");
-
-	(void)printf("  %.*s", hostwidth, "FROM");
-
-	(void)putchar('\n');
-}
-
-FILE *
-file(char *name)
-{
-	FILE *ufp;
-
-	if (!(ufp = fopen(name, "r"))) {
-		err(1, "%s", name);
-		/* NOTREACHED */
-	}
-	return(ufp);
-}
-
-void
+static void
 usage(void)
 {
-	(void)fprintf(stderr, "usage: who [-HmqTu] [file]\n       who am i\n");
+
+	fprintf(stderr, "usage: who [-abHmqsTu] [am I] [file]\n");
 	exit(1);
+}
+
+static void
+heading(void)
+{
+
+	printf("%-16s ", "NAME");
+	if (Tflag)
+		printf("S ");
+	printf("%-12s %-12s ", "LINE", "TIME");
+	if (uflag)
+		printf("IDLE  ");
+	printf("%-16s\n", "FROM");
+}
+
+static void
+row(const struct utmpx *ut)
+{
+	char buf[80], tty[PATH_MAX];
+	struct stat sb;
+	time_t idle, t;
+	static int d_first = -1;
+	struct tm *tm;
+	char state;
+
+	if (d_first < 0)
+		d_first = (*nl_langinfo(D_MD_ORDER) == 'd');
+
+	state = '?';
+	idle = 0;
+	if (Tflag || uflag) {
+		snprintf(tty, sizeof(tty), "%s%s", _PATH_DEV, ut->ut_line);
+		if (stat(tty, &sb) == 0) {
+			state = sb.st_mode & (S_IWOTH|S_IWGRP) ?
+			    '+' : '-';
+			idle = time(NULL) - sb.st_mtime;
+		}
+	}
+
+	printf("%-16s ", ut->ut_user);
+	if (Tflag)
+		printf("%c ", state);
+	if (ut->ut_type == BOOT_TIME)
+		printf("%-12s ", "system boot");
+	else
+		printf("%-12s ", ut->ut_line);
+	t = ut->ut_tv.tv_sec;
+	tm = localtime(&t);
+	strftime(buf, sizeof(buf), d_first ? "%e %b %R" : "%b %e %R", tm);
+	printf("%-*s ", 12, buf);
+	if (uflag) {
+		if (idle < 60)
+			printf("  .   ");
+		else if (idle < 24 * 60 * 60)
+			printf("%02d:%02d ", (int)(idle / 60 / 60),
+			    (int)(idle / 60 % 60));
+		else
+			printf(" old  ");
+	}
+	if (*ut->ut_host != '\0')
+		printf("(%s)", ut->ut_host);
+	putchar('\n');
+}
+
+static int
+ttystat(char *line)
+{
+	struct stat sb;
+	char ttybuf[MAXPATHLEN];
+
+	(void)snprintf(ttybuf, sizeof(ttybuf), "%s%s", _PATH_DEV, line);
+	if (stat(ttybuf, &sb) == 0) {
+		return (0);
+	} else
+		return (-1);
+}
+
+static void
+process_utmp(void)
+{
+	struct utmpx *utx;
+
+	while ((utx = getutxent()) != NULL) {
+		if (((aflag || !bflag) && utx->ut_type == USER_PROCESS) ||
+		    (bflag && utx->ut_type == BOOT_TIME))
+			if (ttystat(utx->ut_line) == 0)
+				row(utx);
+	}
+}
+
+static void
+quick(void)
+{
+	struct utmpx *utx;
+	int col, ncols, num;
+
+	ncols = ttywidth();
+	col = num = 0;
+	while ((utx = getutxent()) != NULL) {
+		if (utx->ut_type != USER_PROCESS)
+			continue;
+		printf("%-16s", utx->ut_user);
+		if (++col < ncols / (16 + 1))
+			putchar(' ');
+		else {
+			col = 0;
+			putchar('\n');
+		}
+		num++;
+	}
+	if (col != 0)
+		putchar('\n');
+
+	printf("# users = %d\n", num);
+}
+
+static void
+whoami(void)
+{
+	struct utmpx ut, *utx;
+	struct passwd *pwd;
+	const char *name, *tty;
+
+	if ((tty = ttyname(STDIN_FILENO)) == NULL)
+		tty = "tty??";
+	else if (strncmp(tty, _PATH_DEV, sizeof _PATH_DEV - 1) == 0)
+		tty += sizeof _PATH_DEV - 1;
+	strlcpy(ut.ut_line, tty, sizeof ut.ut_line);
+
+	/* Search utmp for our tty, dump first matching record. */
+	if ((utx = getutxline(&ut)) != NULL && utx->ut_type == USER_PROCESS) {
+		row(utx);
+		return;
+	}
+
+	/* Not found; fill the utmp structure with the information we have. */
+	memset(&ut, 0, sizeof(ut));
+	if ((pwd = getpwuid(getuid())) != NULL)
+		name = pwd->pw_name;
+	else
+		name = "?";
+	strlcpy(ut.ut_user, name, sizeof ut.ut_user);
+	gettimeofday(&ut.ut_tv, NULL);
+	row(&ut);
+}
+
+static int
+ttywidth(void)
+{
+	struct winsize ws;
+	long width;
+	char *cols, *ep;
+
+	if ((cols = getenv("COLUMNS")) != NULL && *cols != '\0') {
+		errno = 0;
+		width = strtol(cols, &ep, 10);
+		if (errno || width <= 0 || width > INT_MAX || ep == cols ||
+		    *ep != '\0')
+			warnx("invalid COLUMNS environment variable ignored");
+		else
+			return (width);
+	}
+	if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) != -1)
+		return (ws.ws_col);
+
+	return (80);
 }

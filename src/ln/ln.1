@@ -1,6 +1,4 @@
-.\"	$OpenBSD: ln.1,v 1.33 2016/08/10 19:46:43 schwarze Exp $
-.\"	$NetBSD: ln.1,v 1.10 1995/07/25 19:37:04 jtc Exp $
-.\"
+.\"-
 .\" Copyright (c) 1980, 1990, 1993
 .\"	The Regents of the University of California.  All rights reserved.
 .\"
@@ -32,76 +30,147 @@
 .\" SUCH DAMAGE.
 .\"
 .\"	@(#)ln.1	8.2 (Berkeley) 12/30/93
+.\" $FreeBSD$
 .\"
-.Dd $Mdocdate: August 10 2016 $
+.Dd June 12, 2017
 .Dt LN 1
 .Os
 .Sh NAME
-.Nm ln
-.Nd make hard and symbolic links to files
+.Nm ln ,
+.Nm link
+.Nd link files
 .Sh SYNOPSIS
-.Nm ln
-.Op Fl fhLnPs
-.Ar source
-.Op Ar target
-.Nm ln
-.Op Fl fLPs
-.Ar source ...
-.Op Ar directory
+.Nm
+.Op Fl L | Fl P | Fl s Op Fl F
+.Op Fl f | iw
+.Op Fl hnv
+.Ar source_file
+.Op Ar target_file
+.Nm
+.Op Fl L | Fl P | Fl s Op Fl F
+.Op Fl f | iw
+.Op Fl hnv
+.Ar source_file ...
+.Ar target_dir
+.Nm link
+.Ar source_file Ar target_file
 .Sh DESCRIPTION
 The
 .Nm
-utility creates a new directory entry (linked file) which has the
-same modes as the original file.
+utility creates a new directory entry (linked file) for the file name
+specified by
+.Ar target_file .
+The
+.Ar target_file
+will be created with the same file modes as the
+.Ar source_file .
 It is useful for maintaining multiple copies of a file in many places
-at once without using up storage for the copies;
+at once without using up storage for the
+.Dq copies ;
 instead, a link
 .Dq points
 to the original copy.
-There are two types of links: hard links and symbolic links.
-How a link points
+There are two types of links; hard links and symbolic links.
+How a link
+.Dq points
 to a file is one of the differences between a hard and symbolic link.
 .Pp
 The options are as follows:
-.Bl -tag -width Ds
-.It Fl f
-Unlink any already existing file, permitting the link to occur.
-.It Fl h
-If the target is a symlink to a directory, do not descend into it.
+.Bl -tag -width flag
+.It Fl F
+If the target file already exists and is a directory, then remove it
+so that the link may occur.
+The
+.Fl F
+option should be used with either
+.Fl f
+or
+.Fl i
+options.
+If neither
+.Fl f
+nor
+.Fl i
+is specified,
+.Fl f
+is implied.
+The
+.Fl F
+option is a no-op unless
+.Fl s
+is specified.
 .It Fl L
-When creating a hard link and the source is a symbolic link,
-link to the fully resolved target of the symbolic link.
+When creating a hard link to a symbolic link,
+create a hard link to the target of the symbolic link.
 This is the default.
-The
-.Fl L
-option overrides any previous
+This option cancels the
 .Fl P
-options.
-.It Fl n
-An alias for
-.Fl h
-for compatibility with other operating systems.
+option.
 .It Fl P
-When creating a hard link and the source is a symbolic link,
-link to the symbolic link itself.
-The
-.Fl P
-option overrides any previous
+When creating a hard link to a symbolic link,
+create a hard link to the symbolic link itself.
+This option cancels the
 .Fl L
-options.
+option.
+.It Fl f
+If the target file already exists,
+then unlink it so that the link may occur.
+(The
+.Fl f
+option overrides any previous
+.Fl i
+and
+.Fl w
+options.)
+.It Fl h
+If the
+.Ar target_file
+or
+.Ar target_dir
+is a symbolic link, do not follow it.
+This is most useful with the
+.Fl f
+option, to replace a symlink which may point to a directory.
+.It Fl i
+Cause
+.Nm
+to write a prompt to standard error if the target file exists.
+If the response from the standard input begins with the character
+.Sq Li y
+or
+.Sq Li Y ,
+then unlink the target file so that the link may occur.
+Otherwise, do not attempt the link.
+(The
+.Fl i
+option overrides any previous
+.Fl f
+options.)
+.It Fl n
+Same as
+.Fl h ,
+for compatibility with other
+.Nm
+implementations.
 .It Fl s
 Create a symbolic link.
+.It Fl v
+Cause
+.Nm
+to be verbose, showing files as they are processed.
+.It Fl w
+Warn if the source of a symbolic link does not currently exist.
 .El
 .Pp
 By default,
 .Nm
 makes
-.Dq hard
+.Em hard
 links.
 A hard link to a file is indistinguishable from the original directory entry;
 any changes to a file are effectively independent of the name used to reference
 the file.
-Hard links may not normally refer to directories and may not span file systems.
+Directories may not be hardlinked, and hard links may not span file systems.
 .Pp
 A symbolic link contains the name of the file to
 which it is linked.
@@ -116,38 +185,44 @@ must be done to obtain information about the link.
 The
 .Xr readlink 2
 call may be used to read the contents of a symbolic link.
-Symbolic links may span file systems, refer to directories, and refer to
-non-existent files.
+Symbolic links may span file systems and may refer to directories.
 .Pp
 Given one or two arguments,
 .Nm
 creates a link to an existing file
-.Ar source .
+.Ar source_file .
 If
-.Ar target
+.Ar target_file
 is given, the link has that name;
-.Ar target
-may also be a directory in which to place the link.
-Otherwise, it is placed in the current directory.
+.Ar target_file
+may also be a directory in which to place the link;
+otherwise it is placed in the current directory.
 If only the directory is specified, the link will be made
 to the last component of
-.Ar source .
+.Ar source_file .
 .Pp
 Given more than two arguments,
 .Nm
 makes links in
-.Ar directory
+.Ar target_dir
 to all the named source files.
 The links made will have the same name as the files being linked to.
-.Sh EXIT STATUS
-.Ex -std ln
+.Pp
+When the utility is called as
+.Nm link ,
+exactly two arguments must be supplied,
+neither of which may specify a directory.
+No options may be supplied in this simple mode of operation,
+which performs a
+.Xr link 2
+operation using the two passed arguments.
 .Sh EXAMPLES
 Create a symbolic link named
-.Pa /home/www
+.Pa /home/src
 and point it to
-.Pa /var/www :
+.Pa /usr/src :
 .Pp
-.Dl # ln -s /var/www /home/www
+.Dl # ln -s /usr/src /home/src
 .Pp
 Hard link
 .Pa /usr/local/bin/fooprog
@@ -158,9 +233,9 @@ to file
 .Pp
 As an exercise, try the following commands:
 .Bd -literal -offset indent
-$ ls -i /bin/[
+# ls -i /bin/[
 11553 /bin/[
-$ ls -i /bin/test
+# ls -i /bin/test
 11553 /bin/test
 .Ed
 .Pp
@@ -182,9 +257,9 @@ removes the original
 and creates a replacement pointing to
 .Pa baz :
 .Bd -literal -offset indent
-$ mkdir bar baz
-$ ln -s bar foo
-$ ln -shf baz foo
+# mkdir bar baz
+# ln -s bar foo
+# ln -shf baz foo
 .Ed
 .Pp
 Without the
@@ -199,8 +274,32 @@ create a new symlink
 .Pa baz
 pointing to itself.
 This results from directory-walking.
+.Pp
+An easy rule to remember is that the argument order for
+.Nm
+is the same as for
+.Xr cp 1 :
+The first argument needs to exist, the second one is created.
+.Sh COMPATIBILITY
+The
+.Fl h ,
+.Fl i ,
+.Fl n ,
+.Fl v
+and
+.Fl w
+options are non-standard and their use in scripts is not recommended.
+They are provided solely for compatibility with other
+.Nm
+implementations.
+.Pp
+The
+.Fl F
+option is a
+.Fx
+extension and should not be used in portable scripts.
 .Sh SEE ALSO
-.Xr linkat 2 ,
+.Xr link 2 ,
 .Xr lstat 2 ,
 .Xr readlink 2 ,
 .Xr stat 2 ,
@@ -209,21 +308,15 @@ This results from directory-walking.
 .Sh STANDARDS
 The
 .Nm
-utility is compliant with the
-.St -p1003.1-2008
-specification.
+utility conforms to
+.St -p1003.2-92 .
 .Pp
-The flags
-.Op Fl hn
-are extensions to that specification.
+The simplified
+.Nm link
+command conforms to
+.St -susv2 .
 .Sh HISTORY
 An
 .Nm
-utility appeared in
+command appeared in
 .At v1 .
-.Sh CAVEATS
-Since the
-.Ar source
-file must have its link count incremented, a hard link cannot be created to a
-file which is flagged immutable or append-only (see
-.Xr chflags 1 ) .

@@ -1,7 +1,6 @@
-/*	$OpenBSD: uniq.c,v 1.27 2018/07/31 02:55:57 deraadt Exp $	*/
-/*	$NetBSD: uniq.c,v 1.7 1995/08/31 22:03:48 jtc Exp $	*/
-
-/*
+/*-
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
  * Copyright (c) 1989, 1993
  *	The Regents of the University of California.  All rights reserved.
  *
@@ -33,132 +32,269 @@
  * SUCH DAMAGE.
  */
 
+#ifndef lint
+static const char copyright[] =
+"@(#) Copyright (c) 1989, 1993\n\
+	The Regents of the University of California.  All rights reserved.\n";
+#endif /* not lint */
+
+#ifndef lint
+#if 0
+static char sccsid[] = "@(#)uniq.c	8.3 (Berkeley) 5/4/95";
+#endif
+static const char rcsid[] =
+  "$FreeBSD$";
+#endif /* not lint */
+
+#include <sys/capsicum.h>
+
+#include <capsicum_helpers.h>
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
+#include <getopt.h>
 #include <limits.h>
 #include <locale.h>
+#include <nl_types.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <termios.h>
 #include <unistd.h>
 #include <wchar.h>
 #include <wctype.h>
 
-#include "compat.h"
+static int Dflag, cflag, dflag, uflag, iflag;
+static int numchars, numfields, repeats;
 
-#define	MAXLINELEN	(8 * 1024)
+/* Dflag values */
+#define	DF_NONE		0
+#define	DF_NOSEP	1
+#define	DF_PRESEP	2
+#define	DF_POSTSEP	3
 
-int cflag, dflag, iflag, uflag;
-int numchars, numfields, repeats;
+static const struct option long_opts[] =
+{
+	{"all-repeated",optional_argument,	NULL, 'D'},
+	{"count",	no_argument,		NULL, 'c'},
+	{"repeated",	no_argument,		NULL, 'd'},
+	{"skip-fields",	required_argument,	NULL, 'f'},
+	{"ignore-case",	no_argument,		NULL, 'i'},
+	{"skip-chars",	required_argument,	NULL, 's'},
+	{"unique",	no_argument,		NULL, 'u'},
+	{NULL,		no_argument,		NULL, 0}
+};
 
-FILE	*file(char *, char *);
-void	 show(FILE *, char *);
-char	*skip(char *);
-void	 obsolete(char *[]);
-void	usage(void);
+static FILE	*file(const char *, const char *);
+static wchar_t	*convert(const char *);
+static int	 inlcmp(const char *, const char *);
+static void	 show(FILE *, const char *);
+static wchar_t	*skip(wchar_t *);
+static void	 obsolete(char *[]);
+static void	 usage(void);
 
 int
-main(int argc, char *argv[])
+main (int argc, char *argv[])
 {
-	char *t1, *t2;
-	FILE *ifp = NULL, *ofp = NULL;
-	int ch;
-	char *prevline, *thisline;
+	wchar_t *tprev, *tthis;
+	FILE *ifp, *ofp;
+	int ch, comp;
+	size_t prevbuflen, thisbuflen, b1;
+	char *prevline, *thisline, *p;
+	const char *ifn;
+	cap_rights_t rights;
 
-	setlocale(LC_CTYPE, "");
+	(void) setlocale(LC_ALL, "");
 
 	obsolete(argv);
-	while ((ch = getopt(argc, argv, "cdf:is:u")) != -1) {
-		const char *errstr;
-
+	while ((ch = getopt_long(argc, argv, "+D::cdif:s:u", long_opts,
+	    NULL)) != -1)
 		switch (ch) {
+		case 'D':
+			if (optarg == NULL || strcasecmp(optarg, "none") == 0)
+				Dflag = DF_NOSEP;
+			else if (strcasecmp(optarg, "prepend") == 0)
+				Dflag = DF_PRESEP;
+			else if (strcasecmp(optarg, "separate") == 0)
+				Dflag = DF_POSTSEP;
+			else
+				usage();
+			break;
 		case 'c':
 			cflag = 1;
 			break;
 		case 'd':
 			dflag = 1;
 			break;
-		case 'f':
-			numfields = (int)strtonum(optarg, 0, INT_MAX,
-			    &errstr);
-			if (errstr)
-				errx(1, "field skip value is %s: %s",
-				    errstr, optarg);
-			break;
 		case 'i':
 			iflag = 1;
 			break;
+		case 'f':
+			numfields = strtol(optarg, &p, 10);
+			if (numfields < 0 || *p)
+				errx(1, "illegal field skip value: %s", optarg);
+			break;
 		case 's':
-			numchars = (int)strtonum(optarg, 0, INT_MAX,
-			    &errstr);
-			if (errstr)
-				errx(1,
-				    "character skip value is %s: %s",
-				    errstr, optarg);
+			numchars = strtol(optarg, &p, 10);
+			if (numchars < 0 || *p)
+				errx(1, "illegal character skip value: %s", optarg);
 			break;
 		case 'u':
 			uflag = 1;
 			break;
+		case '?':
 		default:
 			usage();
 		}
-	}
 
 	argc -= optind;
 	argv += optind;
 
-	/* If neither -d nor -u are set, default is -d -u. */
-	if (!dflag && !uflag)
-		dflag = uflag = 1;
-
-	switch (argc) {
-	case 0:
-		ifp = stdin;
-		ofp = stdout;
-		break;
-	case 1:
-		ifp = file(argv[0], "r");
-		ofp = stdout;
-		break;
-	case 2:
-		ifp = file(argv[0], "r");
-		ofp = file(argv[1], "w");
-		break;
-	default:
+	if (argc > 2)
 		usage();
+
+	ifp = stdin;
+	ifn = "stdin";
+	ofp = stdout;
+	if (argc > 0 && strcmp(argv[0], "-") != 0)
+		ifp = file(ifn = argv[0], "r");
+	cap_rights_init(&rights, CAP_FSTAT, CAP_READ);
+	if (caph_rights_limit(fileno(ifp), &rights) < 0)
+		err(1, "unable to limit rights for %s", ifn);
+	cap_rights_init(&rights, CAP_FSTAT, CAP_WRITE);
+	if (argc > 1)
+		ofp = file(argv[1], "w");
+	else
+		cap_rights_set(&rights, CAP_IOCTL);
+	if (caph_rights_limit(fileno(ofp), &rights) < 0) {
+		err(1, "unable to limit rights for %s",
+		    argc > 1 ? argv[1] : "stdout");
 	}
+	if (cap_rights_is_set(&rights, CAP_IOCTL)) {
+		unsigned long cmd;
 
-	prevline = malloc(MAXLINELEN);
-	thisline = malloc(MAXLINELEN);
-	if (prevline == NULL || thisline == NULL)
-		err(1, "malloc");
+		cmd = TIOCGETA; /* required by isatty(3) in printf(3) */
 
-	if (fgets(prevline, MAXLINELEN, ifp) == NULL)
-		exit(0);
-
-	while (fgets(thisline, MAXLINELEN, ifp)) {
-		/* If requested get the chosen fields + character offsets. */
-		if (numfields || numchars) {
-			t1 = skip(thisline);
-			t2 = skip(prevline);
-		} else {
-			t1 = thisline;
-			t2 = prevline;
+		if (caph_ioctls_limit(fileno(ofp), &cmd, 1) < 0) {
+			err(1, "unable to limit ioctls for %s",
+			    argc > 1 ? argv[1] : "stdout");
 		}
-
-		/* If different, print; set previous to new value. */
-		if ((iflag ? strcasecmp : strcmp)(t1, t2)) {
-			show(ofp, prevline);
-			t1 = prevline;
-			prevline = thisline;
-			thisline = t1;
-			repeats = 0;
-		} else
-			++repeats;
 	}
-	show(ofp, prevline);
+
+	caph_cache_catpages();
+	if (caph_enter() < 0)
+		err(1, "unable to enter capability mode");
+
+	prevbuflen = thisbuflen = 0;
+	prevline = thisline = NULL;
+
+	if (getline(&prevline, &prevbuflen, ifp) < 0) {
+		if (ferror(ifp))
+			err(1, "%s", ifn);
+		exit(0);
+	}
+	tprev = convert(prevline);
+
+	tthis = NULL;
+	while (getline(&thisline, &thisbuflen, ifp) >= 0) {
+		if (tthis != NULL)
+			free(tthis);
+		tthis = convert(thisline);
+
+		if (tthis == NULL && tprev == NULL)
+			comp = inlcmp(thisline, prevline);
+		else if (tthis == NULL || tprev == NULL)
+			comp = 1;
+		else
+			comp = wcscoll(tthis, tprev);
+
+		if (comp) {
+			/* If different, print; set previous to new value. */
+			if (Dflag == DF_POSTSEP && repeats > 0)
+				fputc('\n', ofp);
+			if (!Dflag)
+				show(ofp, prevline);
+			p = prevline;
+			b1 = prevbuflen;
+			prevline = thisline;
+			prevbuflen = thisbuflen;
+			if (tprev != NULL)
+				free(tprev);
+			tprev = tthis;
+			thisline = p;
+			thisbuflen = b1;
+			tthis = NULL;
+			repeats = 0;
+		} else {
+			if (Dflag) {
+				if (repeats == 0) {
+					if (Dflag == DF_PRESEP)
+						fputc('\n', ofp);
+					show(ofp, prevline);
+				}
+				show(ofp, thisline);
+			}
+			++repeats;
+		}
+	}
+	if (ferror(ifp))
+		err(1, "%s", ifn);
+	if (!Dflag)
+		show(ofp, prevline);
 	exit(0);
+}
+
+static wchar_t *
+convert(const char *str)
+{
+	size_t n;
+	wchar_t *buf, *ret, *p;
+
+	if ((n = mbstowcs(NULL, str, 0)) == (size_t)-1)
+		return (NULL);
+	if (SIZE_MAX / sizeof(*buf) < n + 1)
+		errx(1, "conversion buffer length overflow");
+	if ((buf = malloc((n + 1) * sizeof(*buf))) == NULL)
+		err(1, "malloc");
+	if (mbstowcs(buf, str, n + 1) != n)
+		errx(1, "internal mbstowcs() error");
+	/* The last line may not end with \n. */
+	if (n > 0 && buf[n - 1] == L'\n')
+		buf[n - 1] = L'\0';
+
+	/* If requested get the chosen fields + character offsets. */
+	if (numfields || numchars) {
+		if ((ret = wcsdup(skip(buf))) == NULL)
+			err(1, "wcsdup");
+		free(buf);
+	} else
+		ret = buf;
+
+	if (iflag) {
+		for (p = ret; *p != L'\0'; p++)
+			*p = towlower(*p);
+	}
+
+	return (ret);
+}
+
+static int
+inlcmp(const char *s1, const char *s2)
+{
+	int c1, c2;
+
+	while (*s1 == *s2++)
+		if (*s1++ == '\0')
+			return (0);
+	c1 = (unsigned char)*s1;
+	c2 = (unsigned char)*(s2 - 1);
+	/* The last line may not end with \n. */
+	if (c1 == '\n')
+		c1 = '\0';
+	if (c2 == '\n')
+		c2 = '\0';
+	return (c1 - c2);
 }
 
 /*
@@ -166,65 +302,48 @@ main(int argc, char *argv[])
  *	Output a line depending on the flags and number of repetitions
  *	of the line.
  */
-void
-show(FILE *ofp, char *str)
+static void
+show(FILE *ofp, const char *str)
 {
-	if ((dflag && repeats) || (uflag && !repeats)) {
-		if (cflag)
-			(void)fprintf(ofp, "%4d %s", repeats + 1, str);
-		else
-			(void)fprintf(ofp, "%s", str);
-	}
+
+	if ((!Dflag && dflag && repeats == 0) || (uflag && repeats > 0))
+		return;
+	if (cflag)
+		(void)fprintf(ofp, "%4d %s", repeats + 1, str);
+	else
+		(void)fprintf(ofp, "%s", str);
 }
 
-char *
-skip(char *str)
+static wchar_t *
+skip(wchar_t *str)
 {
-	wchar_t wc;
 	int nchars, nfields;
-	int len;
-	int field_started;
 
-	for (nfields = numfields; nfields && *str; nfields--) {
-		/* Skip one field, including preceding blanks. */
-		for (field_started = 0; *str != '\0'; str += len) {
-			if ((len = mbtowc(&wc, str, MB_CUR_MAX)) == -1) {
-				(void)mbtowc(NULL, NULL, MB_CUR_MAX);
-				wc = L'?';
-				len = 1;
-			}
-			if (iswblank(wc)) {
-				if (field_started)
-					break;
-			} else
-				field_started = 1;
-		}
+	for (nfields = 0; *str != L'\0' && nfields++ != numfields; ) {
+		while (iswblank(*str))
+			str++;
+		while (*str != L'\0' && !iswblank(*str))
+			str++;
 	}
-
-	/* Skip some additional characters. */
-	for (nchars = numchars; nchars-- && *str != '\0'; str += len)
-		if ((len = mblen(str, MB_CUR_MAX)) == -1)
-			len = 1;
-
-	return (str);
+	for (nchars = numchars; nchars-- && *str != L'\0'; ++str)
+		;
+	return(str);
 }
 
-FILE *
-file(char *name, char *mode)
+static FILE *
+file(const char *name, const char *mode)
 {
 	FILE *fp;
 
-	if (strcmp(name, "-") == 0)
-		return(*mode == 'r' ? stdin : stdout);
 	if ((fp = fopen(name, mode)) == NULL)
 		err(1, "%s", name);
-	return (fp);
+	return(fp);
 }
 
-void
+static void
 obsolete(char *argv[])
 {
-	size_t len;
+	int len;
 	char *ap, *p, *start;
 
 	while ((ap = *++argv)) {
@@ -240,23 +359,20 @@ obsolete(char *argv[])
 		 * Digit signifies an old-style option.  Malloc space for dash,
 		 * new option and argument.
 		 */
-		len = strlen(ap) + 3;
-		if ((start = p = malloc(len)) == NULL)
+		len = strlen(ap);
+		if ((start = p = malloc(len + 3)) == NULL)
 			err(1, "malloc");
 		*p++ = '-';
 		*p++ = ap[0] == '+' ? 's' : 'f';
-		(void)strlcpy(p, ap + 1, len - 2);
+		(void)strcpy(p, ap + 1);
 		*argv = start;
 	}
 }
 
-void
+static void
 usage(void)
 {
-	extern char *__progname;
-
 	(void)fprintf(stderr,
-	    "usage: %s [-ci] [-d | -u] [-f fields] [-s chars] [input_file [output_file]]\n",
-	    __progname);
+"usage: uniq [-c | -d | -D | -u] [-i] [-f fields] [-s chars] [input [output]]\n");
 	exit(1);
 }

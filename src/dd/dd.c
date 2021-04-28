@@ -1,7 +1,6 @@
-/*	$OpenBSD: dd.c,v 1.27 2019/06/28 13:34:59 deraadt Exp $	*/
-/*	$NetBSD: dd.c,v 1.6 1996/02/20 19:29:06 jtc Exp $	*/
-
 /*-
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
  * Copyright (c) 1991, 1993, 1994
  *	The Regents of the University of California.  All rights reserved.
  *
@@ -34,16 +33,37 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/ioctl.h>
-#include <sys/mtio.h>
+#if 0
+#ifndef lint
+static char const copyright[] =
+"@(#) Copyright (c) 1991, 1993, 1994\n\
+	The Regents of the University of California.  All rights reserved.\n";
+#endif /* not lint */
 
+#ifndef lint
+static char sccsid[] = "@(#)dd.c	8.5 (Berkeley) 4/2/94";
+#endif /* not lint */
+#endif
+#include <sys/cdefs.h>
+__FBSDID("$FreeBSD$");
+
+#include <sys/param.h>
+#include <sys/stat.h>
+#include <sys/capsicum.h>
+#include <sys/conf.h>
+#include <sys/disklabel.h>
+#include <sys/filio.h>
+#include <sys/mtio.h>
+#include <sys/time.h>
+
+#include <assert.h>
+#include <capsicum_helpers.h>
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <signal.h>
+#include <inttypes.h>
+#include <locale.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -58,69 +78,129 @@ static void dd_in(void);
 static void getfdtype(IO *);
 static void setup(void);
 
-#define MAXIMUM(a, b)	(((a) > (b)) ? (a) : (b))
-
 IO	in, out;		/* input/output state */
 STAT	st;			/* statistics */
 void	(*cfunc)(void);		/* conversion function */
-size_t	cpy_cnt;		/* # of blocks to copy */
-u_int	ddflags;		/* conversion options */
+uintmax_t cpy_cnt;		/* # of blocks to copy */
+static off_t	pending = 0;	/* pending seek if sparse */
+uint64_t	ddflags = 0;	/* conversion options */
 size_t	cbsz;			/* conversion block size */
-size_t	files_cnt = 1;		/* # of files to copy */
-const	u_char	*ctab;		/* conversion table */
+uintmax_t files_cnt = 1;	/* # of files to copy */
+const	u_char *ctab;		/* conversion table */
+char	fill_char;		/* Character to fill with if defined */
+size_t	speed = 0;		/* maximum speed, in bytes per second */
+volatile sig_atomic_t need_summary;
+volatile sig_atomic_t need_progress;
 
 int
-main(int argc, char *argv[])
+main(int argc __unused, char *argv[])
 {
+	struct itimerval itv = { { 1, 0 }, { 1, 0 } }; /* SIGALARM every second, if needed */
+
+	(void)setlocale(LC_CTYPE, "");
 	jcl(argv);
 	setup();
 
+	caph_cache_catpages();
+	if (caph_enter() < 0)
+		err(1, "unable to enter capability mode");
+
+	(void)signal(SIGINFO, siginfo_handler);
+	if (ddflags & C_PROGRESS) {
+		(void)signal(SIGALRM, sigalarm_handler);
+		setitimer(ITIMER_REAL, &itv, NULL);
+	}
 	(void)signal(SIGINT, terminate);
 
 	atexit(summary);
 
-	if (cpy_cnt != (size_t)-1) {
-		while (files_cnt--)
-			dd_in();
-	}
+	while (files_cnt--)
+		dd_in();
 
 	dd_close();
+	/*
+	 * Some devices such as cfi(4) may perform significant amounts
+	 * of work when a write descriptor is closed.  Close the out
+	 * descriptor explicitly so that the summary handler (called
+	 * from an atexit() hook) includes this work.
+	 */
+	if (close(out.fd) == -1 && errno != EINTR)
+		err(1, "close");
 	exit(0);
+}
+
+static int
+parity(u_char c)
+{
+	int i;
+
+	i = c ^ (c >> 1) ^ (c >> 2) ^ (c >> 3) ^ 
+	    (c >> 4) ^ (c >> 5) ^ (c >> 6) ^ (c >> 7);
+	return (i & 1);
 }
 
 static void
 setup(void)
 {
+	u_int cnt;
+	int iflags, oflags;
+	cap_rights_t rights;
+	unsigned long cmds[] = { FIODTYPE, MTIOCTOP };
+
 	if (in.name == NULL) {
 		in.name = "stdin";
 		in.fd = STDIN_FILENO;
 	} else {
-		in.fd = open(in.name, O_RDONLY, 0);
+		iflags = 0;
+		if (ddflags & C_IDIRECT)
+			iflags |= O_DIRECT;
+		in.fd = open(in.name, O_RDONLY | iflags, 0);
 		if (in.fd == -1)
 			err(1, "%s", in.name);
 	}
 
 	getfdtype(&in);
 
+	cap_rights_init(&rights, CAP_READ, CAP_SEEK);
+	if (caph_rights_limit(in.fd, &rights) == -1)
+		err(1, "unable to limit capability rights");
+
 	if (files_cnt > 1 && !(in.flags & ISTAPE))
 		errx(1, "files is not supported for non-tape devices");
 
+	cap_rights_set(&rights, CAP_FTRUNCATE, CAP_IOCTL, CAP_WRITE);
+	if (ddflags & (C_FDATASYNC | C_FSYNC))
+		cap_rights_set(&rights, CAP_FSYNC);
 	if (out.name == NULL) {
 		/* No way to check for read access here. */
 		out.fd = STDOUT_FILENO;
 		out.name = "stdout";
+		if (ddflags & C_OFSYNC) {
+			oflags = fcntl(out.fd, F_GETFL);
+			if (oflags == -1)
+				err(1, "unable to get fd flags for stdout");
+			oflags |= O_FSYNC;
+			if (fcntl(out.fd, F_SETFL, oflags) == -1)
+				err(1, "unable to set fd flags for stdout");
+		}
 	} else {
-#define	OFLAGS \
-    (O_CREAT | (ddflags & (C_SEEK | C_NOTRUNC) ? 0 : O_TRUNC))
-		out.fd = open(out.name, O_RDWR | OFLAGS, DEFFILEMODE);
+		oflags = O_CREAT;
+		if (!(ddflags & (C_SEEK | C_NOTRUNC)))
+			oflags |= O_TRUNC;
+		if (ddflags & C_OFSYNC)
+			oflags |= O_FSYNC;
+		if (ddflags & C_ODIRECT)
+			oflags |= O_DIRECT;
+		out.fd = open(out.name, O_RDWR | oflags, DEFFILEMODE);
 		/*
 		 * May not have read access, so try again with write only.
 		 * Without read we may have a problem if output also does
 		 * not support seeks.
 		 */
 		if (out.fd == -1) {
-			out.fd = open(out.name, O_WRONLY | OFLAGS, DEFFILEMODE);
+			out.fd = open(out.name, O_WRONLY | oflags, DEFFILEMODE);
 			out.flags |= NOREAD;
+			cap_rights_clear(&rights, CAP_READ);
 		}
 		if (out.fd == -1)
 			err(1, "%s", out.name);
@@ -128,22 +208,39 @@ setup(void)
 
 	getfdtype(&out);
 
+	if (caph_rights_limit(out.fd, &rights) == -1)
+		err(1, "unable to limit capability rights");
+	if (caph_ioctls_limit(out.fd, cmds, nitems(cmds)) == -1)
+		err(1, "unable to limit capability rights");
+
+	if (in.fd != STDIN_FILENO && out.fd != STDIN_FILENO) {
+		if (caph_limit_stdin() == -1)
+			err(1, "unable to limit capability rights");
+	}
+
+	if (in.fd != STDOUT_FILENO && out.fd != STDOUT_FILENO) {
+		if (caph_limit_stdout() == -1)
+			err(1, "unable to limit capability rights");
+	}
+
+	if (in.fd != STDERR_FILENO && out.fd != STDERR_FILENO) {
+		if (caph_limit_stderr() == -1)
+			err(1, "unable to limit capability rights");
+	}
+
 	/*
 	 * Allocate space for the input and output buffers.  If not doing
 	 * record oriented I/O, only need a single buffer.
 	 */
-	if (!(ddflags & (C_BLOCK|C_UNBLOCK))) {
-		if ((in.db = malloc(out.dbsz + in.dbsz - 1)) == NULL)
+	if (!(ddflags & (C_BLOCK | C_UNBLOCK))) {
+		if ((in.db = malloc((size_t)out.dbsz + in.dbsz - 1)) == NULL)
 			err(1, "input buffer");
 		out.db = in.db;
-	} else {
-		in.db = malloc(MAXIMUM(in.dbsz, cbsz) + cbsz);
-		if (in.db == NULL)
-			err(1, "input buffer");
-		out.db = malloc(out.dbsz + cbsz);
-		if (out.db == NULL)
-			err(1, "output buffer");
-	}
+	} else if ((in.db = malloc(MAX((size_t)in.dbsz, cbsz) + cbsz)) == NULL ||
+	    (out.db = malloc(out.dbsz + cbsz)) == NULL)
+		err(1, "output buffer");
+
+	/* dbp is the first free position in each buffer. */
 	in.dbp = in.db;
 	out.dbp = out.db;
 
@@ -154,61 +251,118 @@ setup(void)
 		pos_out();
 
 	/*
-	 * Truncate the output file; ignore errors because it fails on some
-	 * kinds of output files, tapes, for example.
+	 * Truncate the output file.  If it fails on a type of output file
+	 * that it should _not_ fail on, error out.
 	 */
-	if ((ddflags & (C_OF | C_SEEK | C_NOTRUNC)) == (C_OF | C_SEEK))
-		(void)ftruncate(out.fd, out.offset * out.dbsz);
+	if ((ddflags & (C_OF | C_SEEK | C_NOTRUNC)) == (C_OF | C_SEEK) &&
+	    out.flags & ISTRUNC)
+		if (ftruncate(out.fd, out.offset * out.dbsz) == -1)
+			err(1, "truncating %s", out.name);
 
-	/*
-	 * If converting case at the same time as another conversion, build a
-	 * table that does both at once.  If just converting case, use the
-	 * built-in tables.
-	 */
-	if (ddflags & (C_LCASE|C_UCASE)) {
-#ifdef	NO_CONV
-		/* Should not get here, but just in case... */
-		errx(1, "case conv and -DNO_CONV");
-#else	/* NO_CONV */
-		u_int cnt;
-		if (ddflags & C_ASCII || ddflags & C_EBCDIC) {
-			if (ddflags & C_LCASE) {
-				for (cnt = 0; cnt < 0377; ++cnt)
-					casetab[cnt] = tolower(ctab[cnt]);
-			} else {
-				for (cnt = 0; cnt < 0377; ++cnt)
-					casetab[cnt] = toupper(ctab[cnt]);
-			}
+	if (ddflags & (C_LCASE  | C_UCASE | C_ASCII | C_EBCDIC | C_PARITY)) {
+		if (ctab != NULL) {
+			for (cnt = 0; cnt <= 0377; ++cnt)
+				casetab[cnt] = ctab[cnt];
 		} else {
-			if (ddflags & C_LCASE) {
-				for (cnt = 0; cnt < 0377; ++cnt)
-					casetab[cnt] = tolower(cnt);
-			} else {
-				for (cnt = 0; cnt < 0377; ++cnt)
-					casetab[cnt] = toupper(cnt);
-			}
+			for (cnt = 0; cnt <= 0377; ++cnt)
+				casetab[cnt] = cnt;
+		}
+		if ((ddflags & C_PARITY) && !(ddflags & C_ASCII)) {
+			/*
+			 * If the input is not EBCDIC, and we do parity
+			 * processing, strip input parity.
+			 */
+			for (cnt = 200; cnt <= 0377; ++cnt)
+				casetab[cnt] = casetab[cnt & 0x7f];
+		}
+		if (ddflags & C_LCASE) {
+			for (cnt = 0; cnt <= 0377; ++cnt)
+				casetab[cnt] = tolower(casetab[cnt]);
+		} else if (ddflags & C_UCASE) {
+			for (cnt = 0; cnt <= 0377; ++cnt)
+				casetab[cnt] = toupper(casetab[cnt]);
+		}
+		if ((ddflags & C_PARITY)) {
+			/*
+			 * This should strictly speaking be a no-op, but I
+			 * wonder what funny LANG settings could get us.
+			 */
+			for (cnt = 0; cnt <= 0377; ++cnt)
+				casetab[cnt] = casetab[cnt] & 0x7f;
+		}
+		if ((ddflags & C_PARSET)) {
+			for (cnt = 0; cnt <= 0377; ++cnt)
+				casetab[cnt] = casetab[cnt] | 0x80;
+		}
+		if ((ddflags & C_PAREVEN)) {
+			for (cnt = 0; cnt <= 0377; ++cnt)
+				if (parity(casetab[cnt]))
+					casetab[cnt] = casetab[cnt] | 0x80;
+		}
+		if ((ddflags & C_PARODD)) {
+			for (cnt = 0; cnt <= 0377; ++cnt)
+				if (!parity(casetab[cnt]))
+					casetab[cnt] = casetab[cnt] | 0x80;
 		}
 
 		ctab = casetab;
-#endif	/* NO_CONV */
 	}
 
-	/* Statistics timestamp. */
-	clock_gettime(CLOCK_MONOTONIC, &st.start);
+	if (clock_gettime(CLOCK_MONOTONIC, &st.start))
+		err(1, "clock_gettime");
 }
 
 static void
 getfdtype(IO *io)
 {
-	struct mtget mt;
 	struct stat sb;
+	int type;
 
-	if (fstat(io->fd, &sb))
+	if (fstat(io->fd, &sb) == -1)
 		err(1, "%s", io->name);
-	if (S_ISCHR(sb.st_mode))
-		io->flags |= ioctl(io->fd, MTIOCGET, &mt) ? ISCHR : ISTAPE;
-	if (S_ISFIFO(sb.st_mode) || S_ISSOCK(sb.st_mode))
+	if (S_ISREG(sb.st_mode))
+		io->flags |= ISTRUNC;
+	if (S_ISCHR(sb.st_mode) || S_ISBLK(sb.st_mode)) { 
+		if (ioctl(io->fd, FIODTYPE, &type) == -1) {
+			err(1, "%s", io->name);
+		} else {
+			if (type & D_TAPE)
+				io->flags |= ISTAPE;
+			else if (type & (D_DISK | D_MEM))
+				io->flags |= ISSEEK;
+			if (S_ISCHR(sb.st_mode) && (type & D_TAPE) == 0)
+				io->flags |= ISCHR;
+		}
+		return;
+	}
+	errno = 0;
+	if (lseek(io->fd, (off_t)0, SEEK_CUR) == -1 && errno == ESPIPE)
 		io->flags |= ISPIPE;
+	else
+		io->flags |= ISSEEK;
+}
+
+/*
+ * Limit the speed by adding a delay before every block read.
+ * The delay (t_usleep) is equal to the time computed from block
+ * size and the specified speed limit (t_target) minus the time
+ * spent on actual read and write operations (t_io).
+ */
+static void
+speed_limit(void)
+{
+	static double t_prev, t_usleep;
+	double t_now, t_io, t_target;
+
+	t_now = secs_elapsed();
+	t_io = t_now - t_prev - t_usleep;
+	t_target = (double)in.dbsz / (double)speed;
+	t_usleep = t_target - t_io;
+	if (t_usleep > 0)
+		usleep(t_usleep * 1000000);
+	else
+		t_usleep = 0;
+	t_prev = t_now;
 }
 
 static void
@@ -226,34 +380,48 @@ swapbytes(void *v, size_t len)
 	}
 }
 
-
 static void
 dd_in(void)
 {
 	ssize_t n;
 
 	for (;;) {
-		if (cpy_cnt && (st.in_full + st.in_part) >= cpy_cnt)
+		switch (cpy_cnt) {
+		case -1:			/* count=0 was specified */
 			return;
+		case 0:
+			break;
+		default:
+			if (st.in_full + st.in_part >= (uintmax_t)cpy_cnt)
+				return;
+			break;
+		}
+
+		if (speed > 0)
+			speed_limit();
 
 		/*
-		 * Zero the buffer first if sync; if doing block operations
+		 * Zero the buffer first if sync; if doing block operations,
 		 * use spaces.
 		 */
 		if (ddflags & C_SYNC) {
-			if (ddflags & (C_BLOCK|C_UNBLOCK))
-				(void)memset(in.dbp, ' ', in.dbsz);
+			if (ddflags & C_FILL)
+				memset(in.dbp, fill_char, in.dbsz);
+			else if (ddflags & (C_BLOCK | C_UNBLOCK))
+				memset(in.dbp, ' ', in.dbsz);
 			else
-				(void)memset(in.dbp, 0, in.dbsz);
+				memset(in.dbp, 0, in.dbsz);
 		}
 
-		n = read(in.fd, in.dbp, in.dbsz);
-		if (n == 0) {
-			in.dbrcnt = 0;
+		in.dbrcnt = 0;
+fill:
+		n = read(in.fd, in.dbp + in.dbrcnt, in.dbsz - in.dbrcnt);
+
+		/* EOF */
+		if (n == 0 && in.dbrcnt == 0)
 			return;
-		}
 
-		/* Read error. */
+		/* Read error */
 		if (n == -1) {
 			/*
 			 * If noerror not specified, die.  POSIX requires that
@@ -265,44 +433,44 @@ dd_in(void)
 			summary();
 
 			/*
-			 * If it's not a tape drive or a pipe, seek past the
+			 * If it's a seekable file descriptor, seek past the
 			 * error.  If your OS doesn't do the right thing for
 			 * raw disks this section should be modified to re-read
 			 * in sector size chunks.
 			 */
-			if (!(in.flags & (ISPIPE|ISTAPE)) &&
+			if (in.flags & ISSEEK &&
 			    lseek(in.fd, (off_t)in.dbsz, SEEK_CUR))
 				warn("%s", in.name);
 
 			/* If sync not specified, omit block and continue. */
 			if (!(ddflags & C_SYNC))
 				continue;
-
-			/* Read errors count as full blocks. */
-			in.dbcnt += in.dbrcnt = in.dbsz;
-			++st.in_full;
-
-		/* Handle full input blocks. */
-		} else if (n == in.dbsz) {
-			in.dbcnt += in.dbrcnt = n;
-			++st.in_full;
-
-		/* Handle partial input blocks. */
-		} else {
-			/* If sync, use the entire block. */
-			if (ddflags & C_SYNC)
-				in.dbcnt += in.dbrcnt = in.dbsz;
-			else
-				in.dbcnt += in.dbrcnt = n;
-			++st.in_part;
 		}
+
+		/* If conv=sync, use the entire block. */
+		if (ddflags & C_SYNC)
+			n = in.dbsz;
+
+		/* Count the bytes read for this block. */
+		in.dbrcnt += n;
+
+		/* Count the number of full and partial blocks. */
+		if (in.dbrcnt == in.dbsz)
+			++st.in_full;
+		else if (ddflags & C_IFULLBLOCK && n != 0)
+			goto fill; /* these don't count */
+		else
+			++st.in_part;
+
+		/* Count the total bytes read for this file. */
+		in.dbcnt += in.dbrcnt;
 
 		/*
 		 * POSIX states that if bs is set and no other conversions
 		 * than noerror, notrunc or sync are specified, the block
 		 * is output without buffering as it is read.
 		 */
-		if (ddflags & C_BS) {
+		if ((ddflags & ~(C_NOERROR | C_NOTRUNC | C_SYNC)) == C_BS) {
 			out.dbcnt = in.dbcnt;
 			dd_out(1);
 			in.dbcnt = 0;
@@ -314,16 +482,21 @@ dd_in(void)
 				++st.swab;
 				--n;
 			}
-			swapbytes(in.dbp, n);
+			swapbytes(in.dbp, (size_t)n);
 		}
 
+		/* Advance to the next block. */
 		in.dbp += in.dbrcnt;
 		(*cfunc)();
+		if (need_summary)
+			summary();
+		if (need_progress)
+			progress();
 	}
 }
 
 /*
- * Cleanup any remaining I/O and flush output.  If necessary, output file
+ * Clean up any remaining I/O and flush output.  If necessary, the output file
  * is truncated.
  */
 static void
@@ -336,27 +509,43 @@ dd_close(void)
 	else if (cfunc == unblock)
 		unblock_close();
 	if (ddflags & C_OSYNC && out.dbcnt && out.dbcnt < out.dbsz) {
-		if (ddflags & (C_BLOCK|C_UNBLOCK))
+		if (ddflags & C_FILL)
+			memset(out.dbp, fill_char, out.dbsz - out.dbcnt);
+		else if (ddflags & (C_BLOCK | C_UNBLOCK))
 			memset(out.dbp, ' ', out.dbsz - out.dbcnt);
 		else
 			memset(out.dbp, 0, out.dbsz - out.dbcnt);
 		out.dbcnt = out.dbsz;
 	}
-	if (out.dbcnt)
+	if (out.dbcnt || pending)
 		dd_out(1);
+
+	/*
+	 * If the file ends with a hole, ftruncate it to extend its size
+	 * up to the end of the hole (without having to write any data).
+	 */
+	if (out.seek_offset > 0 && (out.flags & ISTRUNC)) {
+		if (ftruncate(out.fd, out.seek_offset) == -1)
+			err(1, "truncating %s", out.name);
+	}
+
 	if (ddflags & C_FSYNC) {
 		if (fsync(out.fd) == -1)
-			err(1, "fsync %s", out.name);
+			err(1, "fsyncing %s", out.name);
+	} else if (ddflags & C_FDATASYNC) {
+		if (fdatasync(out.fd) == -1)
+			err(1, "fdatasyncing %s", out.name);
 	}
 }
 
 void
 dd_out(int force)
 {
-	static int warned;
+	u_char *outp;
 	size_t cnt, n;
 	ssize_t nw;
-	u_char *outp;
+	static int warned;
+	int sparse;
 
 	/*
 	 * Write one or more blocks out.  The common case is writing a full
@@ -375,36 +564,75 @@ dd_out(int force)
 	 * we play games with the buffer size, and it's usually a partial write.
 	 */
 	outp = out.db;
+
+	/*
+	 * If force, first try to write all pending data, else try to write
+	 * just one block. Subsequently always write data one full block at
+	 * a time at most.
+	 */
 	for (n = force ? out.dbcnt : out.dbsz;; n = out.dbsz) {
-		for (cnt = n;; cnt -= nw) {
-			nw = write(out.fd, outp, cnt);
-			if (nw == 0)
-				errx(1, "%s: end of device", out.name);
-			if (nw == -1) {
+		cnt = n;
+		do {
+			sparse = 0;
+			if (ddflags & C_SPARSE) {
+				/* Is buffer sparse? */
+				sparse = BISZERO(outp, cnt);
+			}
+			if (sparse && !force) {
+				pending += cnt;
+				nw = cnt;
+			} else {
+				if (pending != 0) {
+					/*
+					 * Seek past hole.  Note that we need to record the
+					 * reached offset, because we might have no more data
+					 * to write, in which case we'll need to call
+					 * ftruncate to extend the file size.
+					 */
+					out.seek_offset = lseek(out.fd, pending, SEEK_CUR);
+					if (out.seek_offset == -1)
+						err(2, "%s: seek error creating sparse file",
+						    out.name);
+					pending = 0;
+				}
+				if (cnt) {
+					nw = write(out.fd, outp, cnt);
+					out.seek_offset = 0;
+				} else {
+					return;
+				}
+			}
+
+			if (nw <= 0) {
+				if (nw == 0)
+					errx(1, "%s: end of device", out.name);
 				if (errno != EINTR)
 					err(1, "%s", out.name);
 				nw = 0;
 			}
+
 			outp += nw;
 			st.bytes += nw;
-			if (nw == n) {
-				if (n != out.dbsz)
-					++st.out_part;
-				else
-					++st.out_full;
-				break;
+
+			if ((size_t)nw == n && n == (size_t)out.dbsz)
+				++st.out_full;
+			else
+				++st.out_part;
+
+			if ((size_t) nw != cnt) {
+				if (out.flags & ISTAPE)
+					errx(1, "%s: short write on tape device",
+				    	out.name);
+				if (out.flags & ISCHR && !warned) {
+					warned = 1;
+					warnx("%s: short write on character device",
+				    	out.name);
+				}
 			}
-			++st.out_part;
-			if (nw == cnt)
-				break;
-			if (out.flags & ISCHR && !warned) {
-				warned = 1;
-				warnx("%s: short write on character device",
-				    out.name);
-			}
-			if (out.flags & ISTAPE)
-				errx(1, "%s: short write on tape device", out.name);
-		}
+
+			cnt -= nw;
+		} while (cnt != 0);
+
 		if ((out.dbcnt -= n) < out.dbsz)
 			break;
 	}

@@ -1,5 +1,6 @@
-/*	$OpenBSD: extern.h,v 1.6 2015/01/19 15:30:52 krw Exp $ */
 /*-
+ * SPDX-License-Identifier: BSD-4-Clause
+ *
  * Copyright (c) 1991 Keith Muller.
  * Copyright (c) 1993
  *	The Regents of the University of California.  All rights reserved.
@@ -15,7 +16,11 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. Neither the name of the University nor the names of its contributors
+ * 3. All advertising materials mentioning features or use of this software
+ *    must display the following acknowledgement:
+ *	This product includes software developed by the University of
+ *	California, Berkeley and its contributors.
+ * 4. Neither the name of the University nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -31,25 +36,28 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *      from: @(#)extern.h	8.1 (Berkeley) 6/6/93
+ *      @(#)extern.h	8.1 (Berkeley) 6/6/93
+ * $FreeBSD$
  */
 
+extern int eopterr;
 extern int eoptind;
+extern int eoptopt;
 extern char *eoptarg;
 
 void	 addnum(char *, int, int);
 int	 egetopt(int, char * const *, const char *);
 void	 flsh_errs(void);
 int	 horzcol(int, char **);
-int	 inln(FILE *, char *, int, int *, int *, int, int *);
+int	 inln(FILE *, char *, int, int *, int, int *);
 int	 inskip(FILE *, int, int);
 void	 mfail(void);
 int	 mulfile(int, char **);
-FILE	*nxtfile(int, char **, char **, char *, int);
+FILE	*nxtfile(int, char **, const char **, char *, int);
 int	 onecol(int, char **);
 int	 otln(char *, int, int *, int *, int);
 void	 pfail(void);
-int	 prhead(char *, char *, int);
+int	 prhead(char *, const char *, int);
 int	 prtail(int, int);
 int	 setup(int, char **);
 void	 terminate(int);

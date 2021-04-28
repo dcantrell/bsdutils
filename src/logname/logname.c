@@ -1,7 +1,6 @@
-/*	$OpenBSD: logname.c,v 1.10 2016/10/13 11:51:02 schwarze Exp $	*/
-/*	$NetBSD: logname.c,v 1.6 1994/12/22 06:39:32 jtc Exp $	*/
-
 /*-
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
  * Copyright (c) 1991, 1993, 1994
  *	The Regents of the University of California.  All rights reserved.
  *
@@ -30,36 +29,45 @@
  * SUCH DAMAGE.
  */
 
+#ifndef lint
+static const char copyright[] =
+"@(#) Copyright (c) 1991, 1993, 1994\n\
+	The Regents of the University of California.  All rights reserved.\n";
+#endif /* not lint */
+
+#ifndef lint
+static const char sccsid[] = "@(#)logname.c	8.2 (Berkeley) 4/3/94";
+#endif /* not lint */
+#include <sys/cdefs.h>
+__FBSDID("$FreeBSD$");
+
+#include <capsicum_helpers.h>
 #include <err.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 
-static void
+void usage(void);
+
+int
+main(int argc, char *argv[] __unused)
+{
+	char *p;
+
+	if (caph_limit_stdio() < 0 || caph_enter() < 0)
+		err(1, "capsicum");
+
+	if (argc != 1)
+		usage();
+	if ((p = getlogin()) == NULL)
+		err(1, NULL);
+	(void)printf("%s\n", p);
+	exit(0);
+}
+
+void
 usage(void)
 {
 	(void)fprintf(stderr, "usage: logname\n");
 	exit(1);
-}
-
-int
-main(int argc, char *argv[])
-{
-	int ch;
-	char *p;
-
-	while ((ch = getopt(argc, argv, "")) != -1)
-		switch (ch) {
-		default:
-			usage();
-		}
-
-	if (argc != optind)
-		usage();
-
-	if ((p = getlogin()) == NULL)
-		err(1, NULL);
-
-	(void)printf("%s\n", p);
-	return 0;
 }

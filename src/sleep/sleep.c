@@ -1,7 +1,4 @@
-/*	$OpenBSD: sleep.c,v 1.29 2020/02/25 15:46:15 cheloha Exp $	*/
-/*	$NetBSD: sleep.c,v 1.8 1995/03/21 09:11:11 cgd Exp $	*/
-
-/*
+/*-
  * Copyright (c) 1988, 1993, 1994
  *	The Regents of the University of California.  All rights reserved.
  *
@@ -30,96 +27,85 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/time.h>
+#if 0
+#ifndef lint
+static char const copyright[] =
+"@(#) Copyright (c) 1988, 1993, 1994\n\
+	The Regents of the University of California.  All rights reserved.\n";
+#endif /* not lint */
 
-#include <ctype.h>
+#ifndef lint
+static char sccsid[] = "@(#)sleep.c	8.3 (Berkeley) 4/2/94";
+#endif /* not lint */
+#endif
+#include <sys/cdefs.h>
+__FBSDID("$FreeBSD$");
+
+#include <capsicum_helpers.h>
 #include <err.h>
+#include <errno.h>
+#include <limits.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include <unistd.h>
-#include <string.h>
 
-extern char *__progname;
+static void usage(void);
 
-void alarmh(int);
-void usage(void);
+static volatile sig_atomic_t report_requested;
+static void
+report_request(int signo __unused)
+{
+
+	report_requested = 1;
+}
 
 int
 main(int argc, char *argv[])
 {
-	struct timespec rqtp;
-	time_t t;
-	char *cp;
-	int ch, i;
+	struct timespec time_to_sleep;
+	double d;
+	time_t original;
+	char buf[2];
 
-	signal(SIGALRM, alarmh);
+	if (caph_limit_stdio() < 0 || caph_enter() < 0)
+		err(1, "capsicum");
 
-	while ((ch = getopt(argc, argv, "")) != -1) {
-		switch(ch) {
-		default:
-			usage();
-		}
-	}
-	argc -= optind;
-	argv += optind;
-
-	if (argc != 1)
+	if (argc != 2)
 		usage();
 
-	memset(&rqtp, 0, sizeof(rqtp));
+	if (sscanf(argv[1], "%lf%1s", &d, buf) != 1)
+		usage();
+	if (d > INT_MAX)
+		usage();
+	if (d <= 0)
+		return (0);
+	original = time_to_sleep.tv_sec = (time_t)d;
+	time_to_sleep.tv_nsec = 1e9 * (d - time_to_sleep.tv_sec);
 
-	/* Handle whole seconds. */
-	for (cp = argv[0]; *cp != '\0' && *cp != '.'; cp++) {
-		if (!isdigit((unsigned char)*cp))
-			errx(1, "seconds is invalid: %s", argv[0]);
-		t = (rqtp.tv_sec * 10) + (*cp - '0');
-		if (t / 10 != rqtp.tv_sec)	/* overflow */
-			errx(1, "seconds is too large: %s", argv[0]);
-		rqtp.tv_sec = t;
-	}
+	signal(SIGINFO, report_request);
 
 	/*
-	 * Handle fractions of a second.  The multiplier divides to zero
-	 * after nine digits so anything more precise than a nanosecond is
-	 * validated but not used.
+	 * Note: [EINTR] is supposed to happen only when a signal was handled
+	 * but the kernel also returns it when a ptrace-based debugger
+	 * attaches. This is a bug but it is hard to fix.
 	 */
-	if (*cp == '.') {
-		i = 100000000;
-		for (cp++; *cp != '\0'; cp++) {
-			if (!isdigit((unsigned char)*cp))
-				errx(1, "seconds is invalid: %s", argv[0]);
-			rqtp.tv_nsec += (*cp - '0') * i;
-			i /= 10;
-		}
-	}
-
-	if (rqtp.tv_sec || rqtp.tv_nsec) {
-		if (nanosleep(&rqtp, NULL) == -1)
+	while (nanosleep(&time_to_sleep, &time_to_sleep) != 0) {
+		if (report_requested) {
+			/* Reporting does not bother with nanoseconds. */
+			warnx("about %d second(s) left out of the original %d",
+			    (int)time_to_sleep.tv_sec, (int)original);
+			report_requested = 0;
+		} else if (errno != EINTR)
 			err(1, "nanosleep");
 	}
-
-	return 0;
+	return (0);
 }
 
-void
+static void
 usage(void)
 {
-	fprintf(stderr, "usage: %s seconds\n", __progname);
-	exit(1);
-}
 
-/*
- * POSIX.1 says sleep(1) may exit with status zero upon receipt
- * of SIGALRM.
- */
-void
-alarmh(int signo)
-{
-	/*
-	 * Always _exit(2) from signal handlers: exit(3) is not
-	 * generally signal-safe.
-	 */
-	_exit(0);
+	fprintf(stderr, "usage: sleep seconds\n");
+	exit(1);
 }

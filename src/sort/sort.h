@@ -1,6 +1,8 @@
-/*	$OpenBSD: sort.h,v 1.10 2015/12/31 16:09:31 millert Exp $	*/
+/*	$FreeBSD$	*/
 
 /*-
+ * SPDX-License-Identifier: BSD-2-Clause-FreeBSD
+ *
  * Copyright (C) 2009 Gabor Kovesdan <gabor@FreeBSD.org>
  * Copyright (C) 2012 Oleg Moskalenko <mom040267@gmail.com>
  * All rights reserved.
@@ -33,12 +35,30 @@
 #include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <sysexits.h>
 #include <wchar.h>
 
 #include <sys/types.h>
-#include <openssl/md5.h>
+#include <md5.h>
 
-#define	VERSION	"2.3-OpenBSD"
+#define	VERSION	"2.3-FreeBSD"
+
+#ifdef WITHOUT_NLS
+#define	getstr(n)	 nlsstr[n]
+#else
+#include <nl_types.h>
+
+extern nl_catd catalog;
+#define	getstr(n)	 catgets(catalog, 1, n, nlsstr[n])
+#endif
+
+extern const char *nlsstr[];
+
+#if defined(SORT_THREADS)
+#define	MT_SORT_THRESHOLD (10000)
+extern unsigned int ncpu;
+extern size_t nthreads;
+#endif
 
 /*
  * If true, we output some debug information.
@@ -57,7 +77,8 @@ extern MD5_CTX md5_ctx;
 /*
  * This structure holds main sort options which are NOT affecting the sort ordering.
  */
-struct sort_opts {
+struct sort_opts
+{
 	wint_t		field_sep;
 	int		sort_method;
 	bool		cflag;
@@ -84,7 +105,8 @@ typedef int (*cmpcoll_t)(struct key_value *kv1, struct key_value *kv2, size_t of
 /*
  * This structure holds "sort modifiers" - options which are affecting the sort ordering.
  */
-struct sort_mods {
+struct sort_mods
+{
 	cmpcoll_t	func;
 	bool		bflag;
 	bool		dflag;

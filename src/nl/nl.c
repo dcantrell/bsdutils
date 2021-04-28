@@ -1,7 +1,6 @@
-/*	$OpenBSD: nl.c,v 1.7 2019/04/21 01:08:46 deraadt Exp $ */
-/*	$NetBSD: nl.c,v 1.11 2011/08/16 12:00:46 christos Exp $	*/
-
 /*-
+ * SPDX-License-Identifier: BSD-2-Clause-NetBSD
+ *
  * Copyright (c) 1999 The NetBSD Foundation, Inc.
  * All rights reserved.
  *
@@ -30,6 +29,16 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <sys/cdefs.h>
+#ifndef lint
+__COPYRIGHT(
+"@(#) Copyright (c) 1999\
+ The NetBSD Foundation, Inc.  All rights reserved.");
+__RCSID("$FreeBSD$");
+#endif    
+
+#include <sys/types.h>
+
 #include <err.h>
 #include <errno.h>
 #include <limits.h>
@@ -40,10 +49,6 @@
 #include <string.h>
 #include <unistd.h>
 #include <wchar.h>
-
-#include "compat.h"
-
-extern char *__progname;
 
 typedef enum {
 	number_all,		/* number all lines */
@@ -69,18 +74,30 @@ struct numbering_property {
 #define NP_LAST		HEADER
 
 static struct numbering_property numbering_properties[NP_LAST + 1] = {
-	{ "footer",	number_none,	{ 0, 0, 0, 0 } },
-	{ "body",	number_nonempty, { 0, 0, 0, 0 } },
-	{ "header",	number_none,	{ 0, 0, 0, 0 } },
+	{ .name = "footer", .type = number_none },
+	{ .name = "body", .type = number_nonempty },
+	{ .name = "header", .type = number_none }
 };
 
-void		filter(void);
-void		parse_numbering(const char *, int);
-void	usage(void);
+#define max(a, b)	((a) > (b) ? (a) : (b))
 
 /*
- * Delimiter characters that indicate the start of a logical page section.
+ * Maximum number of characters required for a decimal representation of a
+ * (signed) int; courtesy of tzcode.
  */
+#define INT_STRLEN_MAXIMUM \
+	((sizeof (int) * CHAR_BIT - 1) * 302 / 1000 + 2)
+
+static void	filter(void);
+static void	parse_numbering(const char *, int);
+static void	usage(void);
+
+/*
+ * Dynamically allocated buffer suitable for string representation of ints.
+ */
+static char *intbuffer;
+
+/* delimiter characters that indicate the start of a logical page section */
 static char delim[2 * MB_LEN_MAX];
 static int delimlen;
 
@@ -115,10 +132,12 @@ int
 main(int argc, char *argv[])
 {
 	int c;
-	size_t clen;
+	long val;
+	unsigned long uval;
+	char *ep;
+	size_t intbuffersize, clen;
 	char delim1[MB_LEN_MAX] = { '\\' }, delim2[MB_LEN_MAX] = { ':' };
 	size_t delim1len = 1, delim2len = 1;
-	const char *errstr;
 
 	(void)setlocale(LC_ALL, "");
 
@@ -132,26 +151,22 @@ main(int argc, char *argv[])
 			break;
 		case 'd':
 			clen = mbrlen(optarg, MB_CUR_MAX, NULL);
-			if (clen == (size_t)-1 || clen == (size_t)-2) {
-				errno = EILSEQ;
-				err(EXIT_FAILURE, NULL);
-			}
+			if (clen == (size_t)-1 || clen == (size_t)-2)
+				errc(EXIT_FAILURE, EILSEQ, NULL);
 			if (clen != 0) {
 				memcpy(delim1, optarg, delim1len = clen);
 				clen = mbrlen(optarg + delim1len,
 				    MB_CUR_MAX, NULL);
-				if (clen == (size_t)-1 || clen == (size_t)-2) {
-					errno = EILSEQ;
-					err(EXIT_FAILURE, NULL);
-				}
+				if (clen == (size_t)-1 ||
+				    clen == (size_t)-2)
+					errc(EXIT_FAILURE, EILSEQ, NULL);
 				if (clen != 0) {
 					memcpy(delim2, optarg + delim1len,
 					    delim2len = clen);
-					if (optarg[delim1len + clen] != '\0') {
-						errx(EXIT_FAILURE,
-						    "invalid delimiter: %s",
-						    optarg);
-					}
+				if (optarg[delim1len + clen] != '\0')
+					errx(EXIT_FAILURE,
+					    "invalid delim argument -- %s",
+					    optarg);
 				}
 			}
 			break;
@@ -162,17 +177,22 @@ main(int argc, char *argv[])
 			parse_numbering(optarg, HEADER);
 			break;
 		case 'i':
-			incr = strtonum(optarg, INT_MIN, INT_MAX, &errstr);
-			if (errstr)
-				errx(EXIT_FAILURE, "increment value is %s: %s",
-				    errstr, optarg);
+			errno = 0;
+			val = strtol(optarg, &ep, 10);
+			if ((ep != NULL && *ep != '\0') ||
+			 ((val == LONG_MIN || val == LONG_MAX) && errno != 0))
+				errx(EXIT_FAILURE,
+				    "invalid incr argument -- %s", optarg);
+			incr = (int)val;
 			break;
 		case 'l':
-			nblank = strtonum(optarg, 0, UINT_MAX, &errstr);
-			if (errstr)
+			errno = 0;
+			uval = strtoul(optarg, &ep, 10);
+			if ((ep != NULL && *ep != '\0') ||
+			    (uval == ULONG_MAX && errno != 0))
 				errx(EXIT_FAILURE,
-				    "blank line value is %s: %s",
-				    errstr, optarg);
+				    "invalid num argument -- %s", optarg);
+			nblank = (unsigned int)uval;
 			break;
 		case 'n':
 			if (strcmp(optarg, "ln") == 0) {
@@ -189,17 +209,26 @@ main(int argc, char *argv[])
 			sep = optarg;
 			break;
 		case 'v':
-			startnum = strtonum(optarg, INT_MIN, INT_MAX, &errstr);
-			if (errstr)
+			errno = 0;
+			val = strtol(optarg, &ep, 10);
+			if ((ep != NULL && *ep != '\0') ||
+			 ((val == LONG_MIN || val == LONG_MAX) && errno != 0))
 				errx(EXIT_FAILURE,
-				    "initial logical page value is %s: %s",
-				    errstr, optarg);
+				    "invalid startnum value -- %s", optarg);
+			startnum = (int)val;
 			break;
 		case 'w':
-			width = strtonum(optarg, 1, INT_MAX, &errstr);
-			if (errstr)
-				errx(EXIT_FAILURE, "width is %s: %s", errstr,
-				    optarg);
+			errno = 0;
+			val = strtol(optarg, &ep, 10);
+			if ((ep != NULL && *ep != '\0') ||
+			 ((val == LONG_MIN || val == LONG_MAX) && errno != 0))
+				errx(EXIT_FAILURE,
+				    "invalid width value -- %s", optarg);
+			width = (int)val;
+			if (!(width > 0))
+				errx(EXIT_FAILURE,
+				    "width argument must be > 0 -- %d",
+				    width);
 			break;
 		case '?':
 		default:
@@ -228,13 +257,19 @@ main(int argc, char *argv[])
 	memcpy(delim + delim1len, delim2, delim2len);
 	delimlen = delim1len + delim2len;
 
+	/* Allocate a buffer suitable for preformatting line number. */
+	intbuffersize = max((int)INT_STRLEN_MAXIMUM, width) + 1; /* NUL */
+	if ((intbuffer = malloc(intbuffersize)) == NULL)
+		err(EXIT_FAILURE, "cannot allocate preformatting buffer");
+
 	/* Do the work. */
 	filter();
 
 	exit(EXIT_SUCCESS);
+	/* NOTREACHED */
 }
 
-void
+static void
 filter(void)
 {
 	char *buffer;
@@ -243,6 +278,7 @@ filter(void)
 	int line;		/* logical line number */
 	int section;		/* logical page section */
 	unsigned int adjblank;	/* adjacent blank lines */
+	int consumed;		/* intbuffer measurement */
 	int donumber = 0, idx;
 
 	adjblank = 0;
@@ -295,12 +331,15 @@ filter(void)
 		}
 
 		if (donumber) {
-			(void)printf(format, width, line);
+			/* Note: sprintf() is safe here. */
+			consumed = sprintf(intbuffer, format, width, line);
+			(void)printf("%s",
+			    intbuffer + max(0, consumed - width));
 			line += incr;
-			(void)fputs(sep, stdout);
 		} else {
 			(void)printf("%*s", width, "");
 		}
+		(void)fputs(sep, stdout);
 		(void)fwrite(buffer, linelen, 1, stdout);
 
 		if (ferror(stdout))
@@ -319,7 +358,7 @@ nextline:
  * Various support functions.
  */
 
-void
+static void
 parse_numbering(const char *argstr, int section)
 {
 	int error;
@@ -347,7 +386,7 @@ parse_numbering(const char *argstr, int section)
 		    &argstr[1], REG_NEWLINE|REG_NOSUB)) != 0) {
 			(void)regerror(error,
 			    &numbering_properties[section].expr,
-			    errorbuf, sizeof(errorbuf));
+			    errorbuf, sizeof (errorbuf));
 			errx(EXIT_FAILURE,
 			    "%s expr: %s -- %s",
 			    numbering_properties[section].name, errorbuf,
@@ -361,11 +400,12 @@ parse_numbering(const char *argstr, int section)
 	}
 }
 
-void
+static void
 usage(void)
 {
-	(void)fprintf(stderr, "usage: %s [-p] [-b type] [-d delim] [-f type] "
-	    "[-h type] [-i incr] [-l num]\n\t[-n format] [-s sep] "
-	    "[-v startnum] [-w width] [file]\n", __progname);
+
+	(void)fprintf(stderr,
+"usage: nl [-p] [-b type] [-d delim] [-f type] [-h type] [-i incr] [-l num]\n"
+"          [-n format] [-s sep] [-v startnum] [-w width] [file]\n");
 	exit(EXIT_FAILURE);
 }

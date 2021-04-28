@@ -1,6 +1,3 @@
-/*	$OpenBSD: stty.c,v 1.21 2019/06/28 13:35:00 deraadt Exp $	*/
-/*	$NetBSD: stty.c,v 1.11 1995/03/21 09:11:30 cgd Exp $	*/
-
 /*-
  * Copyright (c) 1989, 1991, 1993, 1994
  *	The Regents of the University of California.  All rights reserved.
@@ -30,24 +27,33 @@
  * SUCH DAMAGE.
  */
 
+#if 0
+#ifndef lint
+static char const copyright[] =
+"@(#) Copyright (c) 1989, 1991, 1993, 1994\n\
+	The Regents of the University of California.  All rights reserved.\n";
+#endif /* not lint */
+
+#ifndef lint
+static char sccsid[] = "@(#)stty.c	8.3 (Berkeley) 4/2/94";
+#endif /* not lint */
+#endif
+#include <sys/cdefs.h>
+__FBSDID("$FreeBSD$");
+
 #include <sys/types.h>
-#include <sys/ioctl.h>
 
 #include <ctype.h>
 #include <err.h>
-#include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <termios.h>
 #include <unistd.h>
 
 #include "stty.h"
 #include "extern.h"
-
-#include "compat.h"
 
 int
 main(int argc, char *argv[])
@@ -55,28 +61,32 @@ main(int argc, char *argv[])
 	struct info i;
 	enum FMT fmt;
 	int ch;
+	const char *file, *errstr = NULL;
 
 	fmt = NOTSET;
 	i.fd = STDIN_FILENO;
+	file = "stdin";
 
 	opterr = 0;
 	while (optind < argc &&
 	    strspn(argv[optind], "-aefg") == strlen(argv[optind]) &&
 	    (ch = getopt(argc, argv, "aef:g")) != -1)
 		switch(ch) {
-		case 'a':
+		case 'a':		/* undocumented: POSIX compatibility */
 			fmt = POSIX;
 			break;
 		case 'e':
 			fmt = BSD;
 			break;
 		case 'f':
-			if ((i.fd = open(optarg, O_RDONLY | O_NONBLOCK)) == -1)
+			if ((i.fd = open(optarg, O_RDONLY | O_NONBLOCK)) < 0)
 				err(1, "%s", optarg);
+			file = optarg;
 			break;
 		case 'g':
 			fmt = GFLAG;
 			break;
+		case '?':
 		default:
 			goto args;
 		}
@@ -84,13 +94,14 @@ main(int argc, char *argv[])
 args:	argc -= optind;
 	argv += optind;
 
-	if (ioctl(i.fd, TIOCGETD, &i.ldisc) == -1)
+	if (tcgetattr(i.fd, &i.t) < 0)
+		errx(1, "%s isn't a terminal", file);
+	if (ioctl(i.fd, TIOCGETD, &i.ldisc) < 0)
 		err(1, "TIOCGETD");
-
-	if (tcgetattr(i.fd, &i.t) == -1)
-		errx(1, "not a terminal");
-	if (ioctl(i.fd, TIOCGWINSZ, &i.win) == -1)
+	if (ioctl(i.fd, TIOCGWINSZ, &i.win) < 0)
 		warn("TIOCGWINSZ");
+
+	checkredirect();			/* conversion aid */
 
 	switch(fmt) {
 	case NOTSET:
@@ -99,13 +110,9 @@ args:	argc -= optind;
 		/* FALLTHROUGH */
 	case BSD:
 	case POSIX:
-		if (*argv)
-			errx(1, "either display or modify");
 		print(&i.t, &i.win, i.ldisc, fmt);
 		break;
 	case GFLAG:
-		if (*argv)
-			errx(1, "either display or modify");
 		gprint(&i.t, &i.win, i.ldisc);
 		break;
 	}
@@ -120,13 +127,12 @@ args:	argc -= optind;
 		if (msearch(&argv, &i))
 			continue;
 
-		if (isdigit((unsigned char)**argv)) {
-			const char *error;
-			int speed;
+		if (isdigit(**argv)) {
+			speed_t speed;
 
-			speed = strtonum(*argv, 0, INT_MAX, &error);
-			if (error)
-				err(1, "%s", *argv);
+			speed = strtonum(*argv, 0, UINT_MAX, &errstr);
+			if (errstr)
+				err(1, "speed");
 			cfsetospeed(&i.t, speed);
 			cfsetispeed(&i.t, speed);
 			i.set = 1;
@@ -143,17 +149,18 @@ args:	argc -= optind;
 		usage();
 	}
 
-	if (i.set && tcsetattr(i.fd, 0, &i.t) == -1)
+	if (i.set && tcsetattr(i.fd, 0, &i.t) < 0)
 		err(1, "tcsetattr");
-	if (i.wset && ioctl(i.fd, TIOCSWINSZ, &i.win) == -1)
+	if (i.wset && ioctl(i.fd, TIOCSWINSZ, &i.win) < 0)
 		warn("TIOCSWINSZ");
-	return (0);
+	exit(0);
 }
 
 void
 usage(void)
 {
-	fprintf(stderr, "usage: %s [-a | -e | -g] [-f file] [operands]\n",
-	    __progname);
+
+	(void)fprintf(stderr,
+	    "usage: stty [-a | -e | -g] [-f file] [arguments]\n");
 	exit (1);
 }

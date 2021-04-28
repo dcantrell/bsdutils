@@ -1,7 +1,6 @@
-/*	$OpenBSD: rmdir.c,v 1.14 2019/06/28 13:34:59 deraadt Exp $	*/
-/*	$NetBSD: rmdir.c,v 1.13 1995/03/21 09:08:31 cgd Exp $	*/
-
 /*-
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
  * Copyright (c) 1992, 1993, 1994
  *	The Regents of the University of California.  All rights reserved.
  *
@@ -30,30 +29,46 @@
  * SUCH DAMAGE.
  */
 
+#if 0
+#ifndef lint
+static char const copyright[] =
+"@(#) Copyright (c) 1992, 1993, 1994\n\
+	The Regents of the University of California.  All rights reserved.\n";
+#endif /* not lint */
+
+#ifndef lint
+static char sccsid[] = "@(#)rmdir.c	8.3 (Berkeley) 4/2/94";
+#endif /* not lint */
+#endif
+#include <sys/cdefs.h>
+__FBSDID("$FreeBSD$");
+
 #include <err.h>
-#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-extern char *__progname;
-
-int rm_path(char *);
+static int rm_path(char *);
 static void usage(void);
+
+static int pflag;
+static int vflag;
 
 int
 main(int argc, char *argv[])
 {
 	int ch, errors;
-	int pflag;
 
-	pflag = 0;
-	while ((ch = getopt(argc, argv, "p")) != -1)
+	while ((ch = getopt(argc, argv, "pv")) != -1)
 		switch(ch) {
 		case 'p':
 			pflag = 1;
 			break;
+		case 'v':
+			vflag = 1;
+			break;
+		case '?':
 		default:
 			usage();
 		}
@@ -64,39 +79,43 @@ main(int argc, char *argv[])
 		usage();
 
 	for (errors = 0; *argv; argv++) {
-		char *p;
-
-		/* Delete trailing slashes, per POSIX. */
-		p = *argv + strlen(*argv);
-		while (--p > *argv && *p == '/')
-			continue;
-		*++p = '\0';
-
-		if (rmdir(*argv) == -1) {
+		if (rmdir(*argv) < 0) {
 			warn("%s", *argv);
 			errors = 1;
-		} else if (pflag)
-			errors |= rm_path(*argv);
+		} else {
+			if (vflag)
+				printf("%s\n", *argv);
+			if (pflag)
+				errors |= rm_path(*argv);
+		}
 	}
 
-	return (errors);
+	exit(errors);
 }
 
-int
+static int
 rm_path(char *path)
 {
 	char *p;
 
+	p = path + strlen(path);
+	while (--p > path && *p == '/')
+		;
+	*++p = '\0';
 	while ((p = strrchr(path, '/')) != NULL) {
 		/* Delete trailing slashes. */
-		while (--p > path && *p == '/')
-			continue;
+		while (--p >= path && *p == '/')
+			;
 		*++p = '\0';
+		if (p == path)
+			break;
 
-		if (rmdir(path) == -1) {
+		if (rmdir(path) < 0) {
 			warn("%s", path);
 			return (1);
 		}
+		if (vflag)
+			printf("%s\n", path);
 	}
 
 	return (0);
@@ -105,6 +124,7 @@ rm_path(char *path)
 static void
 usage(void)
 {
-	fprintf(stderr, "usage: %s [-p] directory ...\n", __progname);
+
+	(void)fprintf(stderr, "usage: rmdir [-pv] directory ...\n");
 	exit(1);
 }

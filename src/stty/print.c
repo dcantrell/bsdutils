@@ -1,6 +1,3 @@
-/*	$OpenBSD: print.c,v 1.16 2017/04/28 22:16:43 millert Exp $	*/
-/*	$NetBSD: print.c,v 1.11 1996/05/07 18:20:10 jtc Exp $	*/
-
 /*-
  * Copyright (c) 1991, 1993, 1994
  *	The Regents of the University of California.  All rights reserved.
@@ -30,25 +27,31 @@
  * SUCH DAMAGE.
  */
 
+#ifndef lint
+#if 0
+static char sccsid[] = "@(#)print.c	8.6 (Berkeley) 4/16/94";
+#endif
+#endif /* not lint */
+#include <sys/cdefs.h>
+__FBSDID("$FreeBSD$");
+
 #include <sys/types.h>
 
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
-#include <termios.h>
-#include <unistd.h>
 
 #include "stty.h"
 #include "extern.h"
 
-static void  binit(char *);
-static void  bput(const char *, unsigned int);
-static char *ccval(const struct cchar *, int);
+static void  binit(const char *);
+static void  bput(const char *);
+static const char *ccval(struct cchar *, int);
 
 void
 print(struct termios *tp, struct winsize *wp, int ldisc, enum FMT fmt)
 {
-	const struct cchar *p;
+	struct cchar *p;
 	long tmp;
 	u_char *cc;
 	int cnt, ispeed, ospeed;
@@ -57,9 +60,12 @@ print(struct termios *tp, struct winsize *wp, int ldisc, enum FMT fmt)
 	cnt = 0;
 
 	/* Line discipline. */
-	if (ldisc != N_TTY) {
+	if (ldisc != TTYDISC) {
 		switch(ldisc) {
-		case N_PPP:
+		case SLIPDISC:
+			cnt += printf("slip disc; ");
+			break;
+		case PPPDISC:
 			cnt += printf("ppp disc; ");
 			break;
 		default:
@@ -81,10 +87,10 @@ print(struct termios *tp, struct winsize *wp, int ldisc, enum FMT fmt)
 	if (cnt)
 		(void)printf("\n");
 
-#define	on(f)	((tmp&f) != 0)
+#define	on(f)	((tmp & (f)) != 0)
 #define put(n, f, d) \
-	if (fmt >= BSD || on(f) != d) \
-		bput(n, on(f));
+	if (fmt >= BSD || on(f) != (d)) \
+		bput((n) + on(f));
 
 	/* "local" flags */
 	tmp = tp->c_lflag;
@@ -99,13 +105,13 @@ print(struct termios *tp, struct winsize *wp, int ldisc, enum FMT fmt)
 	put("-echonl", ECHONL, 0);
 	put("-echoctl", ECHOCTL, 0);
 	put("-echoprt", ECHOPRT, 0);
-	put("-altwerase", VWERASE, 0);
+	put("-altwerase", ALTWERASE, 0);
 	put("-noflsh", NOFLSH, 0);
 	put("-tostop", TOSTOP, 0);
 	put("-flusho", FLUSHO, 0);
 	put("-pendin", PENDIN, 0);
+	put("-nokerninfo", NOKERNINFO, 0);
 	put("-extproc", EXTPROC, 0);
-	put("-xcase", XCASE, 0);
 
 	/* input flags */
 	tmp = tp->c_iflag;
@@ -114,7 +120,6 @@ print(struct termios *tp, struct winsize *wp, int ldisc, enum FMT fmt)
 	put("-icrnl", ICRNL, 1);
 	put("-inlcr", INLCR, 0);
 	put("-igncr", IGNCR, 0);
-	put("-iuclc", IUCLC, 0);
 	put("-ixon", IXON, 1);
 	put("-ixoff", IXOFF, 0);
 	put("-ixany", IXANY, 1);
@@ -131,10 +136,16 @@ print(struct termios *tp, struct winsize *wp, int ldisc, enum FMT fmt)
 	put("-opost", OPOST, 1);
 	put("-onlcr", ONLCR, 1);
 	put("-ocrnl", OCRNL, 0);
+	switch(tmp&TABDLY) {
+	case TAB0:
+		bput("tab0");
+		break;
+	case TAB3:
+		bput("tab3");
+		break;
+	}
 	put("-onocr", ONOCR, 0);
 	put("-onlret", ONLRET, 0);
-	put("-olcuc", OLCUC, 0);
-	put("-oxtabs", XTABS, 1);
 
 	/* control flags (hardware state) */
 	tmp = tp->c_cflag;
@@ -142,24 +153,43 @@ print(struct termios *tp, struct winsize *wp, int ldisc, enum FMT fmt)
 	put("-cread", CREAD, 1);
 	switch(tmp&CSIZE) {
 	case CS5:
-		bput("cs5", 0);
+		bput("cs5");
 		break;
 	case CS6:
-		bput("cs6", 0);
+		bput("cs6");
 		break;
 	case CS7:
-		bput("cs7", 0);
+		bput("cs7");
 		break;
 	case CS8:
-		bput("cs8", 0);
+		bput("cs8");
 		break;
 	}
-	bput("-parenb", on(PARENB));
+	bput("-parenb" + on(PARENB));
 	put("-parodd", PARODD, 0);
 	put("-hupcl", HUPCL, 1);
 	put("-clocal", CLOCAL, 0);
 	put("-cstopb", CSTOPB, 0);
-	put("-crtscts", CRTSCTS, 0);
+	switch(tmp & (CCTS_OFLOW | CRTS_IFLOW)) {
+	case CCTS_OFLOW:
+		bput("ctsflow");
+		break;
+	case CRTS_IFLOW:
+		bput("rtsflow");
+		break;
+	default:
+		put("-crtscts", CCTS_OFLOW | CRTS_IFLOW, 0);
+		break;
+	}
+	put("-dsrflow", CDSR_OFLOW, 0);
+	put("-dtrflow", CDTR_IFLOW, 0);
+	put("-mdmbuf", MDMBUF, 0);	/* XXX mdmbuf ==  dtrflow */
+	if (on(CNO_RTSDTR))
+		bput("-rtsdtr");
+	else {
+		if (fmt >= BSD)
+			bput("rtsdtr");
+	}
 
 	/* special control characters */
 	cc = tp->c_cc;
@@ -168,7 +198,7 @@ print(struct termios *tp, struct winsize *wp, int ldisc, enum FMT fmt)
 		for (p = cchars1; p->name; ++p) {
 			(void)snprintf(buf1, sizeof(buf1), "%s = %s;",
 			    p->name, ccval(p, cc[p->sub]));
-			bput(buf1, 0);
+			bput(buf1);
 		}
 		binit(NULL);
 	} else {
@@ -195,10 +225,10 @@ print(struct termios *tp, struct winsize *wp, int ldisc, enum FMT fmt)
 }
 
 static int col;
-static char *label;
+static const char *label;
 
 static void
-binit(char *lb)
+binit(const char *lb)
 {
 
 	if (col) {
@@ -209,9 +239,8 @@ binit(char *lb)
 }
 
 static void
-bput(const char *s, unsigned int off)
+bput(const char *s)
 {
-	s += off;
 
 	if (col == 0) {
 		col = printf("%s: %s", label, s);
@@ -225,8 +254,8 @@ bput(const char *s, unsigned int off)
 	col += printf(" %s", s);
 }
 
-static char *
-ccval(const struct cchar *p, int c)
+static const char *
+ccval(struct cchar *p, int c)
 {
 	static char buf[5];
 	char *bp;

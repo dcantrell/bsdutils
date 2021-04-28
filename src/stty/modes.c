@@ -1,6 +1,3 @@
-/*	$OpenBSD: modes.c,v 1.11 2016/03/23 14:52:42 mmcc Exp $	*/
-/*	$NetBSD: modes.c,v 1.9 1996/05/07 18:20:09 jtc Exp $	*/
-
 /*-
  * Copyright (c) 1991, 1993, 1994
  *	The Regents of the University of California.  All rights reserved.
@@ -30,26 +27,31 @@
  * SUCH DAMAGE.
  */
 
+#ifndef lint
+#if 0
+static char sccsid[] = "@(#)modes.c	8.3 (Berkeley) 4/2/94";
+#endif
+#endif /* not lint */
+#include <sys/cdefs.h>
+__FBSDID("$FreeBSD$");
+
 #include <sys/types.h>
-
-#include <stddef.h>
 #include <string.h>
-#include <termios.h>
-
 #include "stty.h"
-#include "extern.h"
+
+int msearch(char ***, struct info *);
 
 struct modes {
 	const char *name;
-	unsigned int set;
-	unsigned int unset;
+	long set;
+	long unset;
 };
 
 /*
  * The code in optlist() depends on minus options following regular
  * options, i.e. "foo" must immediately precede "-foo".
  */
-const struct modes cmodes[] = {
+static const struct modes cmodes[] = {
 	{ "cs5",	CS5, CSIZE },
 	{ "cs6",	CS6, CSIZE },
 	{ "cs7",	CS7, CSIZE },
@@ -78,10 +80,22 @@ const struct modes cmodes[] = {
 	{ "-clocal",	0, CLOCAL },
 	{ "crtscts",	CRTSCTS, 0 },
 	{ "-crtscts",	0, CRTSCTS },
-	{ NULL },
+	{ "ctsflow",	CCTS_OFLOW, 0 },
+	{ "-ctsflow",	0, CCTS_OFLOW },
+	{ "dsrflow",	CDSR_OFLOW, 0 },
+	{ "-dsrflow",	0, CDSR_OFLOW },
+	{ "dtrflow",	CDTR_IFLOW, 0 },
+	{ "-dtrflow",	0, CDTR_IFLOW },
+	{ "rtsflow",	CRTS_IFLOW, 0 },
+	{ "-rtsflow",	0, CRTS_IFLOW },
+	{ "mdmbuf",	MDMBUF, 0 },
+	{ "-mdmbuf",	0, MDMBUF },
+	{ "rtsdtr",	0, CNO_RTSDTR },
+	{ "-rtsdtr",	CNO_RTSDTR, 0 },
+	{ NULL,		0, 0 },
 };
 
-const struct modes imodes[] = {
+static const struct modes imodes[] = {
 	{ "ignbrk",	IGNBRK, 0 },
 	{ "-ignbrk",	0, IGNBRK },
 	{ "brkint",	BRKINT, 0 },
@@ -100,8 +114,6 @@ const struct modes imodes[] = {
 	{ "-igncr",	0, IGNCR },
 	{ "icrnl",	ICRNL, 0 },
 	{ "-icrnl",	0, ICRNL },
-	{ "iuclc",	IUCLC, 0 },
-	{ "-iuclc",	0, IUCLC },
 	{ "ixon",	IXON, 0 },
 	{ "-ixon",	0, IXON },
 	{ "flow",	IXON, 0 },
@@ -116,10 +128,10 @@ const struct modes imodes[] = {
 	{ "-decctlq",	IXANY, 0 },
 	{ "imaxbel",	IMAXBEL, 0 },
 	{ "-imaxbel",	0, IMAXBEL },
-	{ NULL },
+	{ NULL,		0, 0 },
 };
 
-const struct modes lmodes[] = {
+static const struct modes lmodes[] = {
 	{ "echo",	ECHO, 0 },
 	{ "-echo",	0, ECHO },
 	{ "echoe",	ECHOE, 0 },
@@ -134,8 +146,8 @@ const struct modes lmodes[] = {
 	{ "-echoke",	0, ECHOKE },
 	{ "crtkill",	ECHOKE, 0 },
 	{ "-crtkill",	0, ECHOKE },
-	{ "altwerase",	VWERASE, 0 },
-	{ "-altwerase",	0, VWERASE },
+	{ "altwerase",	ALTWERASE, 0 },
+	{ "-altwerase",	0, ALTWERASE },
 	{ "iexten",	IEXTEN, 0 },
 	{ "-iexten",	0, IEXTEN },
 	{ "echonl",	ECHONL, 0 },
@@ -164,34 +176,36 @@ const struct modes lmodes[] = {
 	{ "-crt",	ECHOK, ECHOE|ECHOKE|ECHOCTL },
 	{ "newcrt",	ECHOE|ECHOKE|ECHOCTL, ECHOK|ECHOPRT },
 	{ "-newcrt",	ECHOK, ECHOE|ECHOKE|ECHOCTL },
-	{ "xcase",	XCASE, 0 },
-	{ "-xcase",	0, XCASE },
-	{ NULL },
+	{ "nokerninfo",	NOKERNINFO, 0 },
+	{ "-nokerninfo",0, NOKERNINFO },
+	{ "kerninfo",	0, NOKERNINFO },
+	{ "-kerninfo",	NOKERNINFO, 0 },
+	{ NULL,		0, 0 },
 };
 
-const struct modes omodes[] = {
+static const struct modes omodes[] = {
 	{ "opost",	OPOST, 0 },
 	{ "-opost",	0, OPOST },
 	{ "litout",	0, OPOST },
 	{ "-litout",	OPOST, 0 },
-	{ "ocrnl",	OCRNL, 0 },
-	{ "-ocrnl",	0, OCRNL },
-	{ "olcuc",	OLCUC, 0 },
-	{ "-olcuc",	0, OLCUC },
 	{ "onlcr",	ONLCR, 0 },
 	{ "-onlcr",	0, ONLCR },
-	{ "onlret",	ONLRET, 0 },
-	{ "-onlret",	0, ONLRET },
+	{ "ocrnl",	OCRNL, 0 },
+	{ "-ocrnl",	0, OCRNL },
+	{ "tabs",	TAB0, TABDLY },		/* "preserve" tabs */
+	{ "-tabs",	TAB3, TABDLY },
+	{ "oxtabs",	TAB3, TABDLY },
+	{ "-oxtabs",	TAB0, TABDLY },
+	{ "tab0",	TAB0, TABDLY },
+	{ "tab3",	TAB3, TABDLY },
 	{ "onocr",	ONOCR, 0 },
 	{ "-onocr",	0, ONOCR },
-	{ "tabs",	0, XTABS },		/* "preserve" tabs */
-	{ "-tabs",	XTABS, 0 },
-	{ "oxtabs",	XTABS, 0 },
-	{ "-oxtabs",	0, XTABS },
-	{ NULL },
+	{ "onlret",	ONLRET, 0 },
+	{ "-onlret",	0, ONLRET },
+	{ NULL,		0, 0 },
 };
 
-#define	CHK(s)	(!strcmp(name, s))
+#define	CHK(s)	(*name == s[0] && !strcmp(name, s))
 
 int
 msearch(char ***argvp, struct info *ip)

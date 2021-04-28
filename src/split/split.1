@@ -1,6 +1,3 @@
-.\"	$OpenBSD: split.1,v 1.22 2015/02/28 21:51:56 bentley Exp $
-.\"	$NetBSD: split.1,v 1.5 1994/12/21 08:20:35 jtc Exp $
-.\"
 .\" Copyright (c) 1990, 1991, 1993, 1994
 .\"	The Regents of the University of California.  All rights reserved.
 .\"
@@ -29,68 +26,108 @@
 .\" SUCH DAMAGE.
 .\"
 .\"	@(#)split.1	8.3 (Berkeley) 4/16/94
+.\" $FreeBSD$
 .\"
-.Dd $Mdocdate: February 28 2015 $
+.Dd May 9, 2013
 .Dt SPLIT 1
 .Os
 .Sh NAME
 .Nm split
 .Nd split a file into pieces
 .Sh SYNOPSIS
-.Nm split
+.Nm
+.Fl d
+.Op Fl l Ar line_count
 .Op Fl a Ar suffix_length
-.br
+.Op Ar file Op Ar prefix
+.Nm
+.Fl d
+.Fl b Ar byte_count Ns
 .Oo
-.Fl b
 .Sm off
-.Ar byte_count Op Cm k | m
+.Cm K | k | M | m | G | g
 .Sm on
-.No \&| Fl l Ar line_count
-.No \&| Fl p Ar pattern
 .Oc
-.Op Ar file Op Ar name
+.Op Fl a Ar suffix_length
+.Op Ar file Op Ar prefix
+.Nm
+.Fl d
+.Fl n Ar chunk_count
+.Op Fl a Ar suffix_length
+.Op Ar file Op Ar prefix
+.Nm
+.Fl d
+.Fl p Ar pattern
+.Op Fl a Ar suffix_length
+.Op Ar file Op Ar prefix
 .Sh DESCRIPTION
 The
 .Nm
 utility reads the given
-.Ar file ,
-or standard input if no file is specified,
-and breaks it up into files of 1000 lines each.
 .Ar file
-itself is not altered.
+and breaks it up into files of 1000 lines each
+(if no options are specified), leaving the
+.Ar file
+unchanged.
+If
+.Ar file
+is a single dash
+.Pq Sq Fl
+or absent,
+.Nm
+reads from the standard input.
 .Pp
 The options are as follows:
-.Bl -tag -width Ds
+.Bl -tag -width indent
 .It Fl a Ar suffix_length
 Use
 .Ar suffix_length
-letters to form the suffix of the file name
-(see below).
-The default suffix length is 2.
-.It Xo
-.Fl b
+letters to form the suffix of the file name.
+.It Fl b Ar byte_count Ns Oo
 .Sm off
-.Ar byte_count
-.Op Cm k | m
+.Cm K | k | M | m | G | g
 .Sm on
-.Xc
-Create files
+.Oc
+Create split files
 .Ar byte_count
 bytes in length.
 If
-.Sq k
+.Cm k
+or
+.Cm K
 is appended to the number, the file is split into
 .Ar byte_count
 kilobyte pieces.
 If
-.Sq m
+.Cm m
+or
+.Cm M
 is appended to the number, the file is split into
 .Ar byte_count
 megabyte pieces.
+If
+.Cm g
+or
+.Cm G
+is appended to the number, the file is split into
+.Ar byte_count
+gigabyte pieces.
+.It Fl d
+Use a numeric suffix instead of a alphabetic suffix.
 .It Fl l Ar line_count
-Create files
+Create split files
 .Ar line_count
 lines in length.
+.It Fl n Ar chunk_count
+Split file into
+.Ar chunk_count
+smaller files.
+The first n - 1 files will be of size (size of
+.Ar file
+/
+.Ar chunk_count
+)
+and the last file will contain the remaining bytes.
 .It Fl p Ar pattern
 The file is split whenever an input line matches
 .Ar pattern ,
@@ -103,47 +140,74 @@ and
 options.
 .El
 .Pp
-If
-.Ar name
-is specified,
-it is used as a prefix
+If additional arguments are specified, the first is used as the name
+of the input file which is to be split.
+If a second additional argument is specified, it is used as a prefix
 for the names of the files into which the file is split.
 In this case, each file into which the file is split is named by the
 prefix followed by a lexically ordered suffix using
 .Ar suffix_length
 characters in the range
-.Dq a-z .
+.Dq Li a Ns - Ns Li z .
+If
+.Fl a
+is not specified, two letters are used as the suffix.
 .Pp
 If the
-.Ar name
+.Ar prefix
 argument is not specified, the file is split into lexically ordered
-files named with the prefixes
-.Sq x ,
-.Sq y ,
+files named with the prefix
+.Dq Li x
+and with suffixes as above.
+.Sh ENVIRONMENT
+The
+.Ev LANG , LC_ALL , LC_CTYPE
 and
-.Sq z .
+.Ev LC_COLLATE
+environment variables affect the execution of
+.Nm
+as described in
+.Xr environ 7 .
 .Sh EXIT STATUS
-.Ex -std split
+.Ex -std
+.Sh EXAMPLES
+Split input into as many files as needed, so that each file contains at most 2
+lines:
+.Bd -literal -offset indent
+$ echo -e "first line\\nsecond line\\nthird line\\nforth line" | split -l2
+.Ed
+.Pp
+Split input in chunks of 10 bytes using numeric prefixes for file names.
+This generates two files of 10 bytes (x00 and x01) and a third file (x02) with the
+remaining 2 bytes:
+.Bd -literal -offset indent
+$ echo -e "This is 22 bytes long" | split -d -b10
+.Ed
+.Pp
+Split input generating 6 files:
+.Bd -literal -offset indent
+echo -e "This is 22 bytes long" | split -n 6
+.Ed
+.Pp
+Split input creating a new file every time a line matches the regular expression
+for a
+.Dq t
+followed by either
+.Dq a
+or
+.Dq u
+thus creating two files:
+.Bd -literal -offset indent
+$ echo -e "stack\\nstock\\nstuck\\nanother line" | split -p 't[au]'
+.Ed
 .Sh SEE ALSO
 .Xr csplit 1 ,
 .Xr re_format 7
 .Sh STANDARDS
 The
 .Nm
-utility is compliant with the
-.St -p1003.1-2008
-specification.
-.Pp
-The flag
-.Op Fl p ,
-as well as the
-.Sq y
-and
-.Sq z
-prefixes in the absence of a
-.Ar name
-parameter,
-are an extension to that specification.
+utility conforms to
+.St -p1003.1-2001 .
 .Sh HISTORY
 A
 .Nm

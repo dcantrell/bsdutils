@@ -1,6 +1,6 @@
-/*	$OpenBSD: egetopt.c,v 1.9 2013/11/26 13:19:07 deraadt Exp $	*/
-
 /*-
+ * SPDX-License-Identifier: BSD-4-Clause
+ *
  * Copyright (c) 1991 Keith Muller.
  * Copyright (c) 1993
  *	The Regents of the University of California.  All rights reserved.
@@ -16,7 +16,11 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. Neither the name of the University nor the names of its contributors
+ * 3. All advertising materials mentioning features or use of this software
+ *    must display the following acknowledgement:
+ *	This product includes software developed by the University of
+ *	California, Berkeley and its contributors.
+ * 4. Neither the name of the University nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -33,9 +37,17 @@
  * SUCH DAMAGE.
  */
 
+#if 0
+#ifndef lint
+static char sccsid[] = "@(#)egetopt.c	8.1 (Berkeley) 6/6/93";
+#endif /* not lint */
+#endif
+
+#include <sys/cdefs.h>
+__FBSDID("$FreeBSD$");
+
 #include <ctype.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "extern.h"
@@ -58,12 +70,13 @@ int	eoptopt;		/* character checked for validity */
 char	*eoptarg;		/* argument associated with option */
 
 #define	BADCH	(int)'?'
-#define	EMSG	""
+
+static char	emsg[] = "";
 
 int
 egetopt(int nargc, char * const *nargv, const char *ostr)
 {
-	static char *place = EMSG;	/* option letter processing */
+	static char *place = emsg;	/* option letter processing */
 	char *oli;			/* option letter list index */
 	static int delim;		/* which option delimiter */
 	char *p;
@@ -80,7 +93,7 @@ egetopt(int nargc, char * const *nargv, const char *ostr)
 		 */
 		if ((eoptind >= nargc) ||
 		    ((*(place = nargv[eoptind]) != '-') && (*place != '+'))) {
-			place = EMSG;
+			place = emsg;
 			return (-1);
 		}
 
@@ -90,7 +103,7 @@ egetopt(int nargc, char * const *nargv, const char *ostr)
 			 * found "--"
 			 */
 			++eoptind;
-			place = EMSG;
+			place = emsg;
 			return (-1);
 		}
 	}
@@ -102,24 +115,24 @@ egetopt(int nargc, char * const *nargv, const char *ostr)
 	    !(oli = strchr(ostr, eoptopt))) {
 		/*
 		 * if the user didn't specify '-' as an option,
-		 * assume it means EOF when by itself.
+		 * assume it means -1 when by itself.
 		 */
 		if ((eoptopt == (int)'-') && !*place)
 			return (-1);
-		if (strchr(ostr, '#') && (isdigit((unsigned char)eoptopt) ||
+		if (strchr(ostr, '#') && (isdigit(eoptopt) ||
 		    (((eoptopt == (int)'-') || (eoptopt == (int)'+')) &&
-		      isdigit((unsigned char)*place)))) {
+		      isdigit(*place)))) {
 			/*
 			 * # option: +/- with a number is ok
 			 */
 			for (p = place; *p != '\0'; ++p) {
-				if (!isdigit((unsigned char)*p))
+				if (!isdigit(*p))
 					break;
 			}
 			eoptarg = place-1;
 
 			if (*p == '\0') {
-				place = EMSG;
+				place = emsg;
 				++eoptind;
 			} else {
 				place = p;
@@ -183,7 +196,7 @@ egetopt(int nargc, char * const *nargv, const char *ostr)
 		/*
 		 * no arg, but IS required
 		 */
-		place = EMSG;
+		place = emsg;
 		if (eopterr) {
 			if (!(p = strrchr(*nargv, '/')))
 				p = *nargv;
@@ -200,7 +213,7 @@ egetopt(int nargc, char * const *nargv, const char *ostr)
 		 */
 		eoptarg = nargv[eoptind];
 	}
-	place = EMSG;
+	place = emsg;
 	++eoptind;
 	return (eoptopt);
 }

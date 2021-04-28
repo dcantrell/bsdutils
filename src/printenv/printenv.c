@@ -1,8 +1,8 @@
-/*	$OpenBSD: printenv.c,v 1.8 2015/10/09 01:37:08 deraadt Exp $	*/
-
-/*
- * Copyright (c) 1987 Regents of the University of California.
- * All rights reserved.
+/*-
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ * Copyright (c) 1987, 1993
+ *	The Regents of the University of California.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -29,11 +29,32 @@
  * SUCH DAMAGE.
  */
 
+#ifndef lint
+static const char copyright[] =
+"@(#) Copyright (c) 1987, 1993\n\
+	The Regents of the University of California.  All rights reserved.\n";
+#endif /* not lint */
+
+#if 0
+#ifndef lint
+static char sccsid[] = "@(#)printenv.c	8.2 (Berkeley) 5/4/95";
+#endif /* not lint */
+#endif
+
+#include <sys/cdefs.h>
+__FBSDID("$FreeBSD$");
+
+#include <sys/types.h>
+
+#include <capsicum_helpers.h>
+#include <err.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <stdlib.h>
 #include <unistd.h>
-#include <err.h>
+
+void	usage(void);
+extern char **environ;
 
 /*
  * printenv
@@ -44,23 +65,42 @@
 int
 main(int argc, char *argv[])
 {
-	extern char **environ;
 	char *cp, **ep;
-	int len;
+	size_t len;
+	int ch;
 
-	if (argc < 2) {
+	if (caph_limit_stdio() < 0 || caph_enter() < 0)
+		err(1, "capsicum");
+
+	while ((ch = getopt(argc, argv, "")) != -1)
+		switch(ch) {
+		case '?':
+		default:
+			usage();
+		}
+	argc -= optind;
+	argv += optind;
+
+	if (argc == 0) {
 		for (ep = environ; *ep; ep++)
-			puts(*ep);
+			(void)printf("%s\n", *ep);
 		exit(0);
 	}
-	len = strlen(*++argv);
+	len = strlen(*argv);
 	for (ep = environ; *ep; ep++)
-		if (!strncmp(*ep, *argv, len)) {
+		if (!memcmp(*ep, *argv, len)) {
 			cp = *ep + len;
-			if (!*cp || *cp == '=') {
-				puts(*cp ? cp + 1 : cp);
+			if (*cp == '=') {
+				(void)printf("%s\n", cp + 1);
 				exit(0);
 			}
 		}
+	exit(1);
+}
+
+void
+usage(void)
+{
+	(void)fprintf(stderr, "usage: printenv [name]\n");
 	exit(1);
 }

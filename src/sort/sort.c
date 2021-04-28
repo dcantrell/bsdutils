@@ -1,6 +1,6 @@
-/*	$OpenBSD: sort.c,v 1.90 2019/06/28 13:35:03 deraadt Exp $	*/
-
 /*-
+ * SPDX-License-Identifier: BSD-2-Clause-FreeBSD
+ *
  * Copyright (C) 2009 Gabor Kovesdan <gabor@FreeBSD.org>
  * Copyright (C) 2012 Oleg Moskalenko <mom040267@gmail.com>
  * All rights reserved.
@@ -27,21 +27,23 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/random.h>
-#include <sys/resource.h>
+#include <sys/cdefs.h>
+__FBSDID("$FreeBSD$");
+
 #include <sys/stat.h>
+#include <sys/sysctl.h>
 #include <sys/types.h>
-#include <sys/auxv.h>
 
 #include <err.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <getopt.h>
 #include <limits.h>
-#include <openssl/md5.h>
+#include <locale.h>
+#include <md5.h>
 #include <regex.h>
 #include <signal.h>
 #include <stdbool.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -53,29 +55,61 @@
 #include "file.h"
 #include "sort.h"
 
-#include "compat.h"
-
-extern char *__progname;
-
-#ifdef GNUSORT_COMPATIBILITY
-# define PERMUTE	""
-#else
-# define PERMUTE	"+"
+#ifndef WITHOUT_NLS
+#include <nl_types.h>
+nl_catd catalog;
 #endif
-#define	OPTIONS	PERMUTE"bCcdfgHhik:Mmno:RrS:st:T:uVz"
+
+#define	OPTIONS	"bcCdfghik:Mmno:RrsS:t:T:uVz"
 
 static bool need_random;
-static const char *random_source;
 
 MD5_CTX md5_ctx;
+
+/*
+ * Default messages to use when NLS is disabled or no catalogue
+ * is found.
+ */
+const char *nlsstr[] = { "",
+/* 1*/"mutually exclusive flags",
+/* 2*/"extra argument not allowed with -c",
+/* 3*/"Unknown feature",
+/* 4*/"Wrong memory buffer specification",
+/* 5*/"0 field in key specs",
+/* 6*/"0 column in key specs",
+/* 7*/"Wrong file mode",
+/* 8*/"Cannot open file for reading",
+/* 9*/"Radix sort cannot be used with these sort options",
+/*10*/"The chosen sort method cannot be used with stable and/or unique sort",
+/*11*/"Invalid key position",
+/*12*/"Usage: %s [-bcCdfigMmnrsuz] [-kPOS1[,POS2] ... ] "
+      "[+POS1 [-POS2]] [-S memsize] [-T tmpdir] [-t separator] "
+      "[-o outfile] [--batch-size size] [--files0-from file] "
+      "[--heapsort] [--mergesort] [--radixsort] [--qsort] "
+      "[--mmap] "
+#if defined(SORT_THREADS)
+      "[--parallel thread_no] "
+#endif
+      "[--human-numeric-sort] "
+      "[--version-sort] [--random-sort [--random-source file]] "
+      "[--compress-program program] [file ...]\n" };
 
 struct sort_opts sort_opts_vals;
 
 bool debug_sort;
 bool need_hint;
 
+#if defined(SORT_THREADS)
+unsigned int ncpu = 1;
+size_t nthreads = 1;
+#endif
+
+static bool gnusort_numeric_compatibility;
+
 static struct sort_mods default_sort_mods_object;
 struct sort_mods * const default_sort_mods = &default_sort_mods_object;
+
+static bool print_symbols_on_debug;
 
 /*
  * Arguments from file (when file0-from option is used:
@@ -86,16 +120,21 @@ static char **argv_from_file0;
 /*
  * Placeholder symbols for options which have no single-character equivalent
  */
-enum {
+enum
+{
 	SORT_OPT = CHAR_MAX + 1,
 	HELP_OPT,
 	FF_OPT,
 	BS_OPT,
 	VERSION_OPT,
 	DEBUG_OPT,
+#if defined(SORT_THREADS)
+	PARALLEL_OPT,
+#endif
 	RANDOMSOURCE_OPT,
 	COMPRESSPROGRAM_OPT,
 	QSORT_OPT,
+	MERGESORT_OPT,
 	HEAPSORT_OPT,
 	RADIXSORT_OPT,
 	MMAP_OPT
@@ -104,44 +143,49 @@ enum {
 #define	NUMBER_OF_MUTUALLY_EXCLUSIVE_FLAGS 6
 static const char mutually_exclusive_flags[NUMBER_OF_MUTUALLY_EXCLUSIVE_FLAGS] = { 'M', 'n', 'g', 'R', 'h', 'V' };
 
-static const struct option long_options[] = {
-    { "batch-size", required_argument, NULL, BS_OPT },
-    { "buffer-size", required_argument, NULL, 'S' },
-    { "check", optional_argument, NULL, 'c' },
-    { "check=silent|quiet", optional_argument, NULL, 'C' },
-    { "compress-program", required_argument, NULL, COMPRESSPROGRAM_OPT },
-    { "debug", no_argument, NULL, DEBUG_OPT },
-    { "dictionary-order", no_argument, NULL, 'd' },
-    { "field-separator", required_argument, NULL, 't' },
-    { "files0-from", required_argument, NULL, FF_OPT },
-    { "general-numeric-sort", no_argument, NULL, 'g' },
-    { "heapsort", no_argument, NULL, HEAPSORT_OPT },
-    { "help", no_argument, NULL, HELP_OPT },
-    { "human-numeric-sort", no_argument, NULL, 'h' },
-    { "ignore-leading-blanks", no_argument, NULL, 'b' },
-    { "ignore-case", no_argument, NULL, 'f' },
-    { "ignore-nonprinting", no_argument, NULL, 'i' },
-    { "key", required_argument, NULL, 'k' },
-    { "merge", no_argument, NULL, 'm' },
-    { "mergesort", no_argument, NULL, 'H' },
-    { "mmap", no_argument, NULL, MMAP_OPT },
-    { "month-sort", no_argument, NULL, 'M' },
-    { "numeric-sort", no_argument, NULL, 'n' },
-    { "output", required_argument, NULL, 'o' },
-    { "qsort", no_argument, NULL, QSORT_OPT },
-    { "radixsort", no_argument, NULL, RADIXSORT_OPT },
-    { "random-sort", no_argument, NULL, 'R' },
-    { "random-source", required_argument, NULL, RANDOMSOURCE_OPT },
-    { "reverse", no_argument, NULL, 'r' },
-    { "sort", required_argument, NULL, SORT_OPT },
-    { "stable", no_argument, NULL, 's' },
-    { "temporary-directory", required_argument, NULL, 'T' },
-    { "unique", no_argument, NULL, 'u' },
-    { "version", no_argument, NULL, VERSION_OPT },
-    { "version-sort", no_argument, NULL, 'V' },
-    { "zero-terminated", no_argument, NULL, 'z' },
-    { NULL, no_argument, NULL, 0 }
+static struct option long_options[] = {
+				{ "batch-size", required_argument, NULL, BS_OPT },
+				{ "buffer-size", required_argument, NULL, 'S' },
+				{ "check", optional_argument, NULL, 'c' },
+				{ "check=silent|quiet", optional_argument, NULL, 'C' },
+				{ "compress-program", required_argument, NULL, COMPRESSPROGRAM_OPT },
+				{ "debug", no_argument, NULL, DEBUG_OPT },
+				{ "dictionary-order", no_argument, NULL, 'd' },
+				{ "field-separator", required_argument, NULL, 't' },
+				{ "files0-from", required_argument, NULL, FF_OPT },
+				{ "general-numeric-sort", no_argument, NULL, 'g' },
+				{ "heapsort", no_argument, NULL, HEAPSORT_OPT },
+				{ "help",no_argument, NULL, HELP_OPT },
+				{ "human-numeric-sort", no_argument, NULL, 'h' },
+				{ "ignore-leading-blanks", no_argument, NULL, 'b' },
+				{ "ignore-case", no_argument, NULL, 'f' },
+				{ "ignore-nonprinting", no_argument, NULL, 'i' },
+				{ "key", required_argument, NULL, 'k' },
+				{ "merge", no_argument, NULL, 'm' },
+				{ "mergesort", no_argument, NULL, MERGESORT_OPT },
+				{ "mmap", no_argument, NULL, MMAP_OPT },
+				{ "month-sort", no_argument, NULL, 'M' },
+				{ "numeric-sort", no_argument, NULL, 'n' },
+				{ "output", required_argument, NULL, 'o' },
+#if defined(SORT_THREADS)
+				{ "parallel", required_argument, NULL, PARALLEL_OPT },
+#endif
+				{ "qsort", no_argument, NULL, QSORT_OPT },
+				{ "radixsort", no_argument, NULL, RADIXSORT_OPT },
+				{ "random-sort", no_argument, NULL, 'R' },
+				{ "random-source", required_argument, NULL, RANDOMSOURCE_OPT },
+				{ "reverse", no_argument, NULL, 'r' },
+				{ "sort", required_argument, NULL, SORT_OPT },
+				{ "stable", no_argument, NULL, 's' },
+				{ "temporary-directory",required_argument, NULL, 'T' },
+				{ "unique", no_argument, NULL, 'u' },
+				{ "version", no_argument, NULL, VERSION_OPT },
+				{ "version-sort",no_argument, NULL, 'V' },
+				{ "zero-terminated", no_argument, NULL, 'z' },
+				{ NULL, no_argument, NULL, 0 }
 };
+
+void fix_obsolete_keys(int *argc, char **argv);
 
 /*
  * Check where sort modifier is present
@@ -149,20 +193,27 @@ static const struct option long_options[] = {
 static bool
 sort_modifier_empty(struct sort_mods *sm)
 {
-	return !(sm->Mflag || sm->Vflag || sm->nflag || sm->gflag ||
-	    sm->rflag || sm->Rflag || sm->hflag || sm->dflag || sm->fflag);
+
+	if (sm == NULL)
+		return (true);
+	return (!(sm->Mflag || sm->Vflag || sm->nflag || sm->gflag ||
+	    sm->rflag || sm->Rflag || sm->hflag || sm->dflag || sm->fflag));
 }
 
 /*
  * Print out usage text.
  */
 static void
-usage(int exit_val)
+usage(bool opt_err)
 {
-	fprintf(exit_val ? stderr : stdout,
-	    "usage: %s [-bCcdfgHhiMmnRrsuVz] [-k field1[,field2]] [-o output] "
-	    "[-S size]\n\t[-T dir] [-t char] [file ...]\n", __progname);
-	exit(exit_val);
+	FILE *out;
+
+	out = opt_err ? stderr : stdout;
+
+	fprintf(out, getstr(12), getprogname());
+	if (opt_err)
+		exit(2);
+	exit(0);
 }
 
 /*
@@ -176,17 +227,22 @@ read_fns_from_file0(const char *fn)
 	size_t linesize = 0;
 	ssize_t linelen;
 
+	if (fn == NULL)
+		return;
+
 	f = fopen(fn, "r");
 	if (f == NULL)
 		err(2, "%s", fn);
 
 	while ((linelen = getdelim(&line, &linesize, '\0', f)) != -1) {
 		if (*line != '\0') {
-			if (argc_from_file0 == (size_t)-1)
+			if (argc_from_file0 == (size_t) - 1)
 				argc_from_file0 = 0;
 			++argc_from_file0;
-			argv_from_file0 = sort_reallocarray(argv_from_file0,
-			    argc_from_file0, sizeof(char *));
+			argv_from_file0 = sort_realloc(argv_from_file0,
+			    argc_from_file0 * sizeof(char *));
+			if (argv_from_file0 == NULL)
+				err(2, NULL);
 			argv_from_file0[argc_from_file0 - 1] = line;
 		} else {
 			free(line);
@@ -206,32 +262,104 @@ read_fns_from_file0(const char *fn)
 static void
 set_hw_params(void)
 {
-	unsigned long long free_memory;
-	long long user_memory;
-	struct rlimit rl;
+	long pages, psize;
 
-	/* Get total user (non-kernel) memory. */
-	user_memory = sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGESIZE);
+#if defined(SORT_THREADS)
+	ncpu = 1;
+#endif
 
-	/* Increase our data size to the max */
-	if (getrlimit(RLIMIT_DATA, &rl) == 0) {
-		free_memory = (unsigned long long)rl.rlim_cur;
-		rl.rlim_cur = rl.rlim_max;
-		if (setrlimit(RLIMIT_DATA, &rl) == 0) {
-			free_memory = (unsigned long long)rl.rlim_max;
-		} else {
-			warn("Can't set resource limit to max data size");
-		}
-	} else {
-		free_memory = 1000000;
-		warn("Can't get resource limit for data size");
+	pages = sysconf(_SC_PHYS_PAGES);
+	if (pages < 1) {
+		perror("sysconf pages");
+		pages = 1;
+	}
+	psize = sysconf(_SC_PAGESIZE);
+	if (psize < 1) {
+		perror("sysconf psize");
+		psize = 4096;
+	}
+#if defined(SORT_THREADS)
+	ncpu = (unsigned int)sysconf(_SC_NPROCESSORS_ONLN);
+	if (ncpu < 1)
+		ncpu = 1;
+	else if(ncpu > 32)
+		ncpu = 32;
+
+	nthreads = ncpu;
+#endif
+
+	free_memory = (unsigned long long) pages * (unsigned long long) psize;
+	available_free_memory = free_memory / 2;
+
+	if (available_free_memory < 1024)
+		available_free_memory = 1024;
+}
+
+/*
+ * Convert "plain" symbol to wide symbol, with default value.
+ */
+static void
+conv_mbtowc(wchar_t *wc, const char *c, const wchar_t def)
+{
+
+	if (wc && c) {
+		int res;
+
+		res = mbtowc(wc, c, MB_CUR_MAX);
+		if (res < 1)
+			*wc = def;
+	}
+}
+
+/*
+ * Set current locale symbols.
+ */
+static void
+set_locale(void)
+{
+	struct lconv *lc;
+	const char *locale;
+
+	setlocale(LC_ALL, "");
+
+	lc = localeconv();
+
+	if (lc) {
+		/* obtain LC_NUMERIC info */
+		/* Convert to wide char form */
+		conv_mbtowc(&symbol_decimal_point, lc->decimal_point,
+		    symbol_decimal_point);
+		conv_mbtowc(&symbol_thousands_sep, lc->thousands_sep,
+		    symbol_thousands_sep);
+		conv_mbtowc(&symbol_positive_sign, lc->positive_sign,
+		    symbol_positive_sign);
+		conv_mbtowc(&symbol_negative_sign, lc->negative_sign,
+		    symbol_negative_sign);
 	}
 
-	/* We prefer to use temp files rather than swap space. */
-	if (user_memory != -1 && free_memory > user_memory)
-		free_memory = user_memory;
+	if (getenv("GNUSORT_NUMERIC_COMPATIBILITY"))
+		gnusort_numeric_compatibility = true;
 
-	available_free_memory = free_memory / 2;
+	locale = setlocale(LC_COLLATE, NULL);
+
+	if (locale) {
+		char *tmpl;
+		const char *cclocale;
+
+		tmpl = sort_strdup(locale);
+		cclocale = setlocale(LC_COLLATE, "C");
+		if (cclocale && !strcmp(cclocale, tmpl))
+			byte_sort = true;
+		else {
+			const char *pclocale;
+
+			pclocale = setlocale(LC_COLLATE, "POSIX");
+			if (pclocale && !strcmp(pclocale, tmpl))
+				byte_sort = true;
+		}
+		setlocale(LC_COLLATE, tmpl);
+		sort_free(tmpl);
+	}
 }
 
 /*
@@ -240,13 +368,11 @@ set_hw_params(void)
 static void
 set_tmpdir(void)
 {
-	if (!getauxval(AT_SECURE)) {
-		char *td;
+	char *td;
 
-		td = getenv("TMPDIR");
-		if (td != NULL)
-			tmpdir = td;
-	}
+	td = getenv("TMPDIR");
+	if (td != NULL)
+		tmpdir = sort_strdup(td);
 }
 
 /*
@@ -255,85 +381,72 @@ set_tmpdir(void)
 static unsigned long long
 parse_memory_buffer_value(const char *value)
 {
-	char *endptr;
-	unsigned long long membuf;
 
-	membuf = strtoll(value, &endptr, 10);
-	if (endptr == value || (long long)membuf < 0 ||
-	    (errno == ERANGE && membuf == LLONG_MAX))
-		goto invalid;
+	if (value == NULL)
+		return (available_free_memory);
+	else {
+		char *endptr;
+		unsigned long long membuf;
 
-	switch (*endptr) {
-	case 'Y':
-		if (membuf > ULLONG_MAX / 1024)
-			goto invalid;
-		membuf *= 1024;
-		/* FALLTHROUGH */
-	case 'Z':
-		if (membuf > ULLONG_MAX / 1024)
-			goto invalid;
-		membuf *= 1024;
-		/* FALLTHROUGH */
-	case 'E':
-		if (membuf > ULLONG_MAX / 1024)
-			goto invalid;
-		membuf *= 1024;
-		/* FALLTHROUGH */
-	case 'P':
-		if (membuf > ULLONG_MAX / 1024)
-			goto invalid;
-		membuf *= 1024;
-		/* FALLTHROUGH */
-	case 'T':
-		if (membuf > ULLONG_MAX / 1024)
-			goto invalid;
-		membuf *= 1024;
-		/* FALLTHROUGH */
-	case 'G':
-		if (membuf > ULLONG_MAX / 1024)
-			goto invalid;
-		membuf *= 1024;
-		/* FALLTHROUGH */
-	case 'M':
-		if (membuf > ULLONG_MAX / 1024)
-			goto invalid;
-		membuf *= 1024;
-		/* FALLTHROUGH */
-	case '\0':
-	case 'K':
-		if (membuf > ULLONG_MAX / 1024)
-			goto invalid;
-		membuf *= 1024;
-		/* FALLTHROUGH */
-	case 'b':
-		break;
-	case '%':
-		if (available_free_memory != 0 &&
-		    membuf > ULLONG_MAX / available_free_memory)
-			goto invalid;
-		membuf = (available_free_memory * membuf) /
-		    100;
-		break;
-	default:
-		errno = EINVAL;
-		warn("%s", optarg);
-		membuf = available_free_memory;
+		endptr = NULL;
+		errno = 0;
+		membuf = strtoll(value, &endptr, 10);
+
+		if (errno != 0) {
+			warn("%s",getstr(4));
+			membuf = available_free_memory;
+		} else {
+			switch (*endptr){
+			case 'Y':
+				membuf *= 1024;
+				/* FALLTHROUGH */
+			case 'Z':
+				membuf *= 1024;
+				/* FALLTHROUGH */
+			case 'E':
+				membuf *= 1024;
+				/* FALLTHROUGH */
+			case 'P':
+				membuf *= 1024;
+				/* FALLTHROUGH */
+			case 'T':
+				membuf *= 1024;
+				/* FALLTHROUGH */
+			case 'G':
+				membuf *= 1024;
+				/* FALLTHROUGH */
+			case 'M':
+				membuf *= 1024;
+				/* FALLTHROUGH */
+			case '\0':
+			case 'K':
+				membuf *= 1024;
+				/* FALLTHROUGH */
+			case 'b':
+				break;
+			case '%':
+				membuf = (available_free_memory * membuf) /
+				    100;
+				break;
+			default:
+				warnc(EINVAL, "%s", optarg);
+				membuf = available_free_memory;
+			}
+		}
+		return (membuf);
 	}
-	if (membuf > SIZE_MAX)
-		goto invalid;
-	return membuf;
-invalid:
-	errx(2, "invalid memory buffer size: %s", value);
 }
 
 /*
  * Signal handler that clears the temporary files.
  */
 static void
-sig_handler(int sig)
+sig_handler(int sig __unused, siginfo_t *siginfo __unused,
+    void *context __unused)
 {
+
 	clear_tmp_files();
-	_exit(2);
+	exit(-1);
 }
 
 /*
@@ -343,19 +456,46 @@ static void
 set_signal_handler(void)
 {
 	struct sigaction sa;
-	int i, signals[] = {SIGTERM, SIGHUP, SIGINT, SIGUSR1, SIGUSR2,
-	    SIGPIPE, SIGXCPU, SIGXFSZ, 0};
 
 	memset(&sa, 0, sizeof(sa));
-	sigfillset(&sa.sa_mask);
-	sa.sa_flags = SA_RESTART;
-	sa.sa_handler = sig_handler;
+	sa.sa_sigaction = &sig_handler;
+	sa.sa_flags = SA_SIGINFO;
 
-	for (i = 0; signals[i] != 0; i++) {
-		if (sigaction(signals[i], &sa, NULL) == -1) {
-			warn("sigaction(%s)", strsignal(signals[i]));
-			continue;
-		}
+	if (sigaction(SIGTERM, &sa, NULL) < 0) {
+		perror("sigaction");
+		return;
+	}
+	if (sigaction(SIGHUP, &sa, NULL) < 0) {
+		perror("sigaction");
+		return;
+	}
+	if (sigaction(SIGINT, &sa, NULL) < 0) {
+		perror("sigaction");
+		return;
+	}
+	if (sigaction(SIGQUIT, &sa, NULL) < 0) {
+		perror("sigaction");
+		return;
+	}
+	if (sigaction(SIGABRT, &sa, NULL) < 0) {
+		perror("sigaction");
+		return;
+	}
+	if (sigaction(SIGBUS, &sa, NULL) < 0) {
+		perror("sigaction");
+		return;
+	}
+	if (sigaction(SIGSEGV, &sa, NULL) < 0) {
+		perror("sigaction");
+		return;
+	}
+	if (sigaction(SIGUSR1, &sa, NULL) < 0) {
+		perror("sigaction");
+		return;
+	}
+	if (sigaction(SIGUSR2, &sa, NULL) < 0) {
+		perror("sigaction");
+		return;
 	}
 }
 
@@ -365,7 +505,8 @@ set_signal_handler(void)
 static void
 unknown(const char *what)
 {
-	errx(2, "Unknown feature: %s", what);
+
+	errx(2, "%s: %s", getstr(3), what);
 }
 
 /*
@@ -374,31 +515,25 @@ unknown(const char *what)
 static void
 check_mutually_exclusive_flags(char c, bool *mef_flags)
 {
-	int i, fo_index, mec;
+	int fo_index, mec;
 	bool found_others, found_this;
 
 	found_others = found_this = false;
 	fo_index = 0;
 
-	for (i = 0; i < NUMBER_OF_MUTUALLY_EXCLUSIVE_FLAGS; i++) {
+	for (int i = 0; i < NUMBER_OF_MUTUALLY_EXCLUSIVE_FLAGS; i++) {
 		mec = mutually_exclusive_flags[i];
 
 		if (mec != c) {
 			if (mef_flags[i]) {
-				if (found_this) {
-					errx(2,
-					    "%c:%c: mutually exclusive flags",
-					    c, mec);
-				}
+				if (found_this)
+					errx(1, "%c:%c: %s", c, mec, getstr(1));
 				found_others = true;
 				fo_index = i;
 			}
 		} else {
-			if (found_others) {
-				errx(2,
-				    "%c:%c: mutually exclusive flags",
-				    c, mutually_exclusive_flags[fo_index]);
-			}
+			if (found_others)
+				errx(1, "%c:%c: %s", c, mutually_exclusive_flags[fo_index], getstr(1));
 			mef_flags[i] = true;
 			found_this = true;
 		}
@@ -411,6 +546,7 @@ check_mutually_exclusive_flags(char c, bool *mef_flags)
 static void
 set_sort_opts(void)
 {
+
 	memset(&default_sort_mods_object, 0,
 	    sizeof(default_sort_mods_object));
 	memset(&sort_opts_vals, 0, sizeof(sort_opts_vals));
@@ -424,7 +560,11 @@ set_sort_opts(void)
 static bool
 set_sort_modifier(struct sort_mods *sm, int c)
 {
-	switch (c) {
+
+	if (sm == NULL)
+		return (true);
+
+	switch (c){
 	case 'b':
 		sm->bflag = true;
 		break;
@@ -443,6 +583,7 @@ set_sort_modifier(struct sort_mods *sm, int c)
 		break;
 	case 'R':
 		sm->Rflag = true;
+		need_hint = true;
 		need_random = true;
 		break;
 	case 'M':
@@ -453,6 +594,7 @@ set_sort_modifier(struct sort_mods *sm, int c)
 	case 'n':
 		sm->nflag = true;
 		need_hint = true;
+		print_symbols_on_debug = true;
 		break;
 	case 'r':
 		sm->rflag = true;
@@ -463,14 +605,15 @@ set_sort_modifier(struct sort_mods *sm, int c)
 	case 'h':
 		sm->hflag = true;
 		need_hint = true;
+		print_symbols_on_debug = true;
 		break;
 	default:
-		return false;
+		return (false);
 	}
+
 	sort_opts_vals.complex_sort = true;
 	sm->func = get_sort_func(sm);
-
-	return true;
+	return (true);
 }
 
 /*
@@ -491,7 +634,7 @@ parse_pos(const char *s, struct key_specs *ks, bool *mef_flags, bool second)
 	c = f = NULL;
 
 	if (regcomp(&re, sregexp, REG_EXTENDED) != 0)
-		return -1;
+		return (-1);
 
 	if (regexec(&re, s, nmatch, pmatch, 0) != 0)
 		goto end;
@@ -503,50 +646,50 @@ parse_pos(const char *s, struct key_specs *ks, bool *mef_flags, bool second)
 		goto end;
 
 	len = pmatch[1].rm_eo - pmatch[1].rm_so;
+	f = sort_malloc((len + 1) * sizeof(char));
 
-	f = sort_malloc(len + 1);
-	memcpy(f, s + pmatch[1].rm_so, len);
+	strncpy(f, s + pmatch[1].rm_so, len);
 	f[len] = '\0';
 
 	if (second) {
 		errno = 0;
-		ks->f2 = (size_t)strtoul(f, NULL, 10);
+		ks->f2 = (size_t) strtoul(f, NULL, 10);
 		if (errno != 0)
-			goto end;
+			err(2, "-k");
 		if (ks->f2 == 0) {
-			warn("0 field in key specs");
+			warn("%s",getstr(5));
 			goto end;
 		}
 	} else {
 		errno = 0;
-		ks->f1 = (size_t)strtoul(f, NULL, 10);
+		ks->f1 = (size_t) strtoul(f, NULL, 10);
 		if (errno != 0)
-			goto end;
+			err(2, "-k");
 		if (ks->f1 == 0) {
-			warn("0 field in key specs");
+			warn("%s",getstr(5));
 			goto end;
 		}
 	}
 
 	if (pmatch[2].rm_eo > pmatch[2].rm_so) {
 		len = pmatch[2].rm_eo - pmatch[2].rm_so - 1;
+		c = sort_malloc((len + 1) * sizeof(char));
 
-		c = sort_malloc(len + 1);
-		memcpy(c, s + pmatch[2].rm_so + 1, len);
+		strncpy(c, s + pmatch[2].rm_so + 1, len);
 		c[len] = '\0';
 
 		if (second) {
 			errno = 0;
-			ks->c2 = (size_t)strtoul(c, NULL, 10);
+			ks->c2 = (size_t) strtoul(c, NULL, 10);
 			if (errno != 0)
-				goto end;
+				err(2, "-k");
 		} else {
 			errno = 0;
-			ks->c1 = (size_t)strtoul(c, NULL, 10);
+			ks->c1 = (size_t) strtoul(c, NULL, 10);
 			if (errno != 0)
-				goto end;
+				err(2, "-k");
 			if (ks->c1 == 0) {
-				warn("0 column in key specs");
+				warn("%s",getstr(6));
 				goto end;
 			}
 		}
@@ -575,11 +718,14 @@ parse_pos(const char *s, struct key_specs *ks, bool *mef_flags, bool second)
 	ret = 0;
 
 end:
-	sort_free(c);
-	sort_free(f);
+
+	if (c)
+		sort_free(c);
+	if (f)
+		sort_free(f);
 	regfree(&re);
 
-	return ret;
+	return (ret);
 }
 
 /*
@@ -592,7 +738,7 @@ parse_k(const char *s, struct key_specs *ks)
 	bool mef_flags[NUMBER_OF_MUTUALLY_EXCLUSIVE_FLAGS] =
 	    { false, false, false, false, false, false };
 
-	if (*s != '\0') {
+	if (s && *s) {
 		char *sptr;
 
 		sptr = strchr(s, ',');
@@ -603,17 +749,17 @@ parse_k(const char *s, struct key_specs *ks)
 			size1 = sptr - s;
 
 			if (size1 < 1)
-				return -1;
+				return (-1);
+			pos1 = sort_malloc((size1 + 1) * sizeof(char));
 
-			pos1 = sort_malloc(size1 + 1);
-			memcpy(pos1, s, size1);
+			strncpy(pos1, s, size1);
 			pos1[size1] = '\0';
 
 			ret = parse_pos(pos1, ks, mef_flags, false);
 
 			sort_free(pos1);
 			if (ret < 0)
-				return ret;
+				return (ret);
 
 			pos2 = sort_strdup(sptr + 1);
 			ret = parse_pos(pos2, ks, mef_flags, true);
@@ -622,14 +768,14 @@ parse_k(const char *s, struct key_specs *ks)
 			ret = parse_pos(s, ks, mef_flags, false);
 	}
 
-	return ret;
+	return (ret);
 }
 
 /*
  * Parse POS in +POS -POS option.
  */
 static int
-parse_pos_obs(const char *s, size_t *nf, size_t *nc, char *sopts, size_t sopts_size)
+parse_pos_obs(const char *s, int *nf, int *nc, char* sopts)
 {
 	regex_t re;
 	regmatch_t pmatch[4];
@@ -644,7 +790,7 @@ parse_pos_obs(const char *s, size_t *nf, size_t *nc, char *sopts, size_t sopts_s
 	*nc = *nf = 0;
 
 	if (regcomp(&re, sregexp, REG_EXTENDED) != 0)
-		return -1;
+		return (-1);
 
 	if (regexec(&re, s, nmatch, pmatch, 0) != 0)
 		goto end;
@@ -656,164 +802,203 @@ parse_pos_obs(const char *s, size_t *nf, size_t *nc, char *sopts, size_t sopts_s
 		goto end;
 
 	len = pmatch[1].rm_eo - pmatch[1].rm_so;
+	f = sort_malloc((len + 1) * sizeof(char));
 
-	f = sort_malloc(len + 1);
-	memcpy(f, s + pmatch[1].rm_so, len);
+	strncpy(f, s + pmatch[1].rm_so, len);
 	f[len] = '\0';
 
 	errno = 0;
-	*nf = (size_t)strtoul(f, NULL, 10);
+	*nf = (size_t) strtoul(f, NULL, 10);
 	if (errno != 0)
-		errx(2, "Invalid key position");
+		errx(2, "%s", getstr(11));
 
 	if (pmatch[2].rm_eo > pmatch[2].rm_so) {
 		len = pmatch[2].rm_eo - pmatch[2].rm_so - 1;
+		c = sort_malloc((len + 1) * sizeof(char));
 
-		c = sort_malloc(len + 1);
-		memcpy(c, s + pmatch[2].rm_so + 1, len);
+		strncpy(c, s + pmatch[2].rm_so + 1, len);
 		c[len] = '\0';
 
 		errno = 0;
-		*nc = (size_t)strtoul(c, NULL, 10);
+		*nc = (size_t) strtoul(c, NULL, 10);
 		if (errno != 0)
-			errx(2, "Invalid key position");
+			errx(2, "%s", getstr(11));
 	}
 
 	if (pmatch[3].rm_eo > pmatch[3].rm_so) {
 
 		len = pmatch[3].rm_eo - pmatch[3].rm_so;
 
-		if (len >= sopts_size)
-			errx(2, "Invalid key position");
-		memcpy(sopts, s + pmatch[3].rm_so, len);
+		strncpy(sopts, s + pmatch[3].rm_so, len);
 		sopts[len] = '\0';
 	}
 
 	ret = 0;
 
 end:
-	sort_free(c);
-	sort_free(f);
+	if (c)
+		sort_free(c);
+	if (f)
+		sort_free(f);
 	regfree(&re);
 
-	return ret;
+	return (ret);
 }
 
 /*
  * "Translate" obsolete +POS1 -POS2 syntax into new -kPOS1,POS2 syntax
  */
-static void
+void
 fix_obsolete_keys(int *argc, char **argv)
 {
 	char sopt[129];
-	int i;
 
-	for (i = 1; i < *argc; i++) {
-		const char *arg1 = argv[i];
+	for (int i = 1; i < *argc; i++) {
+		char *arg1;
 
-		if (arg1[0] == '+') {
-			size_t c1, f1;
+		arg1 = argv[i];
+
+		if (strlen(arg1) > 1 && arg1[0] == '+') {
+			int c1, f1;
 			char sopts1[128];
 
 			sopts1[0] = 0;
 			c1 = f1 = 0;
 
-			if (parse_pos_obs(arg1 + 1, &f1, &c1, sopts1,
-			    sizeof(sopts1)) < 0)
+			if (parse_pos_obs(arg1 + 1, &f1, &c1, sopts1) < 0)
 				continue;
+			else {
+				f1 += 1;
+				c1 += 1;
+				if (i + 1 < *argc) {
+					char *arg2 = argv[i + 1];
 
-			f1 += 1;
-			c1 += 1;
-			if (i + 1 < *argc) {
-				const char *arg2 = argv[i + 1];
+					if (strlen(arg2) > 1 &&
+					    arg2[0] == '-') {
+						int c2, f2;
+						char sopts2[128];
 
-				if (arg2[0] == '-') {
-					size_t c2, f2;
-					char sopts2[128];
+						sopts2[0] = 0;
+						c2 = f2 = 0;
 
-					sopts2[0] = 0;
-					c2 = f2 = 0;
-
-					if (parse_pos_obs(arg2 + 1, &f2, &c2,
-					    sopts2, sizeof(sopts2)) >= 0) {
-						int j;
-						if (c2 > 0)
-							f2 += 1;
-						snprintf(sopt, sizeof(sopt),
-						    "-k%zu.%zu%s,%zu.%zu%s",
-						    f1, c1, sopts1, f2,
-						    c2, sopts2);
-						argv[i] = sort_strdup(sopt);
-						for (j = i + 1; j + 1 < *argc; j++)
-							argv[j] = argv[j + 1];
-						*argc -= 1;
-						continue;
+						if (parse_pos_obs(arg2 + 1,
+						    &f2, &c2, sopts2) >= 0) {
+							if (c2 > 0)
+								f2 += 1;
+							sprintf(sopt, "-k%d.%d%s,%d.%d%s",
+							    f1, c1, sopts1, f2, c2, sopts2);
+							argv[i] = sort_strdup(sopt);
+							for (int j = i + 1; j + 1 < *argc; j++)
+								argv[j] = argv[j + 1];
+							*argc -= 1;
+							continue;
+						}
 					}
 				}
+				sprintf(sopt, "-k%d.%d%s", f1, c1, sopts1);
+				argv[i] = sort_strdup(sopt);
 			}
-			snprintf(sopt, sizeof(sopt), "-k%zu.%zu%s",
-			    f1, c1, sopts1);
-			argv[i] = sort_strdup(sopt);
 		}
 	}
 }
 
 /*
- * Set random seed
+ * Seed random sort
  */
 static void
-set_random_seed(void)
+get_random_seed(const char *random_source)
 {
-	if (!need_random)
-		return;
+	char randseed[32];
+	struct stat fsb, rsb;
+	ssize_t rd;
+	int rsfd;
 
-	MD5_Init(&md5_ctx);
-	if (random_source != NULL) {
-		unsigned char buf[BUFSIZ];
-		size_t nr;
-		FILE *fp;
+	rsfd = -1;
+	rd = sizeof(randseed);
 
-		if ((fp = fopen(random_source, "r")) == NULL)
-			err(2, "%s", random_source);
-		while ((nr = fread(buf, 1, sizeof(buf), fp)) != 0)
-			MD5_Update(&md5_ctx, buf, nr);
-		if (ferror(fp))
-			err(2, "%s", random_source);
-		fclose(fp);
-	} else {
-		unsigned char rsd[1024];
-
-		if (getrandom(rsd, sizeof(rsd), GRND_RANDOM|GRND_NONBLOCK) == -1)
-			err(1, "getrandom()");
-		MD5_Update(&md5_ctx, rsd, sizeof(rsd));
+	if (random_source == NULL) {
+		if (getentropy(randseed, sizeof(randseed)) < 0)
+			err(EX_SOFTWARE, "getentropy");
+		goto out;
 	}
+
+	rsfd = open(random_source, O_RDONLY | O_CLOEXEC);
+	if (rsfd < 0)
+		err(EX_NOINPUT, "open: %s", random_source);
+
+	if (fstat(rsfd, &fsb) != 0)
+		err(EX_SOFTWARE, "fstat");
+
+	if (!S_ISREG(fsb.st_mode) && !S_ISCHR(fsb.st_mode))
+		err(EX_USAGE,
+		    "random seed isn't a regular file or /dev/random");
+
+	/*
+	 * Regular files: read up to maximum seed size and explicitly
+	 * reject longer files.
+	 */
+	if (S_ISREG(fsb.st_mode)) {
+		if (fsb.st_size > (off_t)sizeof(randseed))
+			errx(EX_USAGE, "random seed is too large (%jd >"
+			    " %zu)!", (intmax_t)fsb.st_size,
+			    sizeof(randseed));
+		else if (fsb.st_size < 1)
+			errx(EX_USAGE, "random seed is too small ("
+			    "0 bytes)");
+
+		memset(randseed, 0, sizeof(randseed));
+
+		rd = read(rsfd, randseed, fsb.st_size);
+		if (rd < 0)
+			err(EX_SOFTWARE, "reading random seed file %s",
+			    random_source);
+		if (rd < (ssize_t)fsb.st_size)
+			errx(EX_SOFTWARE, "short read from %s", random_source);
+	} else if (S_ISCHR(fsb.st_mode)) {
+		if (stat("/dev/random", &rsb) < 0)
+			err(EX_SOFTWARE, "stat");
+
+		if (fsb.st_dev != rsb.st_dev ||
+		    fsb.st_ino != rsb.st_ino)
+			errx(EX_USAGE, "random seed is a character "
+			    "device other than /dev/random");
+
+		if (getentropy(randseed, sizeof(randseed)) < 0)
+			err(EX_SOFTWARE, "getentropy");
+	}
+
+out:
+	if (rsfd >= 0)
+		close(rsfd);
+
+	MD5Init(&md5_ctx);
+	MD5Update(&md5_ctx, randseed, rd);
 }
 
 /*
  * Main function.
  */
 int
-main(int argc, char *argv[])
+main(int argc, char **argv)
 {
-	char *outfile, *real_outfile, *sflag;
-	int c;
-	size_t i;
-	struct sort_mods *sm = &default_sort_mods_object;
+	char *outfile, *real_outfile;
+	char *random_source = NULL;
+	int c, result;
 	bool mef_flags[NUMBER_OF_MUTUALLY_EXCLUSIVE_FLAGS] =
 	    { false, false, false, false, false, false };
 
-	set_hw_params();
-
-	outfile = "-";
+	result = 0;
+	outfile = sort_strdup("-");
 	real_outfile = NULL;
-	sflag = NULL;
+
+	struct sort_mods *sm = &default_sort_mods_object;
 
 	init_tmp_files();
 
 	set_signal_handler();
 
-	atexit(clear_tmp_files);
-
+	set_hw_params();
+	set_locale();
 	set_tmpdir();
 	set_sort_opts();
 
@@ -825,6 +1010,7 @@ main(int argc, char *argv[])
 		check_mutually_exclusive_flags(c, mef_flags);
 
 		if (!set_sort_modifier(sm, c)) {
+
 			switch (c) {
 			case 'c':
 				sort_opts_vals.cflag = true;
@@ -847,18 +1033,15 @@ main(int argc, char *argv[])
 				sort_opts_vals.complex_sort = true;
 				sort_opts_vals.kflag = true;
 
-				keys = sort_reallocarray(keys, keys_num + 1,
+				keys_num++;
+				keys = sort_realloc(keys, keys_num *
 				    sizeof(struct key_specs));
-				memset(&(keys[keys_num]), 0,
+				memset(&(keys[keys_num - 1]), 0,
 				    sizeof(struct key_specs));
-#ifndef GNUSORT_COMPATIBILITY
-				keys[keys_num].pos1b = default_sort_mods->bflag;
-				keys[keys_num].pos2b = default_sort_mods->bflag;
-#endif
 
-				if (parse_k(optarg, &(keys[keys_num++])) < 0) {
-					errno = EINVAL;
-					err(2, "-k %s", optarg);
+				if (parse_k(optarg, &(keys[keys_num - 1]))
+				    < 0) {
+					errc(2, EINVAL, "-k %s", optarg);
 				}
 
 				break;
@@ -867,22 +1050,23 @@ main(int argc, char *argv[])
 				sort_opts_vals.mflag = true;
 				break;
 			case 'o':
-				outfile = optarg;
+				outfile = sort_realloc(outfile, (strlen(optarg) + 1));
+				strcpy(outfile, optarg);
 				break;
 			case 's':
 				sort_opts_vals.sflag = true;
 				break;
 			case 'S':
-				sflag = optarg;
+				available_free_memory =
+				    parse_memory_buffer_value(optarg);
 				break;
 			case 'T':
-				tmpdir = optarg;
+				tmpdir = sort_strdup(optarg);
 				break;
 			case 't':
 				while (strlen(optarg) > 1) {
 					if (optarg[0] != '\\') {
-						errno = EINVAL;
-						err(2, "%s", optarg);
+						errc(2, EINVAL, "%s", optarg);
 					}
 					optarg += 1;
 					if (*optarg == '0') {
@@ -896,6 +1080,16 @@ main(int argc, char *argv[])
 					errno = EINVAL;
 					err(2, NULL);
 				}
+				if (!gnusort_numeric_compatibility) {
+					if (symbol_decimal_point == sort_opts_vals.field_sep)
+						symbol_decimal_point = WEOF;
+					if (symbol_thousands_sep == sort_opts_vals.field_sep)
+						symbol_thousands_sep = WEOF;
+					if (symbol_negative_sign == sort_opts_vals.field_sep)
+						symbol_negative_sign = WEOF;
+					if (symbol_positive_sign == sort_opts_vals.field_sep)
+						symbol_positive_sign = WEOF;
+				}
 				break;
 			case 'u':
 				sort_opts_vals.uflag = true;
@@ -906,23 +1100,34 @@ main(int argc, char *argv[])
 				sort_opts_vals.zflag = true;
 				break;
 			case SORT_OPT:
-				if (!strcmp(optarg, "general-numeric"))
-					set_sort_modifier(sm, 'g');
-				else if (!strcmp(optarg, "human-numeric"))
-					set_sort_modifier(sm, 'h');
-				else if (!strcmp(optarg, "numeric"))
-					set_sort_modifier(sm, 'n');
-				else if (!strcmp(optarg, "month"))
-					set_sort_modifier(sm, 'M');
-				else if (!strcmp(optarg, "random"))
-					set_sort_modifier(sm, 'R');
-				else
-					unknown(optarg);
+				if (optarg) {
+					if (!strcmp(optarg, "general-numeric"))
+						set_sort_modifier(sm, 'g');
+					else if (!strcmp(optarg, "human-numeric"))
+						set_sort_modifier(sm, 'h');
+					else if (!strcmp(optarg, "numeric"))
+						set_sort_modifier(sm, 'n');
+					else if (!strcmp(optarg, "month"))
+						set_sort_modifier(sm, 'M');
+					else if (!strcmp(optarg, "random"))
+						set_sort_modifier(sm, 'R');
+					else
+						unknown(optarg);
+				}
 				break;
+#if defined(SORT_THREADS)
+			case PARALLEL_OPT:
+				nthreads = (size_t)(atoi(optarg));
+				if (nthreads < 1)
+					nthreads = 1;
+				if (nthreads > 1024)
+					nthreads = 1024;
+				break;
+#endif
 			case QSORT_OPT:
 				sort_opts_vals.sort_method = SORT_QSORT;
 				break;
-			case 'H':
+			case MERGESORT_OPT:
 				sort_opts_vals.sort_method = SORT_MERGESORT;
 				break;
 			case MMAP_OPT:
@@ -935,25 +1140,24 @@ main(int argc, char *argv[])
 				sort_opts_vals.sort_method = SORT_RADIXSORT;
 				break;
 			case RANDOMSOURCE_OPT:
-				random_source = optarg;
+				random_source = strdup(optarg);
 				break;
 			case COMPRESSPROGRAM_OPT:
-				compress_program = optarg;
+				compress_program = strdup(optarg);
 				break;
 			case FF_OPT:
 				read_fns_from_file0(optarg);
 				break;
 			case BS_OPT:
 			{
-				const char *errstr;
-
-				max_open_files = strtonum(optarg, 2,
-				    UINT_MAX - 1, &errstr) + 1;
-				if (errstr != NULL)
-					errx(2, "--batch-size argument is %s",
-					    errstr);
-				break;
+				errno = 0;
+				long mof = strtol(optarg, NULL, 10);
+				if (errno != 0)
+					err(2, "--batch-size");
+				if (mof >= 2)
+					max_open_files = (size_t) mof + 1;
 			}
+				break;
 			case VERSION_OPT:
 				printf("%s\n", VERSION);
 				exit(EXIT_SUCCESS);
@@ -963,105 +1167,112 @@ main(int argc, char *argv[])
 				debug_sort = true;
 				break;
 			case HELP_OPT:
-				usage(0);
+				usage(false);
 				/* NOTREACHED */
 				break;
 			default:
-				usage(2);
+				usage(true);
 				/* NOTREACHED */
 			}
 		}
 	}
+
 	argc -= optind;
 	argv += optind;
-
-#ifndef GNUSORT_COMPATIBILITY
-	if (argc > 2 && strcmp(argv[argc - 2], "-o") == 0) {
-		outfile = argv[argc - 1];
-		argc -= 2;
-	}
-#endif
 
 	if (argv_from_file0) {
 		argc = argc_from_file0;
 		argv = argv_from_file0;
 	}
 
-	if (sort_opts_vals.cflag) {
-		if (argc > 1)
-			errx(2, "only one input file is allowed with the -%c flag",
-			    sort_opts_vals.csilentflag ? 'C' : 'c');
-	} else {
-		/* Case when the outfile equals one of the input files: */
-		if (strcmp(outfile, "-") != 0) {
-			struct stat sb;
-			int fd, i;
+#ifndef WITHOUT_NLS
+	catalog = catopen("sort", NL_CAT_LOCALE);
+#endif
 
-			for (i = 0; i < argc; ++i) {
-				if (strcmp(argv[i], outfile) == 0) {
-					if (stat(outfile, &sb) == -1)
-						err(2, "%s", outfile);
-					if (access(outfile, W_OK) == -1)
-						err(2, "%s", outfile);
-					real_outfile = outfile;
-					sort_asprintf(&outfile, "%s.XXXXXXXXXX",
-					    real_outfile);
-					if ((fd = mkstemp(outfile)) == -1)
-						err(2, "%s", outfile);
-					(void)fchown(fd, sb.st_uid, sb.st_gid);
-					if (fchmod(fd, sb.st_mode & ACCESSPERMS) == -1)
-						err(2, "%s", outfile);
-					close(fd);
-					tmp_file_atexit(outfile);
-					break;
-				}
-			}
-		}
-	}
+	if (sort_opts_vals.cflag && sort_opts_vals.mflag)
+		errx(1, "%c:%c: %s", 'm', 'c', getstr(1));
 
-	if (sflag != NULL)
-		available_free_memory = parse_memory_buffer_value(sflag);
+#ifndef WITHOUT_NLS
+	catclose(catalog);
+#endif
 
 	if (keys_num == 0) {
 		keys_num = 1;
-		keys = sort_reallocarray(keys, 1, sizeof(struct key_specs));
+		keys = sort_realloc(keys, sizeof(struct key_specs));
 		memset(&(keys[0]), 0, sizeof(struct key_specs));
 		keys[0].c1 = 1;
-#ifdef GNUSORT_COMPATIBILITY
-		keys[0].pos1b = sm->bflag;
-		keys[0].pos2b = sm->bflag;
-#endif
-		memcpy(&(keys[0].sm), sm, sizeof(struct sort_mods));
+		keys[0].pos1b = default_sort_mods->bflag;
+		keys[0].pos2b = default_sort_mods->bflag;
+		memcpy(&(keys[0].sm), default_sort_mods,
+		    sizeof(struct sort_mods));
 	}
 
-	for (i = 0; i < keys_num; i++) {
+	for (size_t i = 0; i < keys_num; i++) {
 		struct key_specs *ks;
 
 		ks = &(keys[i]);
 
-		if (sort_modifier_empty(&(ks->sm))) {
-#ifdef GNUSORT_COMPATIBILITY
-			if (!(ks->pos1b) && !(ks->pos2b)) {
-				ks->pos1b = sm->bflag;
-				ks->pos2b = sm->bflag;
-			}
-#endif
+		if (sort_modifier_empty(&(ks->sm)) && !(ks->pos1b) &&
+		    !(ks->pos2b)) {
+			ks->pos1b = sm->bflag;
+			ks->pos2b = sm->bflag;
 			memcpy(&(ks->sm), sm, sizeof(struct sort_mods));
 		}
 
 		ks->sm.func = get_sort_func(&(ks->sm));
 	}
 
-	if (debug_sort)
-		printf("Memory to be used for sorting: %llu\n",
-		    available_free_memory);
+	if (debug_sort) {
+		printf("Memory to be used for sorting: %llu\n",available_free_memory);
+#if defined(SORT_THREADS)
+		printf("Number of CPUs: %d\n",(int)ncpu);
+		nthreads = 1;
+#endif
+		printf("Using collate rules of %s locale\n",
+		    setlocale(LC_COLLATE, NULL));
+		if (byte_sort)
+			printf("Byte sort is used\n");
+		if (print_symbols_on_debug) {
+			printf("Decimal Point: <%lc>\n", symbol_decimal_point);
+			if (symbol_thousands_sep)
+				printf("Thousands separator: <%lc>\n",
+				    symbol_thousands_sep);
+			printf("Positive sign: <%lc>\n", symbol_positive_sign);
+			printf("Negative sign: <%lc>\n", symbol_negative_sign);
+		}
+	}
 
-	if (sort_opts_vals.cflag)
-		return check(argc ? *argv : "-");
+	if (need_random)
+		get_random_seed(random_source);
 
-	set_random_seed();
+	/* Case when the outfile equals one of the input files: */
+	if (strcmp(outfile, "-")) {
 
-	if (!sort_opts_vals.mflag) {
+		for(int i = 0; i < argc; ++i) {
+			if (strcmp(argv[i], outfile) == 0) {
+				real_outfile = sort_strdup(outfile);
+				for(;;) {
+					char* tmp = sort_malloc(strlen(outfile) +
+					    strlen(".tmp") + 1);
+
+					strcpy(tmp, outfile);
+					strcpy(tmp + strlen(tmp), ".tmp");
+					sort_free(outfile);
+					outfile = tmp;
+					if (access(outfile, F_OK) < 0)
+						break;
+				}
+				tmp_file_atexit(outfile);
+			}
+		}
+	}
+
+#if defined(SORT_THREADS)
+	if ((argc < 1) || (strcmp(outfile, "-") == 0) || (*outfile == 0))
+		nthreads = 1;
+#endif
+
+	if (!sort_opts_vals.cflag && !sort_opts_vals.mflag) {
 		struct file_list fl;
 		struct sort_list list;
 
@@ -1099,11 +1310,14 @@ main(int argc, char *argv[])
 		 * sort_list_clean(&list);
 		 */
 
-	} else {
+	} else if (sort_opts_vals.cflag) {
+		result = (argc == 0) ? (check("-")) : (check(*argv));
+	} else if (sort_opts_vals.mflag) {
 		struct file_list fl;
 
 		file_list_init(&fl, false);
-		if (argc < 1)
+		/* No file arguments remaining means "read from stdin." */
+		if (argc == 0)
 			file_list_add(&fl, "-", true);
 		else
 			file_list_populate(&fl, argc, argv, true);
@@ -1112,10 +1326,13 @@ main(int argc, char *argv[])
 	}
 
 	if (real_outfile) {
-		if (rename(outfile, real_outfile) == -1)
-			err(2, "%s", real_outfile);
-		sort_free(outfile);
+		unlink(real_outfile);
+		if (rename(outfile, real_outfile) < 0)
+			err(2, NULL);
+		sort_free(real_outfile);
 	}
 
-	return 0;
+	sort_free(outfile);
+
+	return (result);
 }

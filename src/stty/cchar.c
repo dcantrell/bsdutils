@@ -1,6 +1,3 @@
-/*	$OpenBSD: cchar.c,v 1.12 2016/03/23 14:52:42 mmcc Exp $	*/
-/*	$NetBSD: cchar.c,v 1.10 1996/05/07 18:20:05 jtc Exp $	*/
-
 /*-
  * Copyright (c) 1991, 1993, 1994
  *	The Regents of the University of California.  All rights reserved.
@@ -30,19 +27,25 @@
  * SUCH DAMAGE.
  */
 
+#ifndef lint
+#if 0
+static char sccsid[] = "@(#)cchar.c	8.5 (Berkeley) 4/2/94";
+#endif
+#endif /* not lint */
+#include <sys/cdefs.h>
+__FBSDID("$FreeBSD$");
+
 #include <sys/types.h>
-#include <sys/ioctl.h>
 
 #include <err.h>
 #include <limits.h>
-#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
-#include <termios.h>
-#include <unistd.h>
 
 #include "stty.h"
 #include "extern.h"
+
+static int c_cchar(const void *, const void *);
 
 /*
  * Special control characters.
@@ -51,13 +54,14 @@
  * The first are displayed, but both are recognized on the
  * command line.
  */
-const struct cchar cchars1[] = {
+struct cchar cchars1[] = {
 	{ "discard",	VDISCARD, 	CDISCARD },
-	{ "dsusp", 	CDSUSP,		CDSUSP },
+	{ "dsusp", 	VDSUSP,		CDSUSP },
 	{ "eof",	VEOF,		CEOF },
 	{ "eol",	VEOL,		CEOL },
 	{ "eol2",	VEOL2,		CEOL },
 	{ "erase",	VERASE,		CERASE },
+	{ "erase2",	VERASE2,	CERASE2 },
 	{ "intr",	VINTR,		CINTR },
 	{ "kill",	VKILL,		CKILL },
 	{ "lnext",	VLNEXT,		CLNEXT },
@@ -65,25 +69,26 @@ const struct cchar cchars1[] = {
 	{ "quit",	VQUIT,		CQUIT },
 	{ "reprint",	VREPRINT, 	CREPRINT },
 	{ "start",	VSTART,		CSTART },
-	{ "status",	CSTATUS, 	CSTATUS },
+	{ "status",	VSTATUS, 	CSTATUS },
 	{ "stop",	VSTOP,		CSTOP },
 	{ "susp",	VSUSP,		CSUSP },
 	{ "time",	VTIME,		CTIME },
 	{ "werase",	VWERASE,	CWERASE },
-	{ NULL },
+	{ NULL,		0,		0},
 };
 
-const struct cchar cchars2[] = {
+struct cchar cchars2[] = {
 	{ "brk",	VEOL,		CEOL },
 	{ "flush",	VDISCARD, 	CDISCARD },
 	{ "rprnt",	VREPRINT, 	CREPRINT },
-	{ NULL },
+	{ NULL,		0,		0 },
 };
 
 static int
 c_cchar(const void *a, const void *b)
 {
-	return (strcmp(((struct cchar *)a)->name, ((struct cchar *)b)->name));
+
+        return (strcmp(((const struct cchar *)a)->name, ((const struct cchar *)b)->name));
 }
 
 int
@@ -114,7 +119,7 @@ csearch(char ***argvp, struct info *ip)
 		ip->t.c_cc[cp->sub] = _POSIX_VDISABLE;
 	else if (cp->sub == VMIN || cp->sub == VTIME) {
 		val = strtol(arg, &ep, 10);
-		if (val > UCHAR_MAX || val < 0) {
+		if (val > UCHAR_MAX) {
 			warnx("maximum option value is %d -- %s",
 			    UCHAR_MAX, name);
 			usage();

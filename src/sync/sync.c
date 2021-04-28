@@ -1,7 +1,4 @@
-/*	$OpenBSD: sync.c,v 1.7 2009/10/27 23:59:22 deraadt Exp $	*/
-/*	$NetBSD: sync.c,v 1.7 1995/03/21 09:11:37 cgd Exp $	*/
-
-/*
+/*-
  * Copyright (c) 1987, 1993
  *	The Regents of the University of California.  All rights reserved.
  *
@@ -30,11 +27,26 @@
  * SUCH DAMAGE.
  */
 
+#if 0
+#ifndef lint
+static char const copyright[] =
+"@(#) Copyright (c) 1987, 1993\n\
+	The Regents of the University of California.  All rights reserved.\n";
+#endif /* not lint */
+
+#ifndef lint
+static char sccsid[] = "@(#)sync.c	8.1 (Berkeley) 5/31/93";
+#endif /* not lint */
+#endif
+#include <sys/cdefs.h>
+__FBSDID("$FreeBSD$");
+
+#include <stdlib.h>
 #include <unistd.h>
 
 int
-main(void)
+main(int argc __unused, char *argv[] __unused)
 {
 	sync();
-	return(0);
+	exit(0);
 }

@@ -1,7 +1,6 @@
-/*	$OpenBSD: extern.h,v 1.9 2014/03/27 15:32:13 tedu Exp $	*/
-/*	$NetBSD: extern.h,v 1.7 1996/02/20 19:29:07 jtc Exp $	*/
-
 /*-
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
  * Copyright (c) 1991, 1993, 1994
  *	The Regents of the University of California.  All rights reserved.
  *
@@ -34,6 +33,7 @@
  * SUCH DAMAGE.
  *
  *	@(#)extern.h	8.3 (Berkeley) 4/2/94
+ * $FreeBSD$
  */
 
 void block(void);
@@ -44,7 +44,11 @@ void def_close(void);
 void jcl(char **);
 void pos_in(void);
 void pos_out(void);
+double secs_elapsed(void);
+void progress(void);
 void summary(void);
+void sigalarm_handler(int);
+void siginfo_handler(int);
 void terminate(int);
 void unblock(void);
 void unblock_close(void);
@@ -52,12 +56,16 @@ void unblock_close(void);
 extern IO in, out;
 extern STAT st;
 extern void (*cfunc)(void);
-extern size_t cpy_cnt;
+extern uintmax_t cpy_cnt;
 extern size_t cbsz;
-extern u_int ddflags;
-extern size_t files_cnt;
+extern uint64_t ddflags;
+extern size_t speed;
+extern uintmax_t files_cnt;
 extern const u_char *ctab;
-extern const u_char a2e_POSIX[];
-extern const u_char e2a_POSIX[];
-extern const u_char a2ibm_POSIX[];
+extern const u_char a2e_32V[], a2e_POSIX[];
+extern const u_char e2a_32V[], e2a_POSIX[];
+extern const u_char a2ibm_32V[], a2ibm_POSIX[];
 extern u_char casetab[];
+extern char fill_char;
+extern volatile sig_atomic_t need_summary;
+extern volatile sig_atomic_t need_progress;

@@ -1,7 +1,6 @@
-/*	$OpenBSD: conv.c,v 1.13 2016/08/16 16:44:55 krw Exp $	*/
-/*	$NetBSD: conv.c,v 1.6 1996/02/20 19:29:02 jtc Exp $	*/
-
 /*-
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
  * Copyright (c) 1991, 1993, 1994
  *	The Regents of the University of California.  All rights reserved.
  *
@@ -34,16 +33,22 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/types.h>
-#include <sys/time.h>
+#ifndef lint
+#if 0
+static char sccsid[] = "@(#)conv.c	8.3 (Berkeley) 4/2/94";
+#endif
+#endif /* not lint */
+#include <sys/cdefs.h>
+__FBSDID("$FreeBSD$");
+
+#include <sys/param.h>
 
 #include <err.h>
+#include <inttypes.h>
 #include <string.h>
 
 #include "dd.h"
 #include "extern.h"
-
-#define MINIMUM(a, b)	(((a) < (b)) ? (a) : (b))
 
 /*
  * def --
@@ -54,9 +59,9 @@
 void
 def(void)
 {
-	size_t cnt;
 	u_char *inp;
 	const u_char *t;
+	size_t cnt;
 
 	if ((t = ctab) != NULL)
 		for (inp = in.dbp - (cnt = in.dbrcnt); cnt--; ++inp)
@@ -71,10 +76,10 @@ def(void)
 		dd_out(0);
 
 		/*
-		 * Ddout copies the leftover output to the beginning of
+		 * dd_out copies the leftover output to the beginning of
 		 * the buffer and resets the output buffer.  Reset the
 		 * input buffer to match it.
-		 */
+	 	 */
 		in.dbp = out.dbp;
 		in.dbcnt = out.dbcnt;
 	}
@@ -88,16 +93,6 @@ def_close(void)
 		out.dbcnt = in.dbcnt;
 }
 
-#ifdef	NO_CONV
-/* Build a smaller version (i.e. for a miniroot) */
-/* These can not be called, but just in case...  */
-static char no_block[] = "unblock and -DNO_CONV?";
-void block()       { errx(1, "%s", no_block + 2); }
-void block_close() { errx(1, "%s", no_block + 2); }
-void unblock()       { errx(1, "%s", no_block); }
-void unblock_close() { errx(1, "%s", no_block); }
-#else	/* NO_CONV */
-
 /*
  * Copy variable length newline terminated records with a max size cbsz
  * bytes to output.  Records less than cbs are padded with spaces.
@@ -108,11 +103,11 @@ void unblock_close() { errx(1, "%s", no_block); }
 void
 block(void)
 {
-	static int intrunc;
-	int ch = -1;
-	size_t cnt, maxlen;
 	u_char *inp, *outp;
 	const u_char *t;
+	size_t cnt, maxlen;
+	static int intrunc;
+	int ch;
 
 	/*
 	 * Record truncation can cross block boundaries.  If currently in a
@@ -121,8 +116,8 @@ block(void)
 	 * left empty.
 	 */
 	if (intrunc) {
-		for (inp = in.db, cnt = in.dbrcnt;
-		    cnt && *inp++ != '\n'; --cnt);
+		for (inp = in.db, cnt = in.dbrcnt; cnt && *inp++ != '\n'; --cnt)
+			;
 		if (!cnt) {
 			in.dbcnt = 0;
 			in.dbp = in.db;
@@ -138,21 +133,22 @@ block(void)
 	 * Copy records (max cbsz size chunks) into the output buffer.  The
 	 * translation is done as we copy into the output buffer.
 	 */
+	ch = 0;
 	for (inp = in.dbp - in.dbcnt, outp = out.dbp; in.dbcnt;) {
-		maxlen = MINIMUM(cbsz, in.dbcnt);
+		maxlen = MIN(cbsz, (size_t)in.dbcnt);
 		if ((t = ctab) != NULL)
-			for (cnt = 0;
-			    cnt < maxlen && (ch = *inp++) != '\n'; ++cnt)
+			for (cnt = 0; cnt < maxlen && (ch = *inp++) != '\n';
+			    ++cnt)
 				*outp++ = t[ch];
 		else
-			for (cnt = 0;
-			    cnt < maxlen && (ch = *inp++) != '\n'; ++cnt)
+			for (cnt = 0; cnt < maxlen && (ch = *inp++) != '\n';
+			    ++cnt)
 				*outp++ = ch;
 		/*
 		 * Check for short record without a newline.  Reassemble the
 		 * input block.
 		 */
-		if (ch != '\n' && in.dbcnt < cbsz) {
+		if (ch != '\n' && (size_t)in.dbcnt < cbsz) {
 			(void)memmove(in.db, in.dbp - in.dbcnt, in.dbcnt);
 			break;
 		}
@@ -174,7 +170,8 @@ block(void)
 				++st.trunc;
 
 			/* Toss characters to a newline. */
-			for (; in.dbcnt && *inp++ != '\n'; --in.dbcnt);
+			for (; in.dbcnt && *inp++ != '\n'; --in.dbcnt)
+				;
 			if (!in.dbcnt)
 				intrunc = 1;
 			else
@@ -204,8 +201,8 @@ block_close(void)
 	if (in.dbcnt) {
 		++st.trunc;
 		(void)memmove(out.dbp, in.dbp - in.dbcnt, in.dbcnt);
-		(void)memset(out.dbp + in.dbcnt,
-		    ctab ? ctab[' '] : ' ', cbsz - in.dbcnt);
+		(void)memset(out.dbp + in.dbcnt, ctab ? ctab[' '] : ' ',
+		    cbsz - in.dbcnt);
 		out.dbcnt += cbsz;
 	}
 }
@@ -220,30 +217,30 @@ block_close(void)
 void
 unblock(void)
 {
-	size_t cnt;
 	u_char *inp;
 	const u_char *t;
+	size_t cnt;
 
 	/* Translation and case conversion. */
 	if ((t = ctab) != NULL)
-		for (cnt = in.dbrcnt, inp = in.dbp - 1; cnt--; inp--)
+		for (inp = in.dbp - (cnt = in.dbrcnt); cnt--; ++inp)
 			*inp = t[*inp];
 	/*
 	 * Copy records (max cbsz size chunks) into the output buffer.  The
 	 * translation has to already be done or we might not recognize the
 	 * spaces.
 	 */
-	for (inp = in.db; in.dbcnt >= cbsz; inp += cbsz, in.dbcnt -= cbsz) {
-		for (t = inp + cbsz - 1; t >= inp && *t == ' '; --t);
+	for (inp = in.db; (size_t)in.dbcnt >= cbsz; inp += cbsz, in.dbcnt -= cbsz) {
+		for (t = inp + cbsz - 1; t >= inp && *t == ' '; --t)
+			;
 		if (t >= inp) {
 			cnt = t - inp + 1;
 			(void)memmove(out.dbp, inp, cnt);
 			out.dbp += cnt;
 			out.dbcnt += cnt;
 		}
-		++out.dbcnt;
 		*out.dbp++ = '\n';
-		if (out.dbcnt >= out.dbsz)
+		if (++out.dbcnt >= out.dbsz)
 			dd_out(0);
 	}
 	if (in.dbcnt)
@@ -254,12 +251,13 @@ unblock(void)
 void
 unblock_close(void)
 {
-	size_t cnt;
 	u_char *t;
+	size_t cnt;
 
 	if (in.dbcnt) {
 		warnx("%s: short input record", in.name);
-		for (t = in.db + in.dbcnt - 1; t >= in.db && *t == ' '; --t);
+		for (t = in.db + in.dbcnt - 1; t >= in.db && *t == ' '; --t)
+			;
 		if (t >= in.db) {
 			cnt = t - in.db + 1;
 			(void)memmove(out.dbp, in.db, cnt);
@@ -270,5 +268,3 @@ unblock_close(void)
 		*out.dbp++ = '\n';
 	}
 }
-
-#endif	/* NO_CONV */

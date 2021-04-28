@@ -1,6 +1,8 @@
-/*	$OpenBSD: file.h,v 1.4 2015/04/02 22:14:51 deraadt Exp $	*/
+/*	$FreeBSD$	*/
 
 /*-
+ * SPDX-License-Identifier: BSD-2-Clause-FreeBSD
+ *
  * Copyright (C) 2009 Gabor Kovesdan <gabor@FreeBSD.org>
  * Copyright (C) 2012 Oleg Moskalenko <mom040267@gmail.com>
  * All rights reserved.
@@ -45,7 +47,8 @@
 /*
  * List of data to be sorted.
  */
-struct sort_list {
+struct sort_list
+{
 	struct sort_list_item	**list;
 	unsigned long long	 memsize;
 	size_t			 count;
@@ -61,8 +64,9 @@ struct file_reader;
 /*
  * List of files to be sorted
  */
-struct file_list {
-	char			**fns;
+struct file_list
+{
+	const char *		*fns;
 	size_t			 count;
 	size_t			 sz;
 	bool			 tmp;
@@ -72,6 +76,7 @@ struct file_list {
 
 /**/
 
+extern unsigned long long free_memory;
 extern unsigned long long available_free_memory;
 
 /* Are we using mmap ? */
@@ -103,7 +108,7 @@ char *new_tmp_file_name(void);
 void tmp_file_atexit(const char *tmp_file);
 
 void file_list_init(struct file_list *fl, bool tmp);
-void file_list_add(struct file_list *fl, char *fn, bool allocate);
+void file_list_add(struct file_list *fl, const char *fn, bool allocate);
 void file_list_populate(struct file_list *fl, int argc, char **argv, bool allocate);
 void file_list_clean(struct file_list *fl);
 

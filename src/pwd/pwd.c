@@ -1,7 +1,6 @@
-/*	$OpenBSD: pwd.c,v 1.14 2015/10/09 01:37:06 deraadt Exp $	*/
-/*	$NetBSD: pwd.c,v 1.22 2011/08/29 14:51:19 joerg Exp $	*/
-
-/*
+/*-
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
  * Copyright (c) 1991, 1993, 1994
  *	The Regents of the University of California.  All rights reserved.
  *
@@ -30,88 +29,97 @@
  * SUCH DAMAGE.
  */
 
+#if 0
+#ifndef lint
+static char const copyright[] =
+"@(#) Copyright (c) 1991, 1993, 1994\n\
+	The Regents of the University of California.  All rights reserved.\n";
+#endif /* not lint */
+
+#ifndef lint
+static char sccsid[] = "@(#)pwd.c	8.3 (Berkeley) 4/1/94";
+#endif /* not lint */
+#endif
+#include <sys/cdefs.h>
+__FBSDID("$FreeBSD$");
+
+#include <sys/param.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 
 #include <err.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-extern char *__progname;
 static char *getcwd_logical(void);
-static void usage(void);
+void usage(void);
 
 int
 main(int argc, char *argv[])
 {
-	int ch, lFlag = 0;
-	const char *p;
+	int physical;
+	int ch;
+	char *p;
 
-	while ((ch = getopt(argc, argv, "LP")) != -1) {
+	physical = 1;
+	while ((ch = getopt(argc, argv, "LP")) != -1)
 		switch (ch) {
 		case 'L':
-			lFlag = 1;
+			physical = 0;
 			break;
 		case 'P':
-			lFlag = 0;
+			physical = 1;
 			break;
+		case '?':
 		default:
 			usage();
 		}
-	}
 	argc -= optind;
 	argv += optind;
 
 	if (argc != 0)
 		usage();
 
-	if (lFlag)
-		p = getcwd_logical();
+	/*
+	 * If we're trying to find the logical current directory and that
+	 * fails, behave as if -P was specified.
+	 */
+	if ((!physical && (p = getcwd_logical()) != NULL) ||
+	    (p = getcwd(NULL, 0)) != NULL)
+		printf("%s\n", p);
 	else
-		p = NULL;
-	if (p == NULL)
-		p = getcwd(NULL, 0);
+		err(1, ".");
 
-	if (p == NULL)
-		err(EXIT_FAILURE, NULL);
+	exit(0);
+}
 
-	puts(p);
+void __dead2
+usage(void)
+{
 
-	exit(EXIT_SUCCESS);
+	(void)fprintf(stderr, "usage: pwd [-L | -P]\n");
+  	exit(1);
 }
 
 static char *
 getcwd_logical(void)
 {
-	char *pwd, *p;
-	struct stat s_pwd, s_dot;
+	struct stat lg, phy;
+	char *pwd;
 
-	/* Check $PWD -- if it's right, it's fast. */
-	pwd = getenv("PWD");
-	if (pwd == NULL)
-		return NULL;
-	if (pwd[0] != '/')
-		return NULL;
+	/*
+	 * Check that $PWD is an absolute logical pathname referring to
+	 * the current working directory.
+	 */
+	if ((pwd = getenv("PWD")) != NULL && *pwd == '/') {
+		if (stat(pwd, &lg) == -1 || stat(".", &phy) == -1)
+			return (NULL);
+		if (lg.st_dev == phy.st_dev && lg.st_ino == phy.st_ino)
+			return (pwd);
+	}
 
-	/* check for . or .. components, including trailing ones */
-	for (p = pwd; *p != '\0'; p++)
-		if (p[0] == '/' && p[1] == '.') {
-			if (p[2] == '.')
-				p++;
-			if (p[2] == '\0' || p[2] == '/')
-				return NULL;
-		}
-
-	if (stat(pwd, &s_pwd) == -1 || stat(".", &s_dot) == -1)
-		return NULL;
-	if (s_pwd.st_dev != s_dot.st_dev || s_pwd.st_ino != s_dot.st_ino)
-		return NULL;
-	return pwd;
-}
-
-static void
-usage(void)
-{
-	fprintf(stderr, "usage: %s [-LP]\n", __progname);
-	exit(EXIT_FAILURE);
+	errno = ENOENT;
+	return (NULL);
 }

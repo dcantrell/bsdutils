@@ -1,7 +1,5 @@
-.\"	$OpenBSD: paste.1,v 1.15 2017/06/28 14:49:26 schwarze Exp $
-.\"
-.\" Copyright (c) 1989, 1990 The Regents of the University of California.
-.\" All rights reserved.
+.\" Copyright (c) 1989, 1990, 1993
+.\"	The Regents of the University of California.  All rights reserved.
 .\"
 .\" This code is derived from software contributed to Berkeley by
 .\" Adam S. Moskowitz and the Institute of Electrical and Electronics
@@ -31,22 +29,23 @@
 .\" OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 .\" SUCH DAMAGE.
 .\"
-.\"	from: @(#)paste.1	5.6 (Berkeley) 7/27/91
+.\"	@(#)paste.1	8.1 (Berkeley) 6/6/93
+.\" $FreeBSD$
 .\"
-.Dd $Mdocdate: June 28 2017 $
+.Dd June 25, 2004
 .Dt PASTE 1
 .Os
 .Sh NAME
 .Nm paste
 .Nd merge corresponding or subsequent lines of files
 .Sh SYNOPSIS
-.Nm paste
+.Nm
 .Op Fl s
 .Op Fl d Ar list
 .Ar
 .Sh DESCRIPTION
 The
-.Nm paste
+.Nm
 utility concatenates the corresponding lines of the given input files,
 replacing all but the last file's newline characters with a single tab
 character, and writes the resulting lines to standard output.
@@ -55,7 +54,7 @@ still contain data, the file is treated as if it were an endless source
 of empty lines.
 .Pp
 The options are as follows:
-.Bl -tag -width Ds
+.Bl -tag -width Fl
 .It Fl d Ar list
 Use one or more of the provided characters to replace the newline
 characters instead of the default tab.
@@ -71,7 +70,7 @@ or the last line in each file (using the
 .Fl s
 option) is displayed, at which
 time
-.Nm paste
+.Nm
 begins selecting characters from the beginning of
 .Ar list
 again.
@@ -86,7 +85,7 @@ tab character
 .It Li \e\e
 backslash character
 .It Li \e0
-empty string (not a null character)
+Empty string (not a null character).
 .El
 .Pp
 Any other character preceded by a backslash is equivalent to the
@@ -102,36 +101,26 @@ option.
 .El
 .Pp
 If
-.Dq -
+.Sq Fl
 is specified for one or more of the input files, the standard
 input is used; standard input is read one line at a time, circularly,
 for each instance of
-.Dq - .
+.Sq Fl .
 .Sh EXIT STATUS
-.Ex -std paste
+.Ex -std
 .Sh EXAMPLES
 List the files in the current directory in three columns:
-.Bd -literal -offset indent
-$ ls | paste - - -
-$ ls | paste -s -d '\et\et\en' -
-.Ed
 .Pp
-Combine pairs of lines from
-.Ar file
-into single lines:
-.Bd -literal -offset indent
-$ paste - - < file
-$ paste -s -d '\et\en' file
-.Ed
+.Dl "ls | paste - - -"
 .Pp
-Number the lines in
-.Ar file ,
-similar to
-.Ql cat -n :
-.Bd -literal -offset indent
-$ sed = file | paste - -
-$ sed = file | paste -s -d '\et\en' -
-.Ed
+Combine pairs of lines from a file into single lines:
+.Pp
+.Dl "paste -s -d '\et\en' myfile"
+.Pp
+Number the lines in a file, similar to
+.Xr nl 1 :
+.Pp
+.Dl "sed = myfile | paste -s -d '\et\en' - -"
 .Pp
 Create a colon-separated list of directories named
 .Pa bin ,
@@ -140,12 +129,18 @@ for use in the
 .Ev PATH
 environment variable:
 .Pp
-.Dl "$ find / -name bin -type d | paste -s -d : -"
+.Dl "find / -name bin -type d | paste -s -d : -"
 .Sh SEE ALSO
-.Xr cut 1
+.Xr cut 1 ,
+.Xr lam 1
 .Sh STANDARDS
 The
 .Nm
-utility is compliant with the
-.St -p1003.1-2008
-specification.
+utility is expected to be
+.St -p1003.2
+compatible.
+.Sh HISTORY
+A
+.Nm
+command appeared in
+.At 32v .

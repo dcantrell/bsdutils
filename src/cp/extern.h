@@ -1,7 +1,6 @@
-/*	$OpenBSD: extern.h,v 1.15 2015/12/26 18:11:43 guenther Exp $	*/
-/*	$NetBSD: extern.h,v 1.3 1995/03/21 09:02:16 cgd Exp $	*/
-
 /*-
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
  * Copyright (c) 1991, 1993, 1994
  *	The Regents of the University of California.  All rights reserved.
  *
@@ -30,25 +29,26 @@
  * SUCH DAMAGE.
  *
  *	@(#)extern.h	8.2 (Berkeley) 4/1/94
+ * $FreeBSD$
  */
 
 typedef struct {
-	char *p_end;			/* pointer to NULL at end of path */
-	char *target_end;		/* pointer to end of target base */
-	char p_path[PATH_MAX];		/* pointer to the start of a path */
+	char	*p_end;			/* pointer to NULL at end of path */
+	char	*target_end;		/* pointer to end of target base */
+	char	p_path[PATH_MAX];	/* pointer to the start of a path */
 } PATH_T;
 
 extern PATH_T to;
-extern uid_t myuid;
-extern int fflag, iflag, pflag;
-extern mode_t myumask;
-extern char *__progname;
+extern int fflag, iflag, lflag, nflag, pflag, sflag, vflag;
+extern volatile sig_atomic_t info;
 
 __BEGIN_DECLS
 int	copy_fifo(struct stat *, int);
-int	copy_file(FTSENT *, int);
-int	copy_link(FTSENT *, int);
+int	copy_file(const FTSENT *, int);
+int	copy_link(const FTSENT *, int);
 int	copy_special(struct stat *, int);
 int	setfile(struct stat *, int);
+int	preserve_dir_acls(struct stat *, char *, char *);
+int	preserve_fd_acls(int, int);
 void	usage(void);
 __END_DECLS

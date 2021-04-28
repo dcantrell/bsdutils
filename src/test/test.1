@@ -1,6 +1,4 @@
-.\"	$OpenBSD: test.1,v 1.33 2016/08/16 18:51:25 schwarze Exp $
-.\"	$NetBSD: test.1,v 1.6 1995/03/21 07:04:03 cgd Exp $
-.\"
+.\"-
 .\" Copyright (c) 1991, 1993
 .\"	The Regents of the University of California.  All rights reserved.
 .\"
@@ -32,8 +30,9 @@
 .\" SUCH DAMAGE.
 .\"
 .\"     @(#)test.1	8.1 (Berkeley) 5/31/93
+.\" $FreeBSD$
 .\"
-.Dd $Mdocdate: August 16 2016 $
+.Dd October 5, 2016
 .Dt TEST 1
 .Os
 .Sh NAME
@@ -41,40 +40,27 @@
 .Nm \&[
 .Nd condition evaluation utility
 .Sh SYNOPSIS
-.Nm test
+.Nm
 .Ar expression
 .Nm \&[
-.Ar expression Nm \&]
+.Ar expression Cm \&]
 .Sh DESCRIPTION
 The
 .Nm
-utility evaluates the
-.Ar expression
-and, if it evaluates
+utility evaluates the expression and, if it evaluates
 to true, returns a zero (true) exit status; otherwise
 it returns 1 (false).
-If no
-.Ar expression
-is given,
+If there is no expression,
 .Nm
 also
 returns 1 (false).
-The form
-.Nm \&[
-is an alias for
-.Nm test .
 .Pp
 All operators and flags are separate arguments to the
 .Nm
 utility.
-Symbolic links are followed for all primaries except
-.Fl h
-and
-.Fl L .
 .Pp
-The following primaries are used to construct
-.Ar expression :
-.Bl -tag -width Ds
+The following primaries are used to construct expression:
+.Bl -tag -width Ar
 .It Fl b Ar file
 True if
 .Ar file
@@ -97,40 +83,28 @@ exists (regardless of type).
 True if
 .Ar file
 exists and is a regular file.
-.It Fl G Ar file
-True if
-.Ar file
-exists and its group matches the effective group ID of this process.
 .It Fl g Ar file
 True if
 .Ar file
-exists and its set-group-ID flag
+exists and its set group ID flag
 is set.
 .It Fl h Ar file
 True if
 .Ar file
 exists and is a symbolic link.
+This operator is retained for compatibility with previous versions of
+this program.
+Do not rely on its existence; use
+.Fl L
+instead.
 .It Fl k Ar file
 True if
 .Ar file
 exists and its sticky bit is set.
-.It Fl L Ar file
-True if
-.Ar file
-exists and is a symbolic link.
-This operator is for compatibility purposes.
-Do not rely on its existence;
-use
-.Fl h
-instead.
 .It Fl n Ar string
 True if the length of
 .Ar string
 is nonzero.
-.It Fl O Ar file
-True if
-.Ar file
-exists and its owner matches the effective user ID of this process.
 .It Fl p Ar file
 True if
 .Ar file
@@ -140,10 +114,6 @@ is a named pipe
 True if
 .Ar file
 exists and is readable.
-.It Fl S Ar file
-True if
-.Ar file
-exists and is a socket.
 .It Fl s Ar file
 True if
 .Ar file
@@ -153,11 +123,11 @@ than zero.
 True if the file whose file descriptor number
 is
 .Ar file_descriptor
-(default 1) is open and is associated with a terminal.
+is open and is associated with a terminal.
 .It Fl u Ar file
 True if
 .Ar file
-exists and its set-user-ID flag
+exists and its set user ID flag
 is set.
 .It Fl w Ar file
 True if
@@ -182,6 +152,22 @@ can be searched.
 True if the length of
 .Ar string
 is zero.
+.It Fl L Ar file
+True if
+.Ar file
+exists and is a symbolic link.
+.It Fl O Ar file
+True if
+.Ar file
+exists and its owner matches the effective user id of this process.
+.It Fl G Ar file
+True if
+.Ar file
+exists and its group matches the effective group id of this process.
+.It Fl S Ar file
+True if
+.Ar file
+exists and is a socket.
 .It Ar file1 Fl nt Ar file2
 True if
 .Ar file1
@@ -198,6 +184,11 @@ True if
 and
 .Ar file2
 exist and refer to the same file.
+.It Ar string
+True if
+.Ar string
+is not the null
+string.
 .It Ar s1 Cm = Ar s2
 True if the strings
 .Ar s1
@@ -210,23 +201,18 @@ True if the strings
 and
 .Ar s2
 are not identical.
-.It Ar s1 Cm \*(Lt Ar s2
+.It Ar s1 Cm < Ar s2
 True if string
 .Ar s1
 comes before
 .Ar s2
-based on the ASCII value of their characters.
-.It Ar s1 Cm \*(Gt Ar s2
+based on the binary value of their characters.
+.It Ar s1 Cm > Ar s2
 True if string
 .Ar s1
 comes after
 .Ar s2
-based on the ASCII value of their characters.
-.It Ar s1
-True if
-.Ar s1
-is not the null
-string.
+based on the binary value of their characters.
 .It Ar n1 Fl eq Ar n2
 True if the integers
 .Ar n1
@@ -253,7 +239,7 @@ True if the integer
 is algebraically
 greater than or equal to the integer
 .Ar n2 .
-.It Ar n1 Fl \&lt Ar n2
+.It Ar n1 Fl lt Ar n2
 True if the integer
 .Ar n1
 is algebraically less
@@ -267,13 +253,19 @@ than or equal to the integer
 .Ar n2 .
 .El
 .Pp
-These primaries can be combined with the following operators.
-The
-.Fl a
-operator has higher precedence than the
-.Fl o
-operator.
-.Bl -tag -width Ds
+If
+.Ar file
+is a symbolic link,
+.Nm
+will fully dereference it and then evaluate the expression
+against the file referenced, except for the
+.Fl h
+and
+.Fl L
+primaries.
+.Pp
+These primaries can be combined with the following operators:
+.Bl -tag -width Ar
 .It Cm \&! Ar expression
 True if
 .Ar expression
@@ -291,72 +283,113 @@ or
 .Ar expression2
 are true.
 .It Cm \&( Ar expression Cm \&)
-True if
-.Ar expression
-is true.
+True if expression is true.
 .El
-.Sh EXIT STATUS
-The
-.Nm
-utility exits with one of the following values:
 .Pp
-.Bl -tag -width Ds -offset indent -compact
-.It 0
-Expression evaluated to true.
-.It 1
-Expression evaluated to false or expression was
-missing.
-.It \*(Gt1
-An error occurred.
-.El
+The
+.Fl a
+operator has higher precedence than the
+.Fl o
+operator.
+.Pp
+Some shells may provide a builtin
+.Nm
+command which is similar or identical to this utility.
+Consult the
+.Xr builtin 1
+manual page.
 .Sh GRAMMAR AMBIGUITY
 The
 .Nm
 grammar is inherently ambiguous.
 In order to assure a degree of consistency,
-the cases described in
-.St -p1003.2
-section D11.2/4.62.4
+the cases described in the
+.St -p1003.2 ,
+section D11.2/4.62.4, standard
 are evaluated consistently according to the rules specified in the
 standards document.
 All other cases are subject to the ambiguity in the
 command semantics.
+.Pp
+In particular, only expressions containing
+.Fl a ,
+.Fl o ,
+.Cm \&(
+or
+.Cm \&)
+can be ambiguous.
+.Sh EXIT STATUS
+The
+.Nm
+utility exits with one of the following values:
+.Bl -tag -width indent
+.It 0
+expression evaluated to true.
+.It 1
+expression evaluated to false or expression was
+missing.
+.It >1
+An error occurred.
+.El
+.Sh EXAMPLES
+Implement
+.Li test FILE1 -nt FILE2
+using only
+.Tn POSIX
+functionality:
+.Pp
+.Dl test -n \&"$(find -L -- FILE1 -prune -newer FILE2 2>/dev/null)\&"
+.Pp
+This can be modified using non-standard
+.Xr find 1
+primaries like
+.Cm -newerca
+to compare other timestamps.
+.Sh COMPATIBILITY
+For compatibility with some other implementations,
+the
+.Cm =
+primary can be substituted with
+.Cm ==
+with the same meaning.
 .Sh SEE ALSO
-.Xr ksh 1
+.Xr builtin 1 ,
+.Xr expr 1 ,
+.Xr find 1 ,
+.Xr sh 1 ,
+.Xr stat 1 ,
+.Xr symlink 7
 .Sh STANDARDS
 The
 .Nm
-utility is compliant with the
-.St -p1003.1-2008
+utility implements a superset of the
+.St -p1003.2
 specification.
-.Pp
 The primaries
-.Fl G ,
-.Fl k ,
-.Fl O ,
+.Cm < ,
+.Cm == ,
+.Cm > ,
+.Fl ef ,
 .Fl nt ,
 .Fl ot ,
-.Fl ef ,
-.Cm \*(Lt ,
+.Fl G ,
 and
-.Cm \*(Gt
-are extensions to that specification.
-.Pp
-The operators
-.Fl a ,
-.Fl o ,
-and
-.Cm ()
-are marked by
-.St -p1003.1-2008
-as part of X/Open System Interfaces and obsolete.
-.Pp
-.Nm
-also exists as a built-in to
-.Xr ksh 1 ,
-though with a different syntax.
+.Fl O
+are extensions.
 .Sh HISTORY
 A
 .Nm
 utility appeared in
 .At v7 .
+.Sh BUGS
+Both sides are always evaluated in
+.Fl a
+and
+.Fl o .
+For instance, the writable status of
+.Pa file
+will be tested by the following command even though the former expression
+indicated false, which results in a gratuitous access to the file system:
+.Dl "[ -z abc -a -w file ]"
+To avoid this, write
+.Dl "[ -z abc ] && [ -w file ]"

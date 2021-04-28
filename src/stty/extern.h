@@ -1,6 +1,3 @@
-/*	$OpenBSD: extern.h,v 1.6 2003/06/02 23:32:09 millert Exp $	*/
-/*	$NetBSD: extern.h,v 1.8 1996/05/07 18:20:06 jtc Exp $	*/
-
 /*-
  * Copyright (c) 1991, 1993
  *	The Regents of the University of California.  All rights reserved.
@@ -30,9 +27,8 @@
  * SUCH DAMAGE.
  *
  *	@(#)extern.h	8.1 (Berkeley) 5/31/93
+ * $FreeBSD$
  */
-
-extern char *__progname;
 
 int	c_cchars(const void *, const void *);
 int	c_modes(const void *, const void *);
@@ -44,6 +40,6 @@ int	ksearch(char ***, struct info *);
 int	msearch(char ***, struct info *);
 void	optlist(void);
 void	print(struct termios *, struct winsize *, int, enum FMT);
-void	usage(void);
+void	usage(void) __dead2;
 
-extern const struct cchar cchars1[], cchars2[];
+extern struct cchar cchars1[], cchars2[];

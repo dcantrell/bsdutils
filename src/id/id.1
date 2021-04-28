@@ -1,7 +1,4 @@
-.\"	$OpenBSD: id.1,v 1.20 2017/05/30 15:29:53 tedu Exp $
-.\"	$NetBSD: id.1,v 1.5 1995/09/28 08:05:40 perry Exp $
-.\"
-.\" Copyright (c) 1991, 1993, 1994
+.\" Copyright (c) 1991, 1993
 .\"	The Regents of the University of California.  All rights reserved.
 .\"
 .\" This code is derived from software contributed to Berkeley by
@@ -31,27 +28,37 @@
 .\" OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 .\" SUCH DAMAGE.
 .\"
-.\"	@(#)id.1	8.2 (Berkeley) 5/5/94
+.\"	@(#)id.1	8.1 (Berkeley) 6/6/93
+.\" $FreeBSD$
 .\"
-.Dd $Mdocdate: May 30 2017 $
+.Dd March 5, 2011
 .Dt ID 1
 .Os
 .Sh NAME
 .Nm id
 .Nd return user identity
 .Sh SYNOPSIS
-.Nm id
+.Nm
 .Op Ar user
-.Nm id
+.Nm
+.Fl A
+.Nm
 .Fl G Op Fl n
 .Op Ar user
-.Nm id
+.Nm
+.Fl M
+.Nm
+.Fl P
+.Op Ar user
+.Nm
+.Fl c
+.Nm
 .Fl g Op Fl nr
 .Op Ar user
-.Nm id
+.Nm
 .Fl p
 .Op Ar user
-.Nm id
+.Nm
 .Fl u Op Fl nr
 .Op Ar user
 .Sh DESCRIPTION
@@ -69,10 +76,23 @@ is specified, the user and group IDs of that user are displayed.
 In this case, the real and effective IDs are assumed to be the same.
 .Pp
 The options are as follows:
-.Bl -tag -width Ds
+.Bl -tag -width indent
+.It Fl A
+Display the process audit user ID and other process audit properties, which
+requires privilege.
 .It Fl G
 Display the different group IDs (effective, real and supplementary)
-as whitespace separated numbers, in no particular order.
+as white-space separated numbers, in no particular order.
+.It Fl M
+Display the MAC label of the current process.
+.It Fl P
+Display the id as a password file entry.
+.It Fl a
+Ignored for compatibility with other
+.Nm
+implementations.
+.It Fl c
+Display current login class.
 .It Fl g
 Display the effective group ID as a number.
 .It Fl n
@@ -104,10 +124,6 @@ ID is displayed as a name, preceded by the keyword
 The list of groups to which the user belongs is then displayed as names,
 preceded by the keyword
 .Dq groups .
-If there is a login class specified for the user in the
-.Xr passwd 5
-database, it is displayed, preceded by the keyword
-.Dq class .
 Each display is on a separate line.
 .It Fl r
 Display the real ID for the
@@ -119,34 +135,64 @@ options instead of the effective ID.
 Display the effective user ID as a number.
 .El
 .Sh EXIT STATUS
-.Ex -std id
+.Ex -std
+.Sh EXAMPLES
+Show information for the user
+.Ql bob
+as a password file entry:
+.Bd -literal -offset indent
+$ id -P bob
+bob:*:0:0::0:0:Robert:/bob:/usr/local/bin/bash
+.Ed
+.Pp
+Same output as
+.Xr groups 1 for the root user:
+.Bd -literal -offset indent
+$ id -Gn root
+wheel operator
+.Ed
+.Pp
+Show human readable information about
+.Ql alice :
+.Bd -literal -offset indent
+$ id -p alice
+uid     alice
+groups  alice webcamd vboxusers
+.Ed
+.Pp
+Assuming the user
+.Ql bob
+executed
+.Dq Nm su Fl l
+to simulate a root login, compare the result of the following commands:
+.Bd -literal -offset indent
+# id -un
+root
+# who am i
+bob          pts/5        Dec  4 19:51
+.Ed
 .Sh SEE ALSO
-.Xr who 1 ,
-.Xr login.conf 5
+.Xr groups 1 ,
+.Xr who 1
 .Sh STANDARDS
 The
 .Nm
-utility is compliant with the
-.St -p1003.1-2008
-specification.
-.Pp
-The flags
-.Op Fl cp
-are extensions to that specification.
+function is expected to conform to
+.St -p1003.2 .
 .Sh HISTORY
 The
 historic
 .Xr groups 1
 command is equivalent to
-.Ic id Fl Gn Op Ar user .
+.Dq Nm id Fl Gn Op Ar user .
 .Pp
 The
 historic
 .Xr whoami 1
 command is equivalent to
-.Ic id Fl un .
+.Dq Nm id Fl un .
 .Pp
 The
 .Nm
-command first appeared in
+command appeared in
 .Bx 4.4 .

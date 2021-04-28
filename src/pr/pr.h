@@ -1,5 +1,6 @@
-/*	$OpenBSD: pr.h,v 1.5 2015/01/19 15:30:52 krw Exp $ */
 /*-
+ * SPDX-License-Identifier: BSD-4-Clause
+ *
  * Copyright (c) 1991 Keith Muller.
  * Copyright (c) 1993
  *	The Regents of the University of California.  All rights reserved.
@@ -15,7 +16,11 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. Neither the name of the University nor the names of its contributors
+ * 3. All advertising materials mentioning features or use of this software
+ *    must display the following acknowledgement:
+ *	This product includes software developed by the University of
+ *	California, Berkeley and its contributors.
+ * 4. Neither the name of the University nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -31,7 +36,8 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *      from: @(#)pr.h	8.1 (Berkeley) 6/6/93
+ *      @(#)pr.h	8.1 (Berkeley) 6/6/93
+ * $FreeBSD$
  */
 
 /*
@@ -55,19 +61,11 @@
 #define	HDFMT		"%s %s Page %d\n\n\n"
 #define	HEADLEN		5
 #define	TAILLEN		5
-#define	TIMEFMT		"%b %e %H:%M %Y"
+#define	TIMEFMTD	"%e %b %H:%M %Y"
+#define	TIMEFMTM	"%b %e %H:%M %Y"
 #define	FNAME		""
 #define	LBUF		8192
 #define	HDBUF		512
-#define INFF		'\f'
-#define OUTFF		'\f'
-
-/*
- * termination return code from inln (also returns a byte count)
- */
-#define END		-1
-#define FORM		1
-#define NORMAL		0
 
 /*
  * structure for vertical columns. Used to balance cols on last page

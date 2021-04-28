@@ -1,6 +1,3 @@
-.\"	$OpenBSD: tee.1,v 1.11 2010/09/03 11:09:29 jmc Exp $
-.\"	$NetBSD: tee.1,v 1.4 1994/12/09 01:43:37 jtc Exp $
-.\"
 .\" Copyright (c) 1991, 1993
 .\"	The Regents of the University of California.  All rights reserved.
 .\"
@@ -32,15 +29,16 @@
 .\" SUCH DAMAGE.
 .\"
 .\"     @(#)tee.1	8.1 (Berkeley) 6/6/93
+.\" $FreeBSD$
 .\"
-.Dd $Mdocdate: September 3 2010 $
+.Dd June 23, 2020
 .Dt TEE 1
 .Os
 .Sh NAME
 .Nm tee
-.Nd pipe fitting
+.Nd duplicate standard input
 .Sh SYNOPSIS
-.Nm tee
+.Nm
 .Op Fl ai
 .Op Ar
 .Sh DESCRIPTION
@@ -50,8 +48,8 @@ utility copies standard input to standard output,
 making a copy in zero or more files.
 The output is unbuffered.
 .Pp
-The options are as follows:
-.Bl -tag -width Ds
+The following options are available:
+.Bl -tag -width indent
 .It Fl a
 Append the output to the files rather than
 overwriting them.
@@ -62,7 +60,7 @@ signal.
 .El
 .Pp
 The following operands are available:
-.Bl -tag -width file
+.Bl -tag -width indent
 .It Ar file
 A pathname of an output
 .Ar file .
@@ -75,10 +73,18 @@ except in the event of the
 .Fl i
 option.
 .Sh EXIT STATUS
-.Ex -std tee
+.Ex -std
+.Sh EXAMPLES
+Send the echoed message both to stdout and to the
+.Pa greetings.txt
+file:
+.Bd -literal -offset indent
+$ echo "Hello" | tee greetings.txt
+Hello
+.Ed
 .Sh STANDARDS
 The
 .Nm
-utility is compliant with the
-.St -p1003.1-2008
-specification.
+utility is expected to be
+.St -p1003.2
+compatible.

@@ -1,6 +1,3 @@
-.\"	$OpenBSD: tty.1,v 1.15 2014/06/03 20:29:41 jmc Exp $
-.\"	$NetBSD: tty.1,v 1.4 1994/12/07 00:46:55 jtc Exp $
-.\"
 .\" Copyright (c) 1990, 1993
 .\"	The Regents of the University of California.  All rights reserved.
 .\"
@@ -32,15 +29,16 @@
 .\" SUCH DAMAGE.
 .\"
 .\"	@(#)tty.1	8.1 (Berkeley) 6/6/93
+.\" $FreeBSD$
 .\"
-.Dd $Mdocdate: June 3 2014 $
+.Dd June 6, 1993
 .Dt TTY 1
 .Os
 .Sh NAME
 .Nm tty
 .Nd return user's terminal name
 .Sh SYNOPSIS
-.Nm tty
+.Nm
 .Op Fl s
 .Sh DESCRIPTION
 The
@@ -49,15 +47,13 @@ utility writes the name of the terminal attached to standard input
 to standard output.
 The name that is written is the string returned by
 .Xr ttyname 3 .
-.Pp
 If the standard input is not a terminal, the message
-.Dq not a tty
+.Dq Li "not a tty"
 is written.
-.Pp
 The options are as follows:
-.Bl -tag -width Ds
+.Bl -tag -width indent
 .It Fl s
-Don't write the terminal name; only the exit status is affected
+Do not write the terminal name; only the exit status is affected
 when this option is specified.
 The
 .Fl s
@@ -68,19 +64,18 @@ command.
 .Sh EXIT STATUS
 The
 .Nm
-utility exits 0 if the standard input is a terminal, 1 if the standard input
-is not a terminal, or >1 if an error occurred.
+utility
+exits 0 if the standard input is a terminal, 1 if the standard input is
+not a terminal, and >1 if an error occurs.
 .Sh SEE ALSO
-.Xr stty 1 ,
 .Xr test 1 ,
-.Xr ttyname 3 ,
-.Xr tty 4
+.Xr ttyname 3
 .Sh STANDARDS
 The
 .Nm
-utility is compliant with the
-.St -p1003.1-2008
-specification.
+utility is expected to be
+.St -p1003.2
+compatible.
 .Sh HISTORY
 A
 .Nm

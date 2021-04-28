@@ -1,6 +1,6 @@
-/*	$OpenBSD: tail.c,v 1.22 2019/01/04 15:04:28 martijn Exp $	*/
-
 /*-
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
  * Copyright (c) 1991, 1993
  *	The Regents of the University of California.  All rights reserved.
  *
@@ -32,35 +32,66 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/cdefs.h>
+
+__FBSDID("$FreeBSD$");
+
+#ifndef lint
+static const char copyright[] =
+"@(#) Copyright (c) 1991, 1993\n\
+	The Regents of the University of California.  All rights reserved.\n";
+#endif
+
+#ifndef lint
+static const char sccsid[] = "@(#)tail.c	8.1 (Berkeley) 6/6/93";
+#endif
+
+#include <sys/capsicum.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#include <capsicum_helpers.h>
 #include <err.h>
 #include <errno.h>
+#include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
+#include <libcasper.h>
+#include <casper/cap_fileargs.h>
+
 #include "extern.h"
 
-int fflag, rflag, rval;
+int Fflag, fflag, qflag, rflag, rval, no_files;
+fileargs_t *fa;
+
+static file_info_t *files;
 
 static void obsolete(char **);
 static void usage(void);
 
+static const struct option long_opts[] =
+{
+	{"blocks",	required_argument,	NULL, 'b'},
+	{"bytes",	required_argument,	NULL, 'c'},
+	{"lines",	required_argument,	NULL, 'n'},
+	{NULL,		no_argument,		NULL, 0}
+};
+
 int
 main(int argc, char *argv[])
 {
-	struct tailfile *tf;
-	off_t off = 0;
+	struct stat sb;
+	const char *fn;
+	FILE *fp;
+	off_t off;
 	enum STYLE style;
-	int ch;
-	int i;
+	int i, ch, first;
+	file_info_t *file;
 	char *p;
-
-	if (pledge("stdio rpath", NULL) == -1)
-		err(1, "pledge");
+	cap_rights_t rights;
 
 	/*
 	 * Tail's options are weird.  First, -n10 is the same as -n-10, not
@@ -77,7 +108,7 @@ main(int argc, char *argv[])
 #define	ARG(units, forward, backward) {					\
 	if (style)							\
 		usage();						\
-	off = strtoll(optarg, &p, 10) * (units);			\
+	off = strtoll(optarg, &p, 10) * (units);                        \
 	if (*p)								\
 		errx(1, "illegal offset -- %s", optarg);		\
 	switch(optarg[0]) {						\
@@ -97,8 +128,13 @@ main(int argc, char *argv[])
 
 	obsolete(argv);
 	style = NOTSET;
-	while ((ch = getopt(argc, argv, "b:c:fn:r")) != -1)
+	off = 0;
+	while ((ch = getopt_long(argc, argv, "+Fb:c:fn:qr", long_opts, NULL)) !=
+	    -1)
 		switch(ch) {
+		case 'F':	/* -F is superset of (and implies) -f */
+			Fflag = fflag = 1;
+			break;
 		case 'b':
 			ARG(512, FBYTES, RBYTES);
 			break;
@@ -111,6 +147,9 @@ main(int argc, char *argv[])
 		case 'n':
 			ARG(1, FLINES, RLINES);
 			break;
+		case 'q':
+			qflag = 1;
+			break;
 		case 'r':
 			rflag = 1;
 			break;
@@ -120,6 +159,24 @@ main(int argc, char *argv[])
 		}
 	argc -= optind;
 	argv += optind;
+
+	no_files = argc ? argc : 1;
+
+	cap_rights_init(&rights, CAP_FSTAT, CAP_FSTATFS, CAP_FCNTL,
+	    CAP_MMAP_R);
+	if (fflag)
+		cap_rights_set(&rights, CAP_EVENT);
+	if (caph_rights_limit(STDIN_FILENO, &rights) < 0 ||
+	    caph_limit_stderr() < 0 || caph_limit_stdout() < 0)
+		err(1, "can't limit stdio rights");
+
+	fa = fileargs_init(argc, argv, O_RDONLY, 0, &rights, FA_OPEN);
+	if (fa == NULL)
+		err(1, "unable to init casper");
+
+	caph_cache_catpages();
+	if (caph_enter_casper() < 0)
+		err(1, "unable to enter capability mode");
 
 	/*
 	 * If displaying in reverse, don't permit follow option, and convert
@@ -148,33 +205,54 @@ main(int argc, char *argv[])
 		}
 	}
 
-	if ((tf = reallocarray(NULL, argc ? argc : 1, sizeof(*tf))) == NULL)
-		err(1, "reallocarray");
+	if (*argv && fflag) {
+		files = (struct file_info *) malloc(no_files *
+		    sizeof(struct file_info));
+		if (!files)
+			err(1, "Couldn't malloc space for file descriptors.");
 
-	if (argc) {
-		for (i = 0; *argv; i++) {
-			tf[i].fname = *argv++;
-			if ((tf[i].fp = fopen(tf[i].fname, "r")) == NULL ||
-			    fstat(fileno(tf[i].fp), &(tf[i].sb))) {
-				ierr(tf[i].fname);
-				i--;
-				continue;
+		for (file = files; (fn = *argv++); file++) {
+			file->file_name = strdup(fn);
+			if (! file->file_name)
+				errx(1, "Couldn't malloc space for file name.");
+			file->fp = fileargs_fopen(fa, file->file_name, "r");
+			if (file->fp == NULL ||
+			    fstat(fileno(file->fp), &file->st)) {
+				if (file->fp != NULL) {
+					fclose(file->fp);
+					file->fp = NULL;
+				}
+				if (!Fflag || errno != ENOENT)
+					ierr(file->file_name);
 			}
 		}
-		if (rflag)
-			reverse(tf, i, style, off);
-		else
-			forward(tf, i, style, off);
-	}
-	else {
-		if (pledge("stdio", NULL) == -1)
-			err(1, "pledge");
+		follow(files, style, off);
+		for (i = 0, file = files; i < no_files; i++, file++) {
+		    free(file->file_name);
+		}
+		free(files);
+	} else if (*argv) {
+		for (first = 1; (fn = *argv++);) {
+			if ((fp = fileargs_fopen(fa, fn, "r")) == NULL ||
+			    fstat(fileno(fp), &sb)) {
+				ierr(fn);
+				continue;
+			}
+			if (argc > 1 && !qflag) {
+				printfn(fn, !first);
+				first = 0;
+			}
 
-		tf[0].fname = "stdin";
-		tf[0].fp = stdin;
+			if (rflag)
+				reverse(fp, fn, style, off, &sb);
+			else
+				forward(fp, fn, style, off, &sb);
+		}
+	} else {
+		fn = "stdin";
 
-		if (fstat(fileno(stdin), &(tf[0].sb))) {
-			ierr(tf[0].fname);
+		if (fstat(fileno(stdin), &sb)) {
+			ierr(fn);
 			exit(1);
 		}
 
@@ -182,23 +260,24 @@ main(int argc, char *argv[])
 		 * Determine if input is a pipe.  4.4BSD will set the SOCKET
 		 * bit in the st_mode field for pipes.  Fix this then.
 		 */
-		if (lseek(fileno(tf[0].fp), (off_t)0, SEEK_CUR) == -1 &&
+		if (lseek(fileno(stdin), (off_t)0, SEEK_CUR) == -1 &&
 		    errno == ESPIPE) {
 			errno = 0;
 			fflag = 0;		/* POSIX.2 requires this. */
 		}
 
 		if (rflag)
-			reverse(tf, 1, style, off);
+			reverse(stdin, fn, style, off, &sb);
 		else
-			forward(tf, 1, style, off);
+			forward(stdin, fn, style, off, &sb);
 	}
+	fileargs_free(fa);
 	exit(rval);
 }
 
 /*
  * Convert the obsolete argument form into something that getopt can handle.
- * This means that anything of the form [+-][0-9][0-9]*[lbc][fr] that isn't
+ * This means that anything of the form [+-][0-9][0-9]*[lbc][Ffr] that isn't
  * the option argument for a -b, -c or -n option gets converted.
  */
 static void
@@ -223,8 +302,8 @@ obsolete(char *argv[])
 
 			/* Malloc space for dash, new option and argument. */
 			len = strlen(*argv);
-			if ((start = p = malloc(len + 4)) == NULL)
-				err(1, NULL);
+			if ((start = p = malloc(len + 3)) == NULL)
+				err(1, "malloc");
 			*p++ = '-';
 
 			/*
@@ -233,7 +312,7 @@ obsolete(char *argv[])
 			 * output style characters.
 			 */
 			t = *argv + len - 1;
-			if (*t == 'f' || *t == 'r') {
+			if (*t == 'F' || *t == 'f' || *t == 'r') {
 				*p++ = *t;
 				*t-- = '\0';
 			}
@@ -257,7 +336,7 @@ obsolete(char *argv[])
 				errx(1, "illegal option -- %s", *argv);
 			}
 			*p++ = *argv[0];
-			(void)strlcpy(p, ap, start + len + 4 - p);
+			(void)strcpy(p, ap);
 			*argv = start;
 			continue;
 
@@ -272,6 +351,7 @@ obsolete(char *argv[])
 				++argv;
 			/* FALLTHROUGH */
 		/* Options w/o arguments, continue with the next option. */
+		case 'F':
 		case 'f':
 		case 'r':
 			continue;
@@ -287,7 +367,7 @@ static void
 usage(void)
 {
 	(void)fprintf(stderr,
-	    "usage: tail [-f | -r] "
-	    "[-b number | -c number | -n number | -number] [file ...]\n");
+	    "usage: tail [-F | -f | -r] [-q] [-b # | -c # | -n #]"
+	    " [file ...]\n");
 	exit(1);
 }

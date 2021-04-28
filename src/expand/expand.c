@@ -1,7 +1,6 @@
-/*	$OpenBSD: expand.c,v 1.14 2015/10/09 01:37:07 deraadt Exp $	*/
-/*	$NetBSD: expand.c,v 1.5 1995/09/02 06:19:46 jtc Exp $	*/
-
-/*
+/*-
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
  * Copyright (c) 1980, 1993
  *	The Regents of the University of California.  All rights reserved.
  *
@@ -30,26 +29,49 @@
  * SUCH DAMAGE.
  */
 
+#ifndef lint
+static const char copyright[] =
+"@(#) Copyright (c) 1980, 1993\n\
+	The Regents of the University of California.  All rights reserved.\n";
+#endif /* not lint */
+
+#ifndef lint
+#if 0
+static char sccsid[] = "@(#)expand.c	8.1 (Berkeley) 6/9/93";
+#endif
+#endif /* not lint */
+#include <sys/cdefs.h>
+__FBSDID("$FreeBSD$");
+
+#include <ctype.h>
+#include <err.h>
+#include <locale.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <ctype.h>
 #include <unistd.h>
-#include <err.h>
+#include <wchar.h>
+#include <wctype.h>
 
 /*
  * expand - expand tabs to equivalent spaces
  */
-int	nstops;
-int	tabstops[100];
+static int	nstops;
+static int	tabstops[100];
 
 static void getstops(char *);
-static void usage(void);
+static void usage(void) __dead2; 
 
 int
 main(int argc, char *argv[])
 {
+	const char *curfile;
+	wint_t wc;
 	int c, column;
 	int n;
+	int rval;
+	int width;
+
+	setlocale(LC_CTYPE, "");
 
 	/* handle obsolete syntax */
 	while (argc > 1 && argv[1][0] == '-' &&
@@ -72,41 +94,47 @@ main(int argc, char *argv[])
 	argc -= optind;
 	argv += optind;
 
+	rval = 0;
 	do {
 		if (argc > 0) {
-			if (freopen(argv[0], "r", stdin) == NULL)
-				err(1, "%s", argv[0]);
+			if (freopen(argv[0], "r", stdin) == NULL) {
+				warn("%s", argv[0]);
+				rval = 1;
+				argc--, argv++;
+				continue;
+			}
+			curfile = argv[0];
 			argc--, argv++;
-		}
+		} else
+			curfile = "stdin";
 		column = 0;
-		while ((c = getchar()) != EOF) {
-			switch (c) {
+		while ((wc = getwchar()) != WEOF) {
+			switch (wc) {
 			case '\t':
 				if (nstops == 0) {
 					do {
-						putchar(' ');
+						putwchar(' ');
 						column++;
 					} while (column & 07);
 					continue;
 				}
 				if (nstops == 1) {
 					do {
-						putchar(' ');
+						putwchar(' ');
 						column++;
-					} while (((column - 1) %
-					    tabstops[0]) != (tabstops[0] - 1));
+					} while (((column - 1) % tabstops[0]) != (tabstops[0] - 1));
 					continue;
 				}
 				for (n = 0; n < nstops; n++)
 					if (tabstops[n] > column)
 						break;
 				if (n == nstops) {
-					putchar(' ');
+					putwchar(' ');
 					column++;
 					continue;
 				}
 				while (column < tabstops[n]) {
-					putchar(' ');
+					putwchar(' ');
 					column++;
 				}
 				continue;
@@ -114,22 +142,27 @@ main(int argc, char *argv[])
 			case '\b':
 				if (column)
 					column--;
-				putchar('\b');
+				putwchar('\b');
 				continue;
 
 			default:
-				putchar(c);
-				column++;
+				putwchar(wc);
+				if ((width = wcwidth(wc)) > 0)
+					column += width;
 				continue;
 
 			case '\n':
-				putchar(c);
+				putwchar(wc);
 				column = 0;
 				continue;
 			}
 		}
+		if (ferror(stdin)) {
+			warn("%s", curfile);
+			rval = 1;
+		}
 	} while (argc > 0);
-	exit(0);
+	exit(rval);
 }
 
 static void
@@ -142,19 +175,17 @@ getstops(char *cp)
 		i = 0;
 		while (*cp >= '0' && *cp <= '9')
 			i = i * 10 + *cp++ - '0';
-		if (i <= 0 || i > 256) {
-bad:
-			errx(1, "Bad tab stop spec");
-		}
+		if (i <= 0)
+			errx(1, "bad tab stop spec");
 		if (nstops > 0 && i <= tabstops[nstops-1])
-			goto bad;
-		if (nstops >= sizeof(tabstops) / sizeof(tabstops[0]))
-			errx(1, "Too many tab stops");
+			errx(1, "bad tab stop spec");
+		if (nstops == sizeof(tabstops) / sizeof(*tabstops))
+			errx(1, "too many tab stops");
 		tabstops[nstops++] = i;
 		if (*cp == 0)
 			break;
-		if (*cp != ',' && *cp != ' ')
-			goto bad;
+		if (*cp != ',' && !isblank((unsigned char)*cp))
+			errx(1, "bad tab stop spec");
 		cp++;
 	}
 }
@@ -162,7 +193,6 @@ bad:
 static void
 usage(void)
 {
-	extern char *__progname;
-	fprintf (stderr, "usage: %s [-t tablist] [file ...]\n", __progname);
+	(void)fprintf (stderr, "usage: expand [-t tablist] [file ...]\n");
 	exit(1);
 }

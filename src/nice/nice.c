@@ -1,9 +1,8 @@
-/*	$OpenBSD: nice.c,v 1.17 2016/10/28 07:22:59 schwarze Exp $	*/
-/*	$NetBSD: nice.c,v 1.9 1995/08/31 23:30:58 jtc Exp $	*/
-
-/*
- * Copyright (c) 1989 The Regents of the University of California.
- * All rights reserved.
+/*-
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ * Copyright (c) 1989, 1993, 1994
+ *	The Regents of the University of California.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,44 +29,59 @@
  * SUCH DAMAGE.
  */
 
+#ifndef lint
+static const char copyright[] =
+"@(#) Copyright (c) 1989, 1993, 1994\n\
+	The Regents of the University of California.  All rights reserved.\n";
+#endif /* not lint */
+
+#if 0
+#ifndef lint
+static char sccsid[] = "@(#)nice.c	8.2 (Berkeley) 4/16/94";
+#endif /* not lint */
+#endif
+
+#include <sys/cdefs.h>
+__FBSDID("$FreeBSD$");
+
+#include <sys/types.h>
+#include <sys/time.h>
 #include <sys/resource.h>
 
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-
-#include "compat.h"
+#include <string.h>
 
 #define	DEFNICE	10
 
-static void usage(void);
+void usage(void);
 
 int
 main(int argc, char *argv[])
 {
-	const char *errstr;
-	int prio = DEFNICE;
-	int c;
+	long niceness = DEFNICE;
+	int ch;
+	char *ep;
 
-	/* handle obsolete -number syntax */
-	if (argc > 1 && argv[1][0] == '-' &&
-	    isdigit((unsigned char)argv[1][1])) {
-		prio = strtonum(argv[1] + 1, PRIO_MIN, PRIO_MAX, &errstr);
-		if (errstr)
-			errx(1, "increment is %s", errstr);
-		argc--;
-		argv++;
-	}
+	/* Obsolescent syntax: -number, --number */
+	if (argc >= 2 && argv[1][0] == '-' && (argv[1][1] == '-' ||
+	    isdigit((unsigned char)argv[1][1])) && strcmp(argv[1], "--") != 0)
+		if (asprintf(&argv[1], "-n%s", argv[1] + 1) < 0)
+			err(1, "asprintf");
 
-	while ((c = getopt (argc, argv, "n:")) != -1) {
-		switch (c) {
+	while ((ch = getopt(argc, argv, "n:")) != -1) {
+		switch (ch) {
 		case 'n':
-			prio = strtonum(optarg, PRIO_MIN, PRIO_MAX, &errstr);
-			if (errstr)
-				errx(1, "increment is %s", errstr);
+			errno = 0;
+			niceness = strtol(optarg, &ep, 10);
+			if (ep == optarg || *ep != '\0' || errno ||
+			    niceness < INT_MIN || niceness > INT_MAX)
+				errx(1, "%s: invalid nice value", optarg);
 			break;
 		default:
 			usage();
@@ -80,21 +94,20 @@ main(int argc, char *argv[])
 		usage();
 
 	errno = 0;
-	prio += getpriority(PRIO_PROCESS, 0);
+	niceness += getpriority(PRIO_PROCESS, 0);
 	if (errno)
-		err(1, "getpriority");
-	if (setpriority(PRIO_PROCESS, 0, prio))
+		warn("getpriority");
+	else if (setpriority(PRIO_PROCESS, 0, (int)niceness))
 		warn("setpriority");
-
-	execvp(argv[0], &argv[0]);
-	err((errno == ENOENT) ? 127 : 126, "%s", argv[0]);
+	execvp(*argv, argv);
+	err(errno == ENOENT ? 127 : 126, "%s", *argv);
 }
 
-static void
+void
 usage(void)
 {
-	extern char *__progname;
-	fprintf(stderr, "usage: %s [-n increment] utility [argument ...]\n",
-	    __progname);
+
+	(void)fprintf(stderr,
+	    "usage: nice [-n increment] utility [argument ...]\n");
 	exit(1);
 }

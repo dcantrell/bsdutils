@@ -1,6 +1,4 @@
-.\"	$OpenBSD: rm.1,v 1.44 2019/09/02 21:18:41 deraadt Exp $
-.\"	$NetBSD: rm.1,v 1.8 1995/07/25 19:37:30 jtc Exp $
-.\"
+.\"-
 .\" Copyright (c) 1990, 1993, 1994
 .\"	The Regents of the University of California.  All rights reserved.
 .\"
@@ -32,17 +30,23 @@
 .\" SUCH DAMAGE.
 .\"
 .\"	@(#)rm.1	8.5 (Berkeley) 12/5/94
+.\" $FreeBSD$
 .\"
-.Dd $Mdocdate: September 2 2019 $
+.Dd November 10, 2018
 .Dt RM 1
 .Os
 .Sh NAME
-.Nm rm
+.Nm rm ,
+.Nm unlink
 .Nd remove directory entries
 .Sh SYNOPSIS
-.Nm rm
-.Op Fl dfiPRrv
+.Nm
+.Op Fl f | i
+.Op Fl dIRrvWx
 .Ar
+.Nm unlink
+.Op Fl -
+.Ar file
 .Sh DESCRIPTION
 The
 .Nm
@@ -53,7 +57,7 @@ input device is a terminal, the user is prompted (on the standard error
 output) for confirmation.
 .Pp
 The options are as follows:
-.Bl -tag -width Ds
+.Bl -tag -width indent
 .It Fl d
 Attempt to remove directories as well as other types of files.
 .It Fl f
@@ -75,12 +79,20 @@ The
 option overrides any previous
 .Fl f
 options.
+.It Fl I
+Request confirmation once if more than three files are being removed or if a
+directory is being recursively removed.
+This is a far less intrusive option than
+.Fl i
+yet provides almost the same level of protection against mistakes.
 .It Fl P
-Attempt to overwrite regular writable files before deleting them.
-Files are overwritten once with a random pattern.
-Files with multiple links will be unlinked but not overwritten.
+This flag has no effect.
+It is kept only for backwards compatibility with
+.Bx 4.4 Lite2 .
 .It Fl R
-Attempt to remove the file hierarchy rooted in each file argument.
+Attempt to remove the file hierarchy rooted in each
+.Ar file
+argument.
 The
 .Fl R
 option implies the
@@ -89,29 +101,46 @@ option.
 If the
 .Fl i
 option is specified, the user is prompted for confirmation before
-each directory (and its contents) are processed.
+each directory's contents are processed (as well as before the attempt
+is made to remove the directory).
 If the user does not respond affirmatively, the file hierarchy rooted in
 that directory is skipped.
 .It Fl r
 Equivalent to
 .Fl R .
 .It Fl v
-Display each file name after it was removed.
+Be verbose when deleting files, showing them as they are removed.
+.It Fl W
+Attempt to undelete the named files.
+Currently, this option can only be used to recover
+files covered by whiteouts in a union file system (see
+.Xr undelete 2 ) .
+.It Fl x
+When removing a hierarchy, do not cross mount points.
 .El
 .Pp
 The
 .Nm
 utility removes symbolic links, not the files referenced by the links.
 .Pp
-It is an error to attempt to remove the root directory or the files
-.Dq \&.
+It is an error to attempt to remove the files
+.Pa / ,
+.Pa .\&
 or
-.Dq .. .
-It is forbidden to remove the file
-.Dq ..
-merely to avoid the antisocial consequences of inadvertently
-doing something like
-.Dq Cm rm -r .* .
+.Pa .. .
+.Pp
+When the utility is called as
+.Nm unlink ,
+only one argument,
+which must not be a directory,
+may be supplied.
+No options may be supplied in this simple mode of operation,
+which performs an
+.Xr unlink 2
+operation on the passed argument.
+However, the usual option-end delimiter,
+.Fl - ,
+may optionally precede the argument.
 .Sh EXIT STATUS
 The
 .Nm
@@ -123,6 +152,29 @@ removed.
 If an error occurs,
 .Nm
 exits with a value >0.
+.Sh NOTES
+The
+.Nm
+command uses
+.Xr getopt 3
+to parse its arguments, which allows it to accept
+the
+.Sq Li --
+option which will cause it to stop processing flag options at that
+point.
+This will allow the removal of file names that begin
+with a dash
+.Pq Sq - .
+For example:
+.Pp
+.Dl "rm -- -filename"
+.Pp
+The same behavior can be obtained by using an absolute or relative
+path reference.
+For example:
+.Pp
+.Dl "rm /home/user/-filename"
+.Dl "rm ./-filename"
 .Sh EXAMPLES
 Recursively remove all files contained within the
 .Pa foobar
@@ -130,56 +182,54 @@ directory hierarchy:
 .Pp
 .Dl $ rm -rf foobar
 .Pp
-Either of these commands will remove the file
+Any of these commands will remove the file
 .Pa -f :
 .Bd -literal -offset indent
 $ rm -- -f
 $ rm ./-f
+$ unlink -f
 .Ed
-.Sh SEE ALSO
-.Xr rmdir 1 ,
-.\" .Xr undelete 2 ,
-.Xr unlink 2 ,
-.Xr fts_open 3 ,
-.Xr symlink 7
-.Sh STANDARDS
-The
-.Nm
-utility is compliant with the
-.St -p1003.1-2008
-specification.
-.Pp
-The flags
-.Op Fl dPv
-are extensions to that specification.
-.Sh HISTORY
-An
-.Nm
-command appeared in
-.At v1 .
-.Pp
+.Sh COMPATIBILITY
 The
 .Nm
 utility differs from historical implementations in that the
 .Fl f
 option only masks attempts to remove non-existent files instead of
 masking a large variety of errors.
+The
+.Fl v
+option is non-standard and its use in scripts is not recommended.
 .Pp
 Also, historical
 .Bx
 implementations prompted on the standard output,
 not the standard error output.
 .Pp
-The interactive mode used to be a
-.Nm dsw
-command, a carryover from the ancient past with an
-amusing etymology.
-.Sh BUGS
 The
 .Fl P
-option assumes that both the underlying file system and storage medium write
-in place.
-This is true for the FFS and MS-DOS file systems and magnetic hard disks,
-but not true for most flash storage.
-In addition, only regular files are overwritten; other types of files
-are not.
+option does not have any effect as of
+.Fx 13
+and may be removed in the future.
+.Sh SEE ALSO
+.Xr chflags 1 ,
+.Xr rmdir 1 ,
+.Xr undelete 2 ,
+.Xr unlink 2 ,
+.Xr fts 3 ,
+.Xr getopt 3 ,
+.Xr symlink 7
+.Sh STANDARDS
+The
+.Nm
+command conforms to
+.St -p1003.1-2013 .
+.Pp
+The simplified
+.Nm unlink
+command conforms to
+.St -susv2 .
+.Sh HISTORY
+A
+.Nm
+command appeared in
+.At v1 .

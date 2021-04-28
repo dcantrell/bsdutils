@@ -1,7 +1,6 @@
-/*	$OpenBSD: position.c,v 1.11 2019/06/28 13:34:59 deraadt Exp $	*/
-/*	$NetBSD: position.c,v 1.4 1995/03/21 09:04:12 cgd Exp $	*/
-
 /*-
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
  * Copyright (c) 1991, 1993, 1994
  *	The Regents of the University of California.  All rights reserved.
  *
@@ -34,19 +33,54 @@
  * SUCH DAMAGE.
  */
 
+#ifndef lint
+#if 0
+static char sccsid[] = "@(#)position.c	8.3 (Berkeley) 4/2/94";
+#endif
+#endif /* not lint */
+#include <sys/cdefs.h>
+__FBSDID("$FreeBSD$");
+
 #include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/ioctl.h>
 #include <sys/mtio.h>
-#include <sys/time.h>
 
 #include <err.h>
 #include <errno.h>
-#include <string.h>
+#include <inttypes.h>
+#include <limits.h>
+#include <signal.h>
 #include <unistd.h>
 
 #include "dd.h"
 #include "extern.h"
+
+static off_t
+seek_offset(IO *io)
+{
+	off_t n;
+	size_t sz;
+
+	n = io->offset;
+	sz = io->dbsz;
+
+	_Static_assert(sizeof(io->offset) == sizeof(int64_t), "64-bit off_t");
+
+	/*
+	 * If the lseek offset will be negative, verify that this is a special
+	 * device file.  Some such files (e.g. /dev/kmem) permit "negative"
+	 * offsets.
+	 *
+	 * Bail out if the calculation of a file offset would overflow.
+	 */
+	if ((io->flags & ISCHR) == 0 && (n < 0 || n > OFF_MAX / (ssize_t)sz))
+		errx(1, "seek offsets cannot be larger than %jd",
+		    (intmax_t)OFF_MAX);
+	else if ((io->flags & ISCHR) != 0 && (uint64_t)n > UINT64_MAX / sz)
+		errx(1, "seek offsets cannot be larger than %ju",
+		    (uintmax_t)UINT64_MAX);
+
+	return ((off_t)( (uint64_t)n * sz ));
+}
 
 /*
  * Position input/output data streams before starting the copy.  Device type
@@ -57,17 +91,23 @@
 void
 pos_in(void)
 {
-	size_t bcnt;
-	ssize_t nr;
 	off_t cnt;
 	int warned;
+	ssize_t nr;
+	size_t bcnt;
 
-	/* If not a pipe, tape or tty device, try to seek on it. */
-	if (!(in.flags & (ISPIPE|ISTAPE)) && !isatty(in.fd)) {
-		if (lseek(in.fd, in.offset * in.dbsz, SEEK_CUR) == -1)
+	/* If known to be seekable, try to seek on it. */
+	if (in.flags & ISSEEK) {
+		errno = 0;
+		if (lseek(in.fd, seek_offset(&in), SEEK_CUR) == -1 &&
+		    errno != 0)
 			err(1, "%s", in.name);
 		return;
 	}
+
+	/* Don't try to read a really weird amount (like negative). */
+	if (in.offset < 0)
+		errx(1, "%s: illegal offset", "iseek/skip");
 
 	/*
 	 * Read the data.  If a pipe, read until satisfy the number of bytes
@@ -83,6 +123,10 @@ pos_in(void)
 				}
 			} else
 				--cnt;
+			if (need_summary)
+				summary();
+			if (need_progress)
+				progress();
 			continue;
 		}
 
@@ -123,11 +167,17 @@ pos_out(void)
 	 * going to fail, but don't protect the user -- they shouldn't
 	 * have specified the seek operand.
 	 */
-	if (!(out.flags & ISTAPE)) {
-		if (lseek(out.fd, out.offset * out.dbsz, SEEK_SET) == -1)
+	if (out.flags & (ISSEEK | ISPIPE)) {
+		errno = 0;
+		if (lseek(out.fd, seek_offset(&out), SEEK_CUR) == -1 &&
+		    errno != 0)
 			err(1, "%s", out.name);
 		return;
 	}
+
+	/* Don't try to read a really weird amount (like negative). */
+	if (out.offset < 0)
+		errx(1, "%s: illegal offset", "oseek/seek");
 
 	/* If no read access, try using mtio. */
 	if (out.flags & NOREAD) {
@@ -157,9 +207,13 @@ pos_out(void)
 		if (ioctl(out.fd, MTIOCTOP, &t_op) == -1)
 			err(1, "%s", out.name);
 
-		while (cnt++ < out.offset)
-			if ((n = write(out.fd, out.db, out.dbsz)) != out.dbsz)
+		while (cnt++ < out.offset) {
+			n = write(out.fd, out.db, out.dbsz);
+			if (n == -1)
 				err(1, "%s", out.name);
+			if (n != out.dbsz)
+				errx(1, "%s: write failure", out.name);
+		}
 		break;
 	}
 }

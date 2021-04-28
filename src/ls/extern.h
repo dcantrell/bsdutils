@@ -1,7 +1,6 @@
-/*	$OpenBSD: extern.h,v 1.10 2015/12/01 18:36:13 schwarze Exp $	*/
-/*	$NetBSD: extern.h,v 1.5 1995/03/21 09:06:24 cgd Exp $	*/
-
 /*-
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
  * Copyright (c) 1991, 1993
  *	The Regents of the University of California.  All rights reserved.
  *
@@ -29,13 +28,16 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	@(#)extern.h	8.1 (Berkeley) 5/31/93
+ *	from: @(#)extern.h	8.1 (Berkeley) 5/31/93
+ * $FreeBSD$
  */
 
-extern char *__progname;
+#include <stdbool.h>
 
 int	 acccmp(const FTSENT *, const FTSENT *);
 int	 revacccmp(const FTSENT *, const FTSENT *);
+int	 birthcmp(const FTSENT *, const FTSENT *);
+int	 revbirthcmp(const FTSENT *, const FTSENT *);
 int	 modcmp(const FTSENT *, const FTSENT *);
 int	 revmodcmp(const FTSENT *, const FTSENT *);
 int	 namecmp(const FTSENT *, const FTSENT *);
@@ -45,10 +47,31 @@ int	 revstatcmp(const FTSENT *, const FTSENT *);
 int	 sizecmp(const FTSENT *, const FTSENT *);
 int	 revsizecmp(const FTSENT *, const FTSENT *);
 
-int	 mbsprint(const char *, int);
-void	 printcol(DISPLAY *);
-void	 printacol(DISPLAY *);
-void	 printlong(DISPLAY *);
-void	 printscol(DISPLAY *);
-void	 printstream(DISPLAY *);
+void	 printcol(const DISPLAY *);
+void	 printlong(const DISPLAY *);
+int	 printname(const char *);
+void	 printscol(const DISPLAY *);
+void	 printstream(const DISPLAY *);
 void	 usage(void);
+int	 prn_normal(const char *);
+size_t	 len_octal(const char *, int);
+int	 prn_octal(const char *);
+int	 prn_printable(const char *);
+#ifdef COLORLS
+void	 parsecolors(const char *cs);
+void	 colorquit(int);
+
+extern	char	*ansi_fgcol;
+extern	char	*ansi_bgcol;
+extern	char	*ansi_coloff;
+extern	char	*attrs_off;
+extern	char	*enter_bold;
+
+extern int	 colorflag;
+extern bool	 explicitansi;
+
+#define	COLORFLAG_NEVER		0
+#define	COLORFLAG_AUTO		1
+#define	COLORFLAG_ALWAYS	2
+#endif
+extern int	termwidth;

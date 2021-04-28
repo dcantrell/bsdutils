@@ -1,5 +1,4 @@
-/*	$OpenBSD: strnsubst.c,v 1.7 2019/07/03 03:24:02 deraadt Exp $	*/
-/*	$FreeBSD: strnsubst.c,v 1.6 2002/06/22 12:58:42 jmallett Exp $	*/
+/* $xMach: strnsubst.c,v 1.3 2002/02/23 02:10:24 jmallett Exp $ */
 
 /*
  * Copyright (c) 2002 J. Mallett.  All rights reserved.
@@ -9,13 +8,13 @@
  * 	For the man who taught me vi, and who got too old, too young.
  */
 
+#include <sys/cdefs.h>
+__FBSDID("$FreeBSD$");
+
 #include <err.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include "compat.h"
 
 void	strnsubst(char **, const char *, const char *, size_t);
 
@@ -33,36 +32,48 @@ void
 strnsubst(char **str, const char *match, const char *replstr, size_t maxsize)
 {
 	char *s1, *s2, *this;
-	size_t matchlen, s2len;
-	int n;
 
-	if ((s1 = *str) == NULL)
+	s1 = *str;
+	if (s1 == NULL)
 		return;
-	if ((s2 = malloc(maxsize)) == NULL)
-		err(1, NULL);
+	/*
+	 * If maxsize is 0 then set it to the length of s1, because we have
+	 * to duplicate s1.  XXX we maybe should double-check whether the match
+	 * appears in s1.  If it doesn't, then we also have to set the length
+	 * to the length of s1, to avoid modifying the argument.  It may make
+	 * sense to check if maxsize is <= strlen(s1), because in that case we
+	 * want to return the unmodified string, too.
+	 */
+	if (maxsize == 0) {
+		match = NULL;
+		maxsize = strlen(s1) + 1;
+	}
+	s2 = calloc(1, maxsize);
+	if (s2 == NULL)
+		err(1, "calloc");
 
 	if (replstr == NULL)
 		replstr = "";
 
-	if (match == NULL || *match == '\0' || strlen(s1) >= maxsize) {
+	if (match == NULL || replstr == NULL || maxsize == strlen(s1)) {
 		strlcpy(s2, s1, maxsize);
 		goto done;
 	}
 
-	*s2 = '\0';
-	s2len = 0;
-	matchlen = strlen(match);
 	for (;;) {
-		if ((this = strstr(s1, match)) == NULL)
+		this = strstr(s1, match);
+		if (this == NULL)
 			break;
-		n = snprintf(s2 + s2len, maxsize - s2len, "%.*s%s",
-		    (int)(this - s1), s1, replstr);
-		if (n < 0 || n + s2len + strlen(this + matchlen) >= maxsize)
-			break;			/* out of room */
-		s2len += n;
-		s1 = this + matchlen;
+		if ((strlen(s2) + strlen(s1) + strlen(replstr) -
+		    strlen(match) + 1) > maxsize) {
+			strlcat(s2, s1, maxsize);
+			goto done;
+		}
+		strncat(s2, s1, (uintptr_t)this - (uintptr_t)s1);
+		strcat(s2, replstr);
+		s1 = this + strlen(match);
 	}
-	strlcpy(s2 + s2len, s1, maxsize - s2len);
+	strcat(s2, s1);
 done:
 	*str = s2;
 	return;
@@ -71,7 +82,7 @@ done:
 #ifdef TEST
 #include <stdio.h>
 
-int
+int 
 main(void)
 {
 	char *x, *y, *z, *za;

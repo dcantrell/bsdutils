@@ -1,6 +1,3 @@
-.\"	$OpenBSD: uniq.1,v 1.21 2017/12/23 00:52:33 schwarze Exp $
-.\"	$NetBSD: uniq.1,v 1.5 1994/12/06 07:51:15 jtc Exp $
-.\"
 .\" Copyright (c) 1991, 1993
 .\"	The Regents of the University of California.  All rights reserved.
 .\"
@@ -31,19 +28,20 @@
 .\" OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 .\" SUCH DAMAGE.
 .\"
-.\"     @(#)uniq.1	8.1 (Berkeley) 6/6/93
+.\"     From: @(#)uniq.1	8.1 (Berkeley) 6/6/93
+.\" $FreeBSD$
 .\"
-.Dd $Mdocdate: December 23 2017 $
+.Dd June 7, 2020
 .Dt UNIQ 1
 .Os
 .Sh NAME
 .Nm uniq
 .Nd report or filter out repeated lines in a file
 .Sh SYNOPSIS
-.Nm uniq
-.Op Fl ci
-.Op Fl d | u
-.Op Fl f Ar fields
+.Nm
+.Op Fl c | Fl d | Fl D | Fl u
+.Op Fl i
+.Op Fl f Ar num
 .Op Fl s Ar chars
 .Oo
 .Ar input_file
@@ -52,43 +50,71 @@
 .Sh DESCRIPTION
 The
 .Nm
-utility reads the standard input comparing adjacent lines and writes
-a copy of each unique input line to the standard output.
+utility reads the specified
+.Ar input_file
+comparing adjacent lines, and writes a copy of each unique input line to
+the
+.Ar output_file .
+If
+.Ar input_file
+is a single dash
+.Pq Sq Fl
+or absent, the standard input is read.
+If
+.Ar output_file
+is absent, standard output is used for output.
 The second and succeeding copies of identical adjacent input lines are
 not written.
 Repeated lines in the input will not be detected if they are not adjacent,
 so it may be necessary to sort the files first.
 .Pp
-The options are as follows:
+The following options are available:
 .Bl -tag -width Ds
-.It Fl c
+.It Fl c , Fl -count
 Precede each output line with the count of the number of times the line
 occurred in the input, followed by a single space.
-.It Fl d
-Only output lines which have duplicates.
-.It Fl f Ar fields
+.It Fl d , Fl -repeated
+Output a single copy of each line that is repeated in the input.
+.It Fl D , Fl -all-repeated Op Ar septype
+Output all lines that are repeated (like
+.Fl d ,
+but each copy of the repeated line is written).
+The optional
+.Ar septype
+argument controls how to separate groups of repeated lines in the output;
+it must be one of the following values:
+.Pp
+.Bl -tag -compact -width separate
+.It none
+Do not separate groups of lines (this is the default).
+.It prepend
+Output an empty line before each group of lines.
+.It separate
+Output an empty line after each group of lines.
+.El
+.It Fl f Ar num , Fl -skip-fields Ar num
 Ignore the first
-.Ar fields
-in each input line when doing comparisons.
+.Ar num
+fields in each input line when doing comparisons.
 A field is a string of non-blank characters separated from adjacent fields
-by blanks, with blanks considered part of the following field.
+by blanks.
 Field numbers are one based, i.e., the first field is field one.
-.It Fl i
-Regard lower and upper case ASCII characters as identical.
-.It Fl s Ar chars
+.It Fl i , Fl -ignore-case
+Case insensitive comparison of lines.
+.It Fl s Ar chars , Fl -skip-chars Ar chars
 Ignore the first
 .Ar chars
 characters in each input line when doing comparisons.
 If specified in conjunction with the
-.Fl f
+.Fl f , Fl -unique
 option, the first
 .Ar chars
 characters after the first
-.Ar fields
+.Ar num
 fields will be ignored.
 Character numbers are one based, i.e., the first character is character one.
-.It Fl u
-Only output lines which are unique.
+.It Fl u , Fl -unique
+Only output lines that are not repeated in the input.
 .\".It Fl Ns Ar n
 .\"(Deprecated; replaced by
 .\".Fl f ) .
@@ -108,54 +134,85 @@ Only output lines which are unique.
 .\"is a
 .\"number.
 .El
-.Pp
-If additional arguments are specified on the command line, the first
-such argument is used as the name of an input file, the second is used
-as the name of an output file.
-A file name of
-.Ql -
-denotes the standard input or the standard output
-.Pq depending on its position on the command line .
 .Sh ENVIRONMENT
-.Bl -tag -width LC_CTYPE
-.It Ev LC_CTYPE
-The character encoding
-.Xr locale 1 .
-It decides which byte sequences form characters
-and which characters are considered blank.
-If unset or set to
-.Qq C ,
-.Qq POSIX ,
-or an unsupported value, each byte is treated as a character,
-and only space and tab are considered blank.
-.Pp
-This variable is ignored for case comparisons.
-Lower and upper case versions of non-ASCII characters are always
-considered different.
-.El
+The
+.Ev LANG ,
+.Ev LC_ALL ,
+.Ev LC_COLLATE
+and
+.Ev LC_CTYPE
+environment variables affect the execution of
+.Nm
+as described in
+.Xr environ 7 .
 .Sh EXIT STATUS
-.Ex -std uniq
+.Ex -std
+.Sh EXAMPLES
+Assuming a file named cities.txt with the following content:
+.Bd -literal -offset indent
+Madrid
+Lisbon
+Madrid
+.Ed
+.Pp
+The following command reports three different lines since identical elements
+are not adjacent:
+.Bd -literal -offset indent
+$ uniq -u cities.txt
+Madrid
+Lisbon
+Madrid
+.Ed
+.Pp
+Sort the file and count the number of identical lines:
+.Bd -literal -offset indent
+$ sort cities.txt | uniq -c
+	1 Lisbon
+	2 Madrid
+.Ed
+.Pp
+Assuming the following content for the file cities.txt:
+.Bd -literal -offset indent
+madrid
+Madrid
+Lisbon
+.Ed
+.Pp
+Show repeated lines ignoring case sensitiveness:
+.Bd -literal -offset indent
+$ uniq -d -i cities.txt
+madrid
+.Ed
+.Pp
+Same as above but showing the whole group of repeated lines:
+.Bd -literal -offset indent
+$ uniq -D -i cities.txt
+madrid
+Madrid
+.Ed
+.Pp
+Report the number of identical lines ignoring the first character of every line:
+.Bd -literal -offset indent
+$ uniq -s 1 -c cities.txt
+	2 madrid
+	1 Lisbon
+.Ed
+.Sh COMPATIBILITY
+The historic
+.Cm \&\(pl Ns Ar number
+and
+.Fl Ns Ar number
+options have been deprecated but are still supported in this implementation.
 .Sh SEE ALSO
 .Xr sort 1
 .Sh STANDARDS
 The
 .Nm
-utility is compliant with the
-.St -p1003.1-2008
-specification.
-.Pp
-The
-.Fl i
-option and the use of
-.Fl c
-in conjunction with
-.Fl d
-or
-.Fl u
-are extensions to that specification.
-.Pp
-The historic
-.Cm + Ns Ar number
-and
-.Fl Ns Ar number
-options have been deprecated but are still supported in this implementation.
+utility conforms to
+.St -p1003.1-2001
+as amended by Cor.\& 1-2002.
+.Sh HISTORY
+A
+.Nm
+command appeared in
+.At v3 .
