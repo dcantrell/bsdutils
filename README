@@ -1,5 +1,10 @@
 ## bsdutils
 
 This project is GNU coreutils-like collection of utilities from the
-OpenBSD source code. The intent is to offer a BSD-licensed and
+FreeBSD source code. The intent is to offer a BSD-licensed and
 lightweight replacement for the GNU coreutils project.
+
+The project began in October 2017 and initially ported code from the
+OpenBSD source tree.  In an effort to gain more featureful BSD
+commands and to work with dotfiles for users on MacOS X systems, the
+project moved to porting from FreeBSD in April 2021.

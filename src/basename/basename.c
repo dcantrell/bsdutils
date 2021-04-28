@@ -1,7 +1,6 @@
-/*	$OpenBSD: basename.c,v 1.14 2016/10/28 07:22:59 schwarze Exp $	*/
-/*	$NetBSD: basename.c,v 1.9 1995/09/02 05:29:46 jtc Exp $	*/
-
 /*-
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
  * Copyright (c) 1991, 1993, 1994
  *	The Regents of the University of California.  All rights reserved.
  *
@@ -30,68 +29,116 @@
  * SUCH DAMAGE.
  */
 
+#ifndef lint
+__attribute__ ((unused)) static const char copyright[] =
+"@(#) Copyright (c) 1991, 1993, 1994\n\
+	The Regents of the University of California.  All rights reserved.\n";
+#endif
+
+#if 0
+#ifndef lint
+static char sccsid[] = "@(#)basename.c	8.4 (Berkeley) 5/4/95";
+#endif /* not lint */
+#endif
+
+#include <sys/cdefs.h>
+
 #include <err.h>
 #include <libgen.h>
+#include <limits.h>
+#include <locale.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <wchar.h>
 
-static void usage(void);
+void stripsuffix(char *, const char *, size_t);
+void usage(void);
 
 int
-main(int argc, char *argv[])
+main(int argc, char **argv)
 {
-	int ch;
-	char *p;
+	char *p, *suffix;
+	size_t suffixlen;
+	int aflag, ch;
 
-	while ((ch = getopt(argc, argv, "")) != -1) {
-		switch (ch) {
+	setlocale(LC_ALL, "");
+
+	aflag = 0;
+	suffix = NULL;
+	suffixlen = 0;
+
+	while ((ch = getopt(argc, argv, "as:")) != -1)
+		switch(ch) {
+		case 'a':
+			aflag = 1;
+			break;
+		case 's':
+			suffix = optarg;
+			break;
+		case '?':
 		default:
 			usage();
 		}
-	}
 	argc -= optind;
 	argv += optind;
 
-	if (argc != 1 && argc != 2)
+	if (argc < 1)
 		usage();
 
-	if (**argv == '\0') {
-		(void)puts("");
-		return 0;
+	if (!*argv[0]) {
+		printf("\n");
+		exit(0);
 	}
-	p = basename(*argv);
-	if (p == NULL)
-		err(1, "%s", *argv);
-	/*
-	 * If the suffix operand is present, is not identical to the
-	 * characters remaining in string, and is identical to a suffix
-	 * of the characters remaining in string, the suffix suffix
-	 * shall be removed from string.
-	 */
-	if (*++argv) {
-		size_t suffixlen, stringlen, off;
-
-		suffixlen = strlen(*argv);
-		stringlen = strlen(p);
-
-		if (suffixlen < stringlen) {
-			off = stringlen - suffixlen;
-			if (!strcmp(p + off, *argv))
-				p[off] = '\0';
-		}
+	if ((p = basename(argv[0])) == NULL)
+		err(1, "%s", argv[0]);
+	if ((suffix == NULL && !aflag) && argc == 2) {
+		suffix = argv[1];
+		argc--;
 	}
-	(void)puts(p);
-	return 0;
+	if (suffix != NULL)
+		suffixlen = strlen(suffix);
+	while (argc--) {
+		if ((p = basename(*argv)) == NULL)
+			err(1, "%s", argv[0]);
+		stripsuffix(p, suffix, suffixlen);
+		argv++;
+		(void)printf("%s\n", p);
+	}
+	exit(0);
 }
 
-extern char *__progname;
+void
+stripsuffix(char *p, const char *suffix, size_t suffixlen)
+{
+	char *q, *r;
+	mbstate_t mbs;
+	size_t n;
 
-static void
+	if (suffixlen && (q = strchr(p, '\0') - suffixlen) > p &&
+	    strcmp(suffix, q) == 0) {
+		/* Ensure that the match occurred on a character boundary. */
+		memset(&mbs, 0, sizeof(mbs));
+		for (r = p; r < q; r += n) {
+			n = mbrlen(r, MB_LEN_MAX, &mbs);
+			if (n == (size_t)-1 || n == (size_t)-2) {
+				memset(&mbs, 0, sizeof(mbs));
+				n = 1;
+			}
+		}
+		/* Chop off the suffix. */
+		if (q == r)
+			*q = '\0';
+	}
+}
+
+void
 usage(void)
 {
 
-	(void)fprintf(stderr, "usage: %s string [suffix]\n", __progname);
+	(void)fprintf(stderr,
+"usage: basename string [suffix]\n"
+"       basename [-a] [-s suffix] string [...]\n");
 	exit(1);
 }
