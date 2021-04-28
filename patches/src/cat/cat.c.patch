@@ -1,0 +1,146 @@
+diff -up cat/cat.c.orig cat/cat.c
+--- cat/cat.c.orig	2021-04-08 20:24:01.000000000 -0400
++++ cat/cat.c	2021-04-27 23:02:26.091982002 -0400
+@@ -46,9 +46,7 @@ static char sccsid[] = "@(#)cat.c	8.2 (B
+ #endif
+ #endif /* not lint */
+ #include <sys/cdefs.h>
+-__FBSDID("$FreeBSD$");
+ 
+-#include <sys/capsicum.h>
+ #include <sys/param.h>
+ #include <sys/stat.h>
+ #ifndef NO_UDOM_SUPPORT
+@@ -57,7 +55,6 @@ __FBSDID("$FreeBSD$");
+ #include <netdb.h>
+ #endif
+ 
+-#include <capsicum_helpers.h>
+ #include <ctype.h>
+ #include <err.h>
+ #include <errno.h>
+@@ -70,16 +67,24 @@ __FBSDID("$FreeBSD$");
+ #include <wchar.h>
+ #include <wctype.h>
+ 
+-#include <libcasper.h>
+-#include <casper/cap_fileargs.h>
+-#include <casper/cap_net.h>
++/* from sys/param.h on FreeBSD */
++/* max raw I/O transfer size */
++/*
++ * XXX: this is _probably_ going to be 1M on the system if it were
++ * running FreeBSD.  What is the corresponding Linux parameter here
++ * and the sanctioned way to retrieve it?
++ */
++#define MAXPHYS (1024 * 1024)
++/* #define MAXPHYS (128 * 1024)    <--- could be this on 32-bit systems */
++
++/* lifted from wchar.h in FreeBSD */
++#define iswascii(wc) (((wc) & ~0x7F) == 0)
+ 
+ static int bflag, eflag, lflag, nflag, sflag, tflag, vflag;
+ static int rval;
+ static const char *filename;
+-static fileargs_t *fa;
+ 
+-static void usage(void) __dead2;
++static void usage(void);
+ static void scanfiles(char *argv[], int cooked);
+ #ifndef BOOTSTRAP_CAT
+ static void cook_cat(FILE *);
+@@ -121,53 +126,6 @@ static int udom_open(const char *path, i
+ #define SUPPORTED_FLAGS "belnstuv"
+ #endif
+ 
+-#ifndef NO_UDOM_SUPPORT
+-static void
+-init_casper_net(cap_channel_t *casper)
+-{
+-	cap_net_limit_t *limit;
+-	int familylimit;
+-
+-	capnet = cap_service_open(casper, "system.net");
+-	if (capnet == NULL)
+-		err(EXIT_FAILURE, "unable to create network service");
+-
+-	limit = cap_net_limit_init(capnet, CAPNET_NAME2ADDR |
+-	    CAPNET_CONNECTDNS);
+-	if (limit == NULL)
+-		err(EXIT_FAILURE, "unable to create limits");
+-
+-	familylimit = AF_LOCAL;
+-	cap_net_limit_name2addr_family(limit, &familylimit, 1);
+-
+-	if (cap_net_limit(limit) < 0)
+-		err(EXIT_FAILURE, "unable to apply limits");
+-}
+-#endif
+-
+-static void
+-init_casper(int argc, char *argv[])
+-{
+-	cap_channel_t *casper;
+-	cap_rights_t rights;
+-
+-	casper = cap_init();
+-	if (casper == NULL)
+-		err(EXIT_FAILURE, "unable to create Casper");
+-
+-	fa = fileargs_cinit(casper, argc, argv, O_RDONLY, 0,
+-	    cap_rights_init(&rights, CAP_READ | CAP_FSTAT | CAP_FCNTL),
+-	    FA_OPEN | FA_REALPATH);
+-	if (fa == NULL)
+-		err(EXIT_FAILURE, "unable to create fileargs");
+-
+-#ifndef NO_UDOM_SUPPORT
+-	init_casper_net(casper);
+-#endif
+-
+-	cap_close(casper);
+-}
+-
+ int
+ main(int argc, char *argv[])
+ {
+@@ -217,13 +175,6 @@ main(int argc, char *argv[])
+ 			err(EXIT_FAILURE, "stdout");
+ 	}
+ 
+-	init_casper(argc, argv);
+-
+-	caph_cache_catpages();
+-
+-	if (caph_enter_casper() < 0)
+-		err(EXIT_FAILURE, "capsicum");
+-
+ 	if (bflag || eflag || nflag || sflag || tflag || vflag)
+ 		scanfiles(argv, 1);
+ 	else
+@@ -244,7 +195,7 @@ usage(void)
+ }
+ 
+ static void
+-scanfiles(char *argv[], int cooked __unused)
++scanfiles(char *argv[], int cooked)
+ {
+ 	int fd, i;
+ 	char *path;
+@@ -260,7 +211,7 @@ scanfiles(char *argv[], int cooked __unu
+ 			fd = STDIN_FILENO;
+ 		} else {
+ 			filename = path;
+-			fd = fileargs_open(fa, path);
++			fd = open(path, O_RDONLY);
+ #ifndef NO_UDOM_SUPPORT
+ 			if (fd < 0 && errno == EOPNOTSUPP)
+ 				fd = udom_open(path, O_RDONLY);
+@@ -342,8 +293,6 @@ cook_cat(FILE *fp)
+ 			if ((wch = getwc(fp)) == WEOF) {
+ 				if (ferror(fp) && errno == EILSEQ) {
+ 					clearerr(fp);
+-					/* Resync attempt. */
+-					memset(&fp->_mbstate, 0, sizeof(mbstate_t));
+ 					if ((ch = getc(fp)) == EOF)
+ 						break;
+ 					wch = ch;

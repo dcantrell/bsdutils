@@ -1,6 +1,4 @@
-.\"	$OpenBSD: cat.1,v 1.36 2016/07/10 00:15:39 tedu Exp $
-.\"	$NetBSD: cat.1,v 1.12 1995/09/27 05:38:55 cgd Exp $
-.\"
+.\"-
 .\" Copyright (c) 1989, 1990, 1993
 .\"	The Regents of the University of California.  All rights reserved.
 .\"
@@ -32,16 +30,17 @@
 .\" SUCH DAMAGE.
 .\"
 .\"     @(#)cat.1	8.3 (Berkeley) 5/2/95
+.\" $FreeBSD$
 .\"
-.Dd $Mdocdate: July 10 2016 $
+.Dd January 29, 2013
 .Dt CAT 1
 .Os
 .Sh NAME
 .Nm cat
 .Nd concatenate and print files
 .Sh SYNOPSIS
-.Nm cat
-.Op Fl benstuv
+.Nm
+.Op Fl belnstuv
 .Op Ar
 .Sh DESCRIPTION
 The
@@ -53,100 +52,126 @@ operands are processed in command-line order.
 If
 .Ar file
 is a single dash
-.Pq Sq -
+.Pq Sq Fl
 or absent,
 .Nm
 reads from the standard input.
+If
+.Ar file
+is a
+.Ux
+domain socket,
+.Nm
+connects to it and then reads it until
+.Dv EOF .
+This complements the
+.Ux
+domain binding capability available in
+.Xr inetd 8 .
 .Pp
 The options are as follows:
-.Bl -tag -width Ds
+.Bl -tag -width indent
 .It Fl b
-Number the lines, but don't count blank lines.
+Number the non-blank output lines, starting at 1.
 .It Fl e
-Print a dollar sign
+Display non-printing characters (see the
+.Fl v
+option), and display a dollar sign
 .Pq Ql \&$
 at the end of each line.
-Implies the
-.Fl v
-option to display non-printing characters.
+.It Fl l
+Set an exclusive advisory lock on the standard output file descriptor.
+This lock is set using
+.Xr fcntl 2
+with the
+.Dv F_SETLKW
+command.
+If the output file is already locked,
+.Nm
+will block until the lock is acquired.
 .It Fl n
 Number the output lines, starting at 1.
 .It Fl s
 Squeeze multiple adjacent empty lines, causing the output to be
 single spaced.
 .It Fl t
-Print tab characters as
-.Ql ^I .
-Implies the
+Display non-printing characters (see the
 .Fl v
-option to display non-printing characters.
+option), and display tab characters as
+.Ql ^I .
 .It Fl u
-The output is guaranteed to be unbuffered (see
-.Xr setvbuf 3 ) .
+Disable output buffering.
 .It Fl v
-Displays non-printing characters so they are visible.
+Display non-printing characters so they are visible.
 Control characters print as
 .Ql ^X
-for control-X, with the exception of the tab and EOL characters,
-which are displayed normally.
-The DEL character (octal 0177) prints as
+for control-X; the delete
+character (octal 0177) prints as
 .Ql ^? .
-Non-ASCII characters (with the high bit set) are printed as
+.Pf Non- Tn ASCII
+characters (with the high bit set) are printed as
 .Ql M-
 (for meta) followed by the character for the low 7 bits.
 .El
 .Sh EXIT STATUS
-.Ex -std cat
+.Ex -std
 .Sh EXAMPLES
-Print the contents of
-.Ar file1
-to the standard output:
+The command:
 .Pp
-.Dl $ cat file1
+.Dl "cat file1"
 .Pp
-Sequentially print the contents of
-.Ar file1
+will print the contents of
+.Pa file1
+to the standard output.
+.Pp
+The command:
+.Pp
+.Dl "cat file1 file2 > file3"
+.Pp
+will sequentially print the contents of
+.Pa file1
 and
-.Ar file2
+.Pa file2
 to the file
-.Ar file3 ,
+.Pa file3 ,
 truncating
-.Ar file3
+.Pa file3
 if it already exists.
 See the manual page for your shell (e.g.,
 .Xr sh 1 )
 for more information on redirection.
 .Pp
-.Dl $ cat file1 file2 > file3
+The command:
 .Pp
-Print the contents of
-.Ar file1 ,
+.Dl "cat file1 - file2 - file3"
+.Pp
+will print the contents of
+.Pa file1 ,
 print data it receives from the standard input until it receives an
 .Dv EOF
 .Pq Sq ^D
 character, print the contents of
-.Ar file2 ,
+.Pa file2 ,
 read and output contents of the standard input again, then finally output
 the contents of
-.Ar file3 .
+.Pa file3 .
 Note that if the standard input referred to a file, the second dash
-on the command line would have no effect, since the entire contents of the file
+on the command-line would have no effect, since the entire contents of the file
 would have already been read and printed by
 .Nm
 when it encountered the first
-.Ql \&-
+.Sq Fl
 operand.
-.Pp
-.Dl $ cat file1 - file2 - file3
 .Sh SEE ALSO
 .Xr head 1 ,
-.Xr less 1 ,
 .Xr more 1 ,
 .Xr pr 1 ,
 .Xr sh 1 ,
 .Xr tail 1 ,
 .Xr vis 1 ,
-.Xr setvbuf 3
+.Xr zcat 1 ,
+.Xr fcntl 2 ,
+.Xr setbuf 3
 .Rs
 .%A Rob Pike
 .%T "UNIX Style, or cat -v Considered Harmful"
@@ -157,29 +182,33 @@ operand.
 The
 .Nm
 utility is compliant with the
-.St -p1003.1-2008
+.St -p1003.2-92
 specification.
 .Pp
 The flags
-.Op Fl benstv
-are extensions to that specification.
+.Op Fl belnstv
+are extensions to the specification.
 .Sh HISTORY
 A
 .Nm
 utility appeared in
 .At v1 .
-.Sh CAVEATS
+.An Dennis Ritchie
+designed and wrote the first man page.
+It appears to have been for
+.Nm .
+.Sh BUGS
 Because of the shell language mechanism used to perform output
-redirection, the following command will cause the original data in
-.Ar file1
-to be destroyed:
+redirection, the command
+.Dq Li cat file1 file2 > file1
+will cause the original data in
+.Pa file1
+to be destroyed!
 .Pp
-.Dl $ cat file1 file2 > file1
-.Pp
-To append
-.Ar file2
-to
-.Ar file1 ,
-instead use:
-.Pp
-.Dl $ cat file2 >> file1
+The
+.Nm
+utility does not recognize multibyte characters when the
+.Fl t
+or
+.Fl v
+option is in effect.

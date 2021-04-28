@@ -1,7 +1,6 @@
-/*	$OpenBSD: cat.c,v 1.27 2019/06/28 13:34:58 deraadt Exp $	*/
-/*	$NetBSD: cat.c,v 1.11 1995/09/07 06:12:54 jtc Exp $	*/
-
-/*
+/*-
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
  * Copyright (c) 1989, 1993
  *	The Regents of the University of California.  All rights reserved.
  *
@@ -33,43 +32,118 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/types.h>
+#if 0
+#ifndef lint
+static char const copyright[] =
+"@(#) Copyright (c) 1989, 1993\n\
+	The Regents of the University of California.  All rights reserved.\n";
+#endif /* not lint */
+#endif
+
+#ifndef lint
+#if 0
+static char sccsid[] = "@(#)cat.c	8.2 (Berkeley) 4/27/95";
+#endif
+#endif /* not lint */
+#include <sys/cdefs.h>
+
+#include <sys/param.h>
 #include <sys/stat.h>
+#ifndef NO_UDOM_SUPPORT
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <netdb.h>
+#endif
 
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <locale.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <wchar.h>
+#include <wctype.h>
 
-#define MAXIMUM(a, b)	(((a) > (b)) ? (a) : (b))
+/* from sys/param.h on FreeBSD */
+/* max raw I/O transfer size */
+/*
+ * XXX: this is _probably_ going to be 1M on the system if it were
+ * running FreeBSD.  What is the corresponding Linux parameter here
+ * and the sanctioned way to retrieve it?
+ */
+#define MAXPHYS (1024 * 1024)
+/* #define MAXPHYS (128 * 1024)    <--- could be this on 32-bit systems */
 
-extern char *__progname;
+/* lifted from wchar.h in FreeBSD */
+#define iswascii(wc) (((wc) & ~0x7F) == 0)
 
-int bflag, eflag, nflag, sflag, tflag, vflag;
-int rval;
-char *filename;
+static int bflag, eflag, lflag, nflag, sflag, tflag, vflag;
+static int rval;
+static const char *filename;
 
-void cook_args(char *argv[]);
-void cook_buf(FILE *);
-void raw_args(char *argv[]);
-void raw_cat(int);
+static void usage(void);
+static void scanfiles(char *argv[], int cooked);
+#ifndef BOOTSTRAP_CAT
+static void cook_cat(FILE *);
+#endif
+static void raw_cat(int);
+
+#ifndef NO_UDOM_SUPPORT
+static cap_channel_t *capnet;
+
+static int udom_open(const char *path, int flags);
+#endif
+
+/*
+ * Memory strategy threshold, in pages: if physmem is larger than this,
+ * use a large buffer.
+ */
+#define	PHYSPAGES_THRESHOLD (32 * 1024)
+
+/* Maximum buffer size in bytes - do not allow it to grow larger than this. */
+#define	BUFSIZE_MAX (2 * 1024 * 1024)
+
+/*
+ * Small (default) buffer size in bytes. It's inefficient for this to be
+ * smaller than MAXPHYS.
+ */
+#define	BUFSIZE_SMALL (MAXPHYS)
+
+
+/*
+ * For the bootstrapped cat binary (needed for locked appending to METALOG), we
+ * disable all flags except -l and -u to avoid non-portable function calls.
+ * In the future we may instead want to write a small portable bootstrap tool
+ * that locks the output file before writing to it. However, for now
+ * bootstrapping cat without multibyte support is the simpler solution.
+ */
+#ifdef BOOTSTRAP_CAT
+#define SUPPORTED_FLAGS "lu"
+#else
+#define SUPPORTED_FLAGS "belnstuv"
+#endif
 
 int
 main(int argc, char *argv[])
 {
 	int ch;
+	struct flock stdout_lock;
 
-	while ((ch = getopt(argc, argv, "benstuv")) != -1)
+	setlocale(LC_CTYPE, "");
+
+	while ((ch = getopt(argc, argv, SUPPORTED_FLAGS)) != -1)
 		switch (ch) {
 		case 'b':
 			bflag = nflag = 1;	/* -b implies -n */
 			break;
 		case 'e':
 			eflag = vflag = 1;	/* -e implies -v */
+			break;
+		case 'l':
+			lflag = 1;
 			break;
 		case 'n':
 			nflag = 1;
@@ -81,58 +155,102 @@ main(int argc, char *argv[])
 			tflag = vflag = 1;	/* -t implies -v */
 			break;
 		case 'u':
-			setvbuf(stdout, NULL, _IONBF, 0);
+			setbuf(stdout, NULL);
 			break;
 		case 'v':
 			vflag = 1;
 			break;
 		default:
-			(void)fprintf(stderr,
-			    "usage: %s [-benstuv] [file ...]\n", __progname);
-			return 1;
+			usage();
 		}
 	argv += optind;
+	argc -= optind;
+
+	if (lflag) {
+		stdout_lock.l_len = 0;
+		stdout_lock.l_start = 0;
+		stdout_lock.l_type = F_WRLCK;
+		stdout_lock.l_whence = SEEK_SET;
+		if (fcntl(STDOUT_FILENO, F_SETLKW, &stdout_lock) == -1)
+			err(EXIT_FAILURE, "stdout");
+	}
 
 	if (bflag || eflag || nflag || sflag || tflag || vflag)
-		cook_args(argv);
+		scanfiles(argv, 1);
 	else
-		raw_args(argv);
+		scanfiles(argv, 0);
 	if (fclose(stdout))
 		err(1, "stdout");
-	return rval;
+	exit(rval);
+	/* NOTREACHED */
 }
 
-void
-cook_args(char **argv)
+static void
+usage(void)
 {
-	FILE *fp;
 
-	fp = stdin;
-	filename = "stdin";
-	do {
-		if (*argv) {
-			if (!strcmp(*argv, "-"))
-				fp = stdin;
-			else if ((fp = fopen(*argv, "r")) == NULL) {
-				warn("%s", *argv);
-				rval = 1;
-				++argv;
-				continue;
-			}
-			filename = *argv++;
-		}
-		cook_buf(fp);
-		if (fp == stdin)
-			clearerr(fp);
-		else
-			(void)fclose(fp);
-	} while (*argv);
+	fprintf(stderr, "usage: cat [-" SUPPORTED_FLAGS "] [file ...]\n");
+	exit(1);
+	/* NOTREACHED */
 }
 
-void
-cook_buf(FILE *fp)
+static void
+scanfiles(char *argv[], int cooked)
+{
+	int fd, i;
+	char *path;
+#ifndef BOOTSTRAP_CAT
+	FILE *fp;
+#endif
+
+	i = 0;
+	fd = -1;
+	while ((path = argv[i]) != NULL || i == 0) {
+		if (path == NULL || strcmp(path, "-") == 0) {
+			filename = "stdin";
+			fd = STDIN_FILENO;
+		} else {
+			filename = path;
+			fd = open(path, O_RDONLY);
+#ifndef NO_UDOM_SUPPORT
+			if (fd < 0 && errno == EOPNOTSUPP)
+				fd = udom_open(path, O_RDONLY);
+#endif
+		}
+		if (fd < 0) {
+			warn("%s", path);
+			rval = 1;
+#ifndef BOOTSTRAP_CAT
+		} else if (cooked) {
+			if (fd == STDIN_FILENO)
+				cook_cat(stdin);
+			else {
+				fp = fdopen(fd, "r");
+				cook_cat(fp);
+				fclose(fp);
+			}
+#endif
+		} else {
+			raw_cat(fd);
+			if (fd != STDIN_FILENO)
+				close(fd);
+		}
+		if (path == NULL)
+			break;
+		++i;
+	}
+}
+
+#ifndef BOOTSTRAP_CAT
+static void
+cook_cat(FILE *fp)
 {
 	int ch, gobble, line, prev;
+	wint_t wch;
+
+	/* Reset EOF condition on stdin. */
+	if (fp == stdin && feof(stdin))
+		clearerr(stdin);
 
 	line = gobble = 0;
 	for (prev = '\n'; (ch = getc(fp)) != EOF; prev = ch) {
@@ -167,18 +285,38 @@ cook_buf(FILE *fp)
 				continue;
 			}
 		} else if (vflag) {
-			if (!isascii(ch)) {
+			(void)ungetc(ch, fp);
+			/*
+			 * Our getwc(3) doesn't change file position
+			 * on error.
+			 */
+			if ((wch = getwc(fp)) == WEOF) {
+				if (ferror(fp) && errno == EILSEQ) {
+					clearerr(fp);
+					if ((ch = getc(fp)) == EOF)
+						break;
+					wch = ch;
+					goto ilseq;
+				} else
+					break;
+			}
+			if (!iswascii(wch) && !iswprint(wch)) {
+ilseq:
 				if (putchar('M') == EOF || putchar('-') == EOF)
 					break;
-				ch = toascii(ch);
+				wch = toascii(wch);
 			}
-			if (iscntrl(ch)) {
-				if (putchar('^') == EOF ||
-				    putchar(ch == '\177' ? '?' :
-				    ch | 0100) == EOF)
+			if (iswcntrl(wch)) {
+				ch = toascii(wch);
+				ch = (ch == '\177') ? '?' : (ch | 0100);
+				if (putchar('^') == EOF || putchar(ch) == EOF)
 					break;
 				continue;
 			}
+			if (putwchar(wch) == WEOF)
+				break;
+			ch = -1;
+			continue;
 		}
 		if (putchar(ch) == EOF)
 			break;
@@ -191,56 +329,132 @@ cook_buf(FILE *fp)
 	if (ferror(stdout))
 		err(1, "stdout");
 }
+#endif /* BOOTSTRAP_CAT */
 
-void
-raw_args(char **argv)
-{
-	int fd;
-
-	fd = fileno(stdin);
-	filename = "stdin";
-	do {
-		if (*argv) {
-			if (!strcmp(*argv, "-"))
-				fd = fileno(stdin);
-			else if ((fd = open(*argv, O_RDONLY, 0)) == -1) {
-				warn("%s", *argv);
-				rval = 1;
-				++argv;
-				continue;
-			}
-			filename = *argv++;
-		}
-		raw_cat(fd);
-		if (fd != fileno(stdin))
-			(void)close(fd);
-	} while (*argv);
-}
-
-void
+static void
 raw_cat(int rfd)
 {
-	int wfd;
-	ssize_t nr, nw, off;
+	long pagesize;
+	int off, wfd;
+	ssize_t nr, nw;
 	static size_t bsize;
 	static char *buf = NULL;
 	struct stat sbuf;
 
 	wfd = fileno(stdout);
 	if (buf == NULL) {
-		if (fstat(wfd, &sbuf) == -1)
+		if (fstat(wfd, &sbuf))
 			err(1, "stdout");
-		bsize = MAXIMUM(sbuf.st_blksize, BUFSIZ);
+		if (S_ISREG(sbuf.st_mode)) {
+			/* If there's plenty of RAM, use a large copy buffer */
+			if (sysconf(_SC_PHYS_PAGES) > PHYSPAGES_THRESHOLD)
+				bsize = MIN(BUFSIZE_MAX, MAXPHYS * 8);
+			else
+				bsize = BUFSIZE_SMALL;
+		} else {
+			bsize = sbuf.st_blksize;
+			pagesize = sysconf(_SC_PAGESIZE);
+			if (pagesize > 0)
+				bsize = MAX(bsize, (size_t)pagesize);
+		}
 		if ((buf = malloc(bsize)) == NULL)
-			err(1, "malloc");
+			err(1, "malloc() failure of IO buffer");
 	}
-	while ((nr = read(rfd, buf, bsize)) != -1 && nr != 0)
+	while ((nr = read(rfd, buf, bsize)) > 0)
 		for (off = 0; nr; nr -= nw, off += nw)
-			if ((nw = write(wfd, buf + off, (size_t)nr)) == 0 ||
-			     nw == -1)
+			if ((nw = write(wfd, buf + off, (size_t)nr)) < 0)
 				err(1, "stdout");
-	if (nr == -1) {
+	if (nr < 0) {
 		warn("%s", filename);
 		rval = 1;
 	}
 }
+
+#ifndef NO_UDOM_SUPPORT
+
+static int
+udom_open(const char *path, int flags)
+{
+	struct addrinfo hints, *res, *res0;
+	char rpath[PATH_MAX];
+	int error, fd, serrno;
+	cap_rights_t rights;
+
+	/*
+	 * Construct the unix domain socket address and attempt to connect.
+	 */
+	bzero(&hints, sizeof(hints));
+	hints.ai_family = AF_LOCAL;
+	fd = -1;
+
+	if (fileargs_realpath(fa, path, rpath) == NULL)
+		return (-1);
+
+	error = cap_getaddrinfo(capnet, rpath, NULL, &hints, &res0);
+	if (error) {
+		warn("%s", gai_strerror(error));
+		errno = EINVAL;
+		return (-1);
+	}
+	cap_rights_init(&rights, CAP_CONNECT, CAP_READ, CAP_WRITE,
+	    CAP_SHUTDOWN, CAP_FSTAT, CAP_FCNTL);
+	for (res = res0; res != NULL; res = res->ai_next) {
+		fd = socket(res->ai_family, res->ai_socktype,
+		    res->ai_protocol);
+		if (fd < 0) {
+			serrno = errno;
+			freeaddrinfo(res0);
+			errno = serrno;
+			return (-1);
+		}
+		if (caph_rights_limit(fd, &rights) < 0) {
+			serrno = errno;
+			close(fd);
+			freeaddrinfo(res0);
+			errno = serrno;
+			return (-1);
+		}
+		error = cap_connect(capnet, fd, res->ai_addr, res->ai_addrlen);
+		if (error == 0)
+			break;
+		else {
+			serrno = errno;
+			close(fd);
+			fd = -1;
+		}
+	}
+	freeaddrinfo(res0);
+
+	/*
+	 * handle the open flags by shutting down appropriate directions
+	 */
+	if (fd >= 0) {
+		switch(flags & O_ACCMODE) {
+		case O_RDONLY:
+			cap_rights_clear(&rights, CAP_WRITE);
+			if (shutdown(fd, SHUT_WR) == -1)
+				warn(NULL);
+			break;
+		case O_WRONLY:
+			cap_rights_clear(&rights, CAP_READ);
+			if (shutdown(fd, SHUT_RD) == -1)
+				warn(NULL);
+			break;
+		default:
+			break;
+		}
+
+		cap_rights_clear(&rights, CAP_CONNECT, CAP_SHUTDOWN);
+		if (caph_rights_limit(fd, &rights) < 0) {
+			serrno = errno;
+			close(fd);
+			errno = serrno;
+			return (-1);
+		}
+	} else {
+		errno = serrno;
+	}
+	return (fd);
+}
+
+#endif

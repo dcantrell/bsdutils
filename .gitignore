@@ -1,1 +1,4 @@
-build
+*.orig
+*.o
+src/basename/basename
+src/cat/cat
