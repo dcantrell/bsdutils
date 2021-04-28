@@ -2,3 +2,4 @@
 *.o
 src/basename/basename
 src/cat/cat
+src/true/true

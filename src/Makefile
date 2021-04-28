@@ -1,5 +1,7 @@
-COMMANDS = basename \
-           cat
+COMMANDS = \
+	basename \
+	cat \
+	true
 
 all:
 	for command in $(COMMANDS) ; do $(MAKE) -C $${command} ; done
