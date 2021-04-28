@@ -35,6 +35,7 @@ CMDS="bin/test
       usr.bin/basename
       bin/cat
       bin/chmod
+      usr.sbin/chown
       usr.bin/comm
       bin/cp
       usr.bin/csplit
@@ -115,14 +116,11 @@ for p in ${CMDS} ; do
     cp -pr ${rp}/* ${CWD}/src/${sp}
 done
 
-# XXX: Explicit removals for things that Linux does not support
-#rm ${CWD}/src/chmod/chflags.1
-#rm ${CWD}/src/df/ext2fs_df.c
-#rm ${CWD}/src/df/ffs_df.c
-
-# XXX: 'compat' is our static library with a subset of BSD library functions
+# 'compat' is our static library with a subset of BSD library functions
 #cp -p lib/libc/gen/pwcache.c ${CWD}/compat
-#cp -p lib/libc/gen/setmode.c ${CWD}/compat
+cp -p usr/src/lib/libc/gen/setmode.c ${CWD}/compat
+cp -p usr/src/lib/libc/include/namespace.h ${CWD}/compat
+cp -p usr/src/lib/libc/include/un-namespace.h ${CWD}/compat
 #cp -p lib/libc/gen/getbsize.c ${CWD}/compat
 #cp -p lib/libc/gen/devname.c ${CWD}/compat
 #cp -p lib/libc/stdlib/merge.c ${CWD}/compat

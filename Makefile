@@ -8,12 +8,14 @@ include config.mk
 export CC CFLAGS
 
 all:
+	$(MAKE) -C compat
 	$(MAKE) -C src
 
 install:
 	$(MAKE) -C src install
 
 clean:
+	$(MAKE) -C compat clean
 	$(MAKE) -C src clean
 
 .PHONY: all install clean
