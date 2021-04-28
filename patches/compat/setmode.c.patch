@@ -1,0 +1,82 @@
+diff -up compat/setmode.c.orig compat/setmode.c
+--- compat/setmode.c.orig	2021-04-08 20:24:06.000000000 -0400
++++ compat/setmode.c	2021-04-27 23:34:25.050512964 -0400
+@@ -33,13 +33,10 @@
+  */
+ 
+ #include <sys/cdefs.h>
+-__SCCSID("@(#)setmode.c	8.2 (Berkeley) 3/25/94");
+-__FBSDID("$FreeBSD$");
+ 
+ #include "namespace.h"
+ #include <sys/types.h>
+ #include <sys/stat.h>
+-#include <sys/sysctl.h>
+ 
+ #include <ctype.h>
+ #include <errno.h>
+@@ -53,7 +50,6 @@ __FBSDID("$FreeBSD$");
+ #include <stdio.h>
+ #endif
+ #include "un-namespace.h"
+-#include "libc_private.h"
+ 
+ #define	SET_LEN	6		/* initial # of bitcmd struct to malloc */
+ #define	SET_LEN_INCR 4		/* # of bitcmd structs to add as needed */
+@@ -208,12 +204,12 @@ setmode(const char *p)
+ 		}
+ 		if (errno == ERANGE && (perml == LONG_MAX || perml == LONG_MIN))
+ 			goto out;
+-		if (perml & ~(STANDARD_BITS|S_ISTXT)) {
++		if (perml & ~(STANDARD_BITS|S_ISVTX)) {
+ 			errno = EINVAL;
+ 			goto out;
+ 		}
+ 		perm = (mode_t)perml;
+-		ADDCMD('=', (STANDARD_BITS|S_ISTXT), perm, mask);
++		ADDCMD('=', (STANDARD_BITS|S_ISVTX), perm, mask);
+ 		set->cmd = 0;
+ 		return (saveset);
+ 	}
+@@ -251,7 +247,7 @@ getop:		if ((op = *p++) != '+' && op !=
+ 		if (op == '=')
+ 			equalopdone = 0;
+ 
+-		who &= ~S_ISTXT;
++		who &= ~S_ISVTX;
+ 		for (perm = 0, permXbits = 0;; ++p) {
+ 			switch (*p) {
+ 			case 'r':
+@@ -265,8 +261,8 @@ getop:		if ((op = *p++) != '+' && op !=
+ 			case 't':
+ 				/* If only "other" bits ignore sticky. */
+ 				if (!who || who & ~S_IRWXO) {
+-					who |= S_ISTXT;
+-					perm |= S_ISTXT;
++					who |= S_ISVTX;
++					perm |= S_ISVTX;
+ 				}
+ 				break;
+ 			case 'w':
+@@ -346,9 +342,7 @@ static mode_t
+ get_current_umask(void)
+ {
+ 	sigset_t sigset, sigoset;
+-	size_t len;
+ 	mode_t mask;
+-	u_short smask;
+ 
+ #ifdef KERN_PROC_UMASK
+ 	/*
+@@ -366,9 +360,9 @@ get_current_umask(void)
+ 	 * handler, protect them as best we can.
+ 	 */
+ 	sigfillset(&sigset);
+-	(void)__libc_sigprocmask(SIG_BLOCK, &sigset, &sigoset);
++	(void)_sigprocmask(SIG_BLOCK, &sigset, &sigoset);
+ 	(void)umask(mask = umask(0));
+-	(void)__libc_sigprocmask(SIG_SETMASK, &sigoset, NULL);
++	(void)_sigprocmask(SIG_SETMASK, &sigoset, NULL);
+ 	return (mask);
+ }
+ 
