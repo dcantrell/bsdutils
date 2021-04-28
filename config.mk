@@ -9,4 +9,5 @@ CFLAGS = -Wall -O2 -g
 # Where to install things
 DESTDIR ?=
 BINDIR  ?= /usr/bin
+SBINDIR ?= /usr/sbin
 MANDIR  ?= /usr/share/man

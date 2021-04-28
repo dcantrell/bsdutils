@@ -1,0 +1,11 @@
+diff -up chroot/chroot.c.orig chroot/chroot.c
+--- chroot/chroot.c.orig	2021-04-27 23:52:35.229551423 -0400
++++ chroot/chroot.c	2021-04-27 23:55:20.950011779 -0400
+@@ -41,7 +41,6 @@ static char sccsid[] = "@(#)chroot.c	8.1
+ #endif /* not lint */
+ #endif
+ #include <sys/cdefs.h>
+-__FBSDID("$FreeBSD$");
+ 
+ #include <sys/types.h>
+ 
