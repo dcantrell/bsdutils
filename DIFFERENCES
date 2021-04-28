@@ -1,27 +1,107 @@
-Porting these BSD utilities to non-BSD systems exposes some notable
-differences.  The target platform is Linux and the origin platform is
-OpenBSD.  This file attempts to summarize the major differences and
-what option was taken for the port.
+Porting these FreeBSD utilities to Linux systems exposes some notable
+differences.  This file attempts to summarize the major differences
+and what option was taken for the port.
 
 
-pledge() and unveil()
----------------------
-OpenBSD offers a system call named pledge(2) that forces a process in
-to a restricted operating mode.  Calls to unveil(2) undo a pledge(2)
-call.  This is entirely an OpenBSD thing and not present on Linux.
-All calls to pledge() and unveil() have been removed in the bsdutils
-source.
+__FBSDID()
+----------
+Uses of this macro have been removed in this port of the code.
 
 
-__dead
-------
-According to the OpenBSD style(9) man page, they prefer prefixing void
-functions with __dead.  This is defined in their <sys/cdefs.h> header
-file and expands to __volatile or __attribute__((__noreturn__))
-depending on C preprocessor tests to determine the compiler and
-options you're using.  It feels overly pedantic.  As such, the
-bsdutils port will be removing all instances of __dead from source
-code.
+__dead2
+-------
+This is defined in <sys/cdefs.h> file and expands to __volatile or
+__attribute__((__noreturn__)) depending on C preprocessor tests to
+determine the compiler and options you're using.  It feels overly
+pedantic.  As such, the bsdutils port will be removing all instances
+of __dead2 from source code.
+
+
+libcapsicum
+-----------
+FreeBSD provides a capabilities library to enable restricted operating
+modes for programs.  The approach is sort of like sandboxing
+applications.  None of this exists on Linux and Linux provides various
+other modes for restricted applications from performing things the
+administrator does not want to allow.  All uses of libcapsicum are
+patched out of this port.
+
+
+fileargs_t and fileargs_open()
+------------------------------
+This appears to be tied to the libcapsicum stuff.  Where
+fileargs_open() is used, I am replacing it with open(2) calls with
+appropriate read/write options.  The fileargs_t variables are removed.
+
+
+MAXPHYS
+-------
+The maximum raw I/O size is defined in <sys/param.h>, but that define
+does not exist on Linux.  MAXPHYS has history in the Unix world and
+nearly all commercial Unix variants provide this information in a
+header file.  But Linux is more flexible and having a hardcoded
+default does not necessarily work for all supported hardware.  I am
+not sure what the best corresponding value is to use on Linux, so for
+now I just copied the MAXPHYS definition from FreeBSD and am using
+that where it is used.  It defaults to 1 megabyte on 64-bit systems,
+so whatever.
+
+
+S_ISTXT
+-------
+The FreeBSD macro to test st_mode to see if the sticky bit is set is
+named S_ISTXT while Linux calls it S_ISVTX.  For our purposes we will
+just change these in the code to S_ISVTX.
+
+
+reallocarray() and recallocarray()
+----------------------------------
+reallocarray() is a thin wrapper around realloc().  glibc offers it
+though there is currently no man page for it on typical Linux systems.
+We will use the glibc reallocarray() but copy over recallocarray.c
+since glibc lacks that.  recallocarray() is reallocarray() but in
+calloc() style.
+
+glibc makes reallocarray available with _DEFAULT_SOURCE defined, but
+in versions prior to 2.28 it was part of _GNU_SOURCE.  Programs using
+reallocarray() have _DEFAULT_SOURCE added to their Makefile.
+
+
+__libc_sigprocmask()
+--------------------
+We have <signal.h> on Linux and can replace calls to
+__libc_sigprocmask() with _sigprocmask().
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+XXXXXXXXXXXXXXXXX
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 SIGINFO
@@ -51,30 +131,12 @@ All of the previous paragraph applies to warnc() as well where we
 replace it with a call to warn() in the same manner.
 
 
-S_ISTXT
--------
-The OpenBSD macro to test st_mode to see if the sticky bit is set is
-named S_ISTXT while Linux calls it S_ISVTX.  For our purposes we will
-just change these in the code to S_ISVTX.
-
-
 setmode() and getmode()
 -----------------------
 These C library functions on OpenBSD are not present on Linux.  But we
 can import setmode.c to our libcompat library.
 
 
-reallocarray() and recallocarray()
-----------------------------------
-reallocarray() is a thin wrapper around realloc().  glibc offers it
-though there is currently no man page for it on typical Linux systems.
-We will use the glibc reallocarray() but copy over recallocarray.c
-since glibc lacks that.  recallocarray() is reallocarray() but in
-calloc() style.
-
-glibc makes reallocarray available with _DEFAULT_SOURCE defined, but
-in versions prior to 2.28 it was part of _GNU_SOURCE.  Programs using
-reallocarray() have _DEFAULT_SOURCE added to their Makefile.am file.
 
 
 wcwidth() and wchar.h functions
