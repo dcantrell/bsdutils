@@ -1,5 +1,5 @@
 SRCS = basename.c
-OBJS = basename.o
+OBJS = $(SRCS:.c=.o)
 
 all: basename
 
