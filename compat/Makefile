@@ -1,0 +1,17 @@
+SRCS = setmode.c
+OBJS = $(SRCS:.c=.o)
+
+all: libcompat.a
+
+libcompat.a: $(OBJS)
+	ar rcs $@ $<
+
+%.o: %.c
+	$(CC) $(CFLAGS) -D_POSIX_C_SOURCE -D_GNU_SOURCE -D_DEFAULT_SOURCE -c -o $@ $<
+
+clean:
+	-rm -f $(OBJS) libcompat.a
+
+.PHONY: clean
+
+include $(shell pwd)/../config.mk
