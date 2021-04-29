@@ -7,6 +7,7 @@ COMMANDS = \
 	dirname \
 	echo \
 	expand \
+	false \
 	true \
 	unexpand
 

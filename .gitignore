@@ -12,3 +12,4 @@ src/echo/echo
 src/expand/expand
 src/unexpand/unexpand
 Makefile.bsd
+src/false/false
