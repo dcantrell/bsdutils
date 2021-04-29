@@ -41,13 +41,11 @@ static char sccsid[] = "@(#)echo.c	8.1 (Berkeley) 5/31/93";
 #endif /* not lint */
 #endif
 #include <sys/cdefs.h>
-__FBSDID("$FreeBSD$");
 
 #include <sys/types.h>
 #include <sys/uio.h>
 
 #include <assert.h>
-#include <capsicum_helpers.h>
 #include <err.h>
 #include <errno.h>
 #include <limits.h>
@@ -59,7 +57,7 @@ __FBSDID("$FreeBSD$");
  * Report an error and exit.
  * Use it instead of err(3) to avoid linking-in stdio.
  */
-static __dead2 void
+static void
 errexit(const char *prog, const char *reason)
 {
 	char *errstr = strerror(errno);
@@ -81,9 +79,6 @@ main(int argc, char *argv[])
 	char space[] = " ";
 	char newline[] = "\n";
 	char *progname = argv[0];
-
-	if (caph_limit_stdio() < 0 || caph_enter() < 0)
-		err(1, "capsicum");
 
 	/* This utility may NOT do getopt(3) option parsing. */
 	if (*++argv && !strcmp(*argv, "-n")) {

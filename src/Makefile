@@ -5,6 +5,7 @@ COMMANDS = \
 	comm \
 	csplit \
 	dirname \
+	echo \
 	true
 
 all:
