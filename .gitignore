@@ -6,3 +6,4 @@ src/true/true
 compat/libcompat.a
 src/chroot/chroot
 src/comm/comm
+src/csplit/csplit

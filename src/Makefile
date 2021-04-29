@@ -3,6 +3,7 @@ COMMANDS = \
 	cat \
 	chroot \
 	comm \
+	csplit \
 	true
 
 all:

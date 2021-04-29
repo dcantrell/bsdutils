@@ -1,0 +1,42 @@
+diff -up csplit/csplit.c.orig csplit/csplit.c
+--- csplit/csplit.c.orig	2021-04-27 23:52:35.229551423 -0400
++++ csplit/csplit.c	2021-04-29 08:30:43.278856992 -0400
+@@ -45,7 +45,6 @@
+  */
+ 
+ #include <sys/cdefs.h>
+-__FBSDID("$FreeBSD$");
+ 
+ #include <sys/types.h>
+ 
+@@ -221,7 +220,7 @@ usage(void)
+ }
+ 
+ static void
+-handlesig(int sig __unused)
++handlesig(int sig)
+ {
+ 	const char msg[] = "csplit: caught signal, cleaning up\n";
+ 
+@@ -237,8 +236,10 @@ newfile(void)
+ 	FILE *fp;
+ 
+ 	if ((size_t)snprintf(currfile, sizeof(currfile), "%s%0*ld", prefix,
+-	    (int)sufflen, nfiles) >= sizeof(currfile))
+-		errc(1, ENAMETOOLONG, NULL);
++	    (int)sufflen, nfiles) >= sizeof(currfile)) {
++		errno = ENAMETOOLONG;
++		err(1, NULL);
++	}
+ 	if ((fp = fopen(currfile, "w+")) == NULL)
+ 		err(1, "%s", currfile);
+ 	nfiles++;
+@@ -379,7 +380,7 @@ do_rexp(const char *expr)
+ 	} else
+ 		ofs = 0;
+ 
+-	if (regcomp(&cre, re, REG_BASIC|REG_NOSUB) != 0)
++	if (regcomp(&cre, re, REG_NOSUB) != 0)
+ 		errx(1, "%s: bad regular expression", re);
+ 
+ 	if (*expr == '/')
