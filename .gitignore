@@ -7,3 +7,4 @@ compat/libcompat.a
 src/chroot/chroot
 src/comm/comm
 src/csplit/csplit
+src/dirname/dirname

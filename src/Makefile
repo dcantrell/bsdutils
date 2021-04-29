@@ -4,6 +4,7 @@ COMMANDS = \
 	chroot \
 	comm \
 	csplit \
+	dirname \
 	true
 
 all:
