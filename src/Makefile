@@ -2,6 +2,7 @@ COMMANDS = \
 	basename \
 	cat \
 	chroot \
+	comm \
 	true
 
 all:
