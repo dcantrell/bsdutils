@@ -8,3 +8,31 @@ The project began in October 2017 and initially ported code from the
 OpenBSD source tree.  In an effort to gain more featureful BSD
 commands and to work with dotfiles for users on MacOS X systems, the
 project moved to porting from FreeBSD in April 2021.
+
+
+Importing A New Release Of FreeBSD
+----------------------------------
+
+When a new release of FreeBSD is made, the import-src.sh script should
+be used to update the source tree.  First edit upstream.conf and then
+run the import-src.sh script.  The script will fetch the new release
+source and copy in the source for the commands we have.  Any patches
+in patches/ will be applied.  These may need updating between
+releases, so keep that in mind.  The workflow is basically:
+
+1) Change VER in upstream.conf
+
+2) Verify URL in upstream.conf works (FreeBSD may move things around).
+
+3) Run ./import-src.sh.  It is adviseable to capture stdout and stderr
+to see what patches fail to apply.  Any that fail, you want to
+manually fix and then run import-src.sh again to get a clean import of
+the version you are updating to.
+
+4) Now build all the commands and fix any new build errors.
+
+Once this is clean, you can commit the import of the new version of
+FreeBSD code.  The import-src.sh and patches step is meant to make it
+more clear what changes I apply to FreeBSD code from release to
+release and also if any external projects want to use these patches
+and the FreeBSD source directly.

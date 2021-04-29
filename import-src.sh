@@ -111,6 +111,9 @@ for p in ${CMDS} ; do
         mv ${rp}/Makefile ${rp}/Makefile.bsd
     fi
 
+    # Drop the Makefile.depend* files
+    rm -f ${rp}/Makefile.depend*
+
     # Copy in the upstream files
     [ -d ${CWD}/src/${sp} ] || mkdir -p ${CWD}/src/${sp}
     cp -pr ${rp}/* ${CWD}/src/${sp}
@@ -177,13 +180,13 @@ cp -p usr/src/lib/libc/include/un-namespace.h ${CWD}/compat
 # APPLY ANY PATCHES #
 #####################
 
-#if [ -d ${CWD}/patches/compat ]; then
-#    for patchfile in ${CWD}/patches/compat/*.patch ; do
-#        destfile="$(basename ${patchfile} .patch)"
-#        [ -f "${CWD}/compat/${destfile}.orig" ] && rm -f "${CWD}/compat/${destfile}.orig"
-#        patch -d ${CWD}/compat -p0 -b -z .orig < ${patchfile}
-#    done
-#fi
+if [ -d ${CWD}/patches/compat ]; then
+    for patchfile in ${CWD}/patches/compat/*.patch ; do
+        destfile="$(basename ${patchfile} .patch)"
+        [ -f "${CWD}/compat/${destfile}.orig" ] && rm -f "${CWD}/compat/${destfile}.orig"
+        patch -d ${CWD}/compat -p0 -b -z .orig < ${patchfile}
+    done
+fi
 
 if [ -d ${CWD}/patches/src ]; then
     cd ${CWD}/patches/src

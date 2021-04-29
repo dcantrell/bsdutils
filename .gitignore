@@ -11,3 +11,4 @@ src/dirname/dirname
 src/echo/echo
 src/expand/expand
 src/unexpand/unexpand
+Makefile.bsd

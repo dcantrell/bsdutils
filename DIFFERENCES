@@ -21,10 +21,8 @@ libcapsicum
 -----------
 FreeBSD provides a capabilities library to enable restricted operating
 modes for programs.  The approach is sort of like sandboxing
-applications.  None of this exists on Linux and Linux provides various
-other modes for restricted applications from performing things the
-administrator does not want to allow.  All uses of libcapsicum are
-patched out of this port.
+applications.  Linux solves this problem in other ways; libcapsicum is
+not available.  All uses of libcapsicum are patched out of this port.
 
 
 fileargs_t and fileargs_open()
@@ -50,7 +48,7 @@ so whatever.
 S_ISTXT
 -------
 The FreeBSD macro to test st_mode to see if the sticky bit is set is
-named S_ISTXT while Linux calls it S_ISVTX.  For our purposes we will
+named S_ISTXT while Linux spells it S_ISVTX.  For our purposes we will
 just change these in the code to S_ISVTX.
 
 
@@ -73,6 +71,30 @@ We have <signal.h> on Linux and can replace calls to
 __libc_sigprocmask() with _sigprocmask().
 
 
+REG_BASIC
+---------
+FreeBSD defines REG_BASIC for regcomp(3).  This is not defined in
+glibc on Linux because it is the default behavior.  There is
+REG_EXTENDED to enable POSIX Extended Regular Expressions.  Where
+REG_BASIC appears in regcomp() calls, we remove it.
+
+
+errc() and warnc()
+------------------
+The errc() error message formatting function exists on FreeBSD but not
+Linux.  The difference between err() and errc() is that the error code
+is passed as the second argument for errc() whereas the err() function
+just looks at the global errno variable.  We can replace errc() calls
+with a setting of errno and a call to err() with the second parameter
+removed.
+
+All of the previous paragraph applies to warnc() as well where we
+replace it with a call to warn() in the same manner.
+
+
+IOV_MAX
+-------
+This is defined in glibc if you define _XOPEN_SOURCE.
 
 
 
@@ -86,7 +108,14 @@ __libc_sigprocmask() with _sigprocmask().
 
 
 
-XXXXXXXXXXXXXXXXX
+
+
+
+
+
+XXXXXXXXXXXXXXXXX ---> below here is former OpenBSD notes, I will
+                       clear this as I proceed with porting from
+                       FreeBSD.
 
 
 
@@ -116,19 +145,6 @@ statistics come from the kernel, so any implementation on Linux would
 require a kernel patch and that doesn't seem likely or really
 necessary.  All signal handlers for SIGINFO and their accompanying
 functions have been removed from the bsdutils source code.
-
-
-errc() and warnc()
-------------------
-The errc() error message formatting function exists on OpenBSD but not
-Linux.  The difference between err() and errc() is that the error code
-is passed as the second argument for errc() whereas the err() function
-just looks at the global errno variable.  We can replace errc() calls
-with a setting of errno and a call to err() with the second parameter
-removed.
-
-All of the previous paragraph applies to warnc() as well where we
-replace it with a call to warn() in the same manner.
 
 
 setmode() and getmode()
@@ -468,14 +484,6 @@ This array contains strings describing the signal number.  The array
 index is the signal number.  The POSIX standard for getting a signal
 name if you have the signal number is strsignal(), which is available
 on glibc and is what we will use.
-
-
-REG_BASIC
----------
-OpenBSD defines REG_BASIC for regcomp(3).  This is not defined in
-glibc on Linux because it is the default behavior.  There is
-REG_EXTENDED to enable POSIX Extended Regular Expressions.  Where
-REG_BASIC appears in regcomp() calls, we remove it.
 
 
 UID_MAX and GID_MAX

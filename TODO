@@ -31,5 +31,11 @@
 
 - Maybe incorporate diffutils in to the tree (diff, diff3, sdiff).
 
+- awk?
+
+- sed?
+
+- patch?
+
 - Update import-src.sh to be able to import new versions and overlay them
   in the source tree so the tree can try to keep up with upstream.
