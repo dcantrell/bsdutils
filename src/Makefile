@@ -6,7 +6,9 @@ COMMANDS = \
 	csplit \
 	dirname \
 	echo \
-	true
+	expand \
+	true \
+	unexpand
 
 all:
 	for command in $(COMMANDS) ; do $(MAKE) -C $${command} ; done
