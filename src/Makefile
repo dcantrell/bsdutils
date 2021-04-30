@@ -15,6 +15,7 @@ COMMANDS = \
 	fold \
 	head \
 	join \
+	mknod \
 	nice \
 	nohup \
 	paste \

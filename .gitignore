@@ -27,3 +27,4 @@ src/sync/sync
 src/cut/cut
 src/env/env
 src/factor/factor
+src/mknod/mknod
