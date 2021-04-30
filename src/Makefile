@@ -15,6 +15,7 @@ COMMANDS = \
 	nice \
 	nohup \
 	paste \
+	printf \
 	true \
 	unexpand
 
