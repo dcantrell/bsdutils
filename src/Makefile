@@ -29,6 +29,7 @@ COMMANDS = \
 	sleep \
 	sync \
 	tee \
+	touch \
 	true \
 	unexpand
 
