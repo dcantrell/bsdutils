@@ -31,7 +31,8 @@ COMMANDS = \
 	tee \
 	touch \
 	true \
-	unexpand
+	unexpand \
+	uniq
 
 all:
 	for command in $(COMMANDS) ; do $(MAKE) -C $${command} ; done

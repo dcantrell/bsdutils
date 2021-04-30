@@ -35,3 +35,4 @@ src/printenv/printenv
 src/sleep/sleep
 src/tee/tee
 src/touch/touch
+src/uniq/uniq
