@@ -3,18 +3,27 @@ differences.  This file attempts to summarize the major differences
 and what option was taken for the port.
 
 
+copyright[] and sccsid[]
+------------------------
+These static strings are unused in the code and cause compiler
+warnings.  We disable them by passing -Dlint to the compiler.  Some
+source files have these strings disabled anyway in FreeBSD by wrapping
+them in #if 0/#endif.
+
+
 __FBSDID()
 ----------
-Uses of this macro have been removed in this port of the code.
+We disable this by passing -D'__FBSDID(x)=' to the compiler.
 
 
-__dead2
--------
-This is defined in <sys/cdefs.h> file and expands to __volatile or
-__attribute__((__noreturn__)) depending on C preprocessor tests to
-determine the compiler and options you're using.  It feels overly
-pedantic.  As such, the bsdutils port will be removing all instances
-of __dead2 from source code.
+__dead2 and __unused
+--------------------
+The __dead2 macro is defined in <sys/cdefs.h> file and expands to
+__volatile or __attribute__((__noreturn__)) depending on C
+preprocessor tests to determine the compiler and options you're using.
+It feels overly pedantic.  The __unused macro is similar but for
+function parameters.  We disable these by passing -D__dead2=
+-D__unused= to the compiler.
 
 
 libcapsicum
@@ -28,8 +37,9 @@ not available.  All uses of libcapsicum are patched out of this port.
 fileargs_t and fileargs_open()
 ------------------------------
 This appears to be tied to the libcapsicum stuff.  Where
-fileargs_open() is used, I am replacing it with open(2) calls with
-appropriate read/write options.  The fileargs_t variables are removed.
+fileargs_open() is used, I am replacing it with either open(2) or
+fopen(3) calls with appropriate read/write options.  The fileargs_t
+variables are removed.
 
 
 MAXPHYS
@@ -95,6 +105,48 @@ replace it with a call to warn() in the same manner.
 IOV_MAX
 -------
 This is defined in glibc if you define _XOPEN_SOURCE.
+
+
+SIZE_T_MAX
+----------
+glibc does not offer this.  Where it is used, we will use SIZE_MAX
+from stdint.h instead.
+
+
+getline()
+---------
+glibc has this if you define _GNU_SOURCE when building.
+
+
+fgetln()
+--------
+The FreeBSD function to read a line of input from a file stream is not
+portable, except to other BSD variants.  On glibc and defined by POSIX
+we have getline(), which is similar but slightly different.  We can't
+easily port the FreeBSD fgetln() function because of the way it works.
+It's easier to just rewrite code to use getline() instead, which is
+what we will do.  Used in loops, you can change this:
+
+    char *cp = NULL;
+    size_t readlen = 0;
+    while ((cp = fgetln(fp, &readlen)) != NULL)
+
+to:
+
+    char *cp = NULL;
+    size_t readlen = 0;
+    while (getline(&cp, &readlen, fp) != -1)
+
+Which is a simple change without needing to bring in fgetln().  Note
+that for getline(), we need to ensure the first argument is
+initialized to NULL and the second argument is initialized to 0.
+Typical FreeBSD code does not have variable declaration with
+initialization, just the declaration.
+
+
+asprintf()
+----------
+glibc has this if you define _GNU_SOURCE.
 
 
 
@@ -177,21 +229,6 @@ Linux has this when __USE_XOPEN is defined.  You can get this through
 _GNU_SOURCE or _XOPEN_SOURCE or _POSIX_C_SOURCE.  For us, _GNU_SOURCE
 tends to be the better option so we don't accidentally turn off other
 definitions.
-
-
-getline()
----------
-glibc has this if you define _GNU_SOURCE when building.
-
-
-fgetln()
---------
-The BSD function to read a line of input from a file stream is not
-portable, except to other BSD variants.  On glibc and defined by POSIX
-we have getline(), which is similar but slightly different.  We can't
-easily port the BSD fgetln() function because of the way it works.
-It's easier to just rewrite code to use getline() instead, which is
-what we will do.
 
 
 struct passwd
