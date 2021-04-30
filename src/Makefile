@@ -4,6 +4,7 @@ COMMANDS = \
 	chroot \
 	comm \
 	csplit \
+	cut \
 	dirname \
 	echo \
 	expand \

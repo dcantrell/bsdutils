@@ -24,3 +24,4 @@ src/printf/printf
 src/pwd/pwd
 src/rmdir/rmdir
 src/sync/sync
+src/cut/cut
