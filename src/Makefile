@@ -22,6 +22,7 @@ COMMANDS = \
 	nohup \
 	paste \
 	pr \
+	printenv \
 	printf \
 	pwd \
 	rmdir \

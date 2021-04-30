@@ -1,0 +1,21 @@
+diff -up printenv/printenv.c.orig printenv/printenv.c
+--- printenv/printenv.c.orig	2021-04-27 23:52:35.236551443 -0400
++++ printenv/printenv.c	2021-04-30 11:24:49.106718345 -0400
+@@ -46,7 +46,6 @@ __FBSDID("$FreeBSD$");
+ 
+ #include <sys/types.h>
+ 
+-#include <capsicum_helpers.h>
+ #include <err.h>
+ #include <stdlib.h>
+ #include <stdio.h>
+@@ -69,9 +68,6 @@ main(int argc, char *argv[])
+ 	size_t len;
+ 	int ch;
+ 
+-	if (caph_limit_stdio() < 0 || caph_enter() < 0)
+-		err(1, "capsicum");
+-
+ 	while ((ch = getopt(argc, argv, "")) != -1)
+ 		switch(ch) {
+ 		case '?':

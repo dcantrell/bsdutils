@@ -31,3 +31,4 @@ src/mknod/mknod
 src/mktemp/mktemp
 src/nl/nl
 src/pr/pr
+src/printenv/printenv
