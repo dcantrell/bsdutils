@@ -30,7 +30,7 @@
  */
 
 #ifndef lint
-__attribute__ ((unused)) static const char copyright[] =
+static const char copyright[] =
 "@(#) Copyright (c) 1980, 1993\n\
 	The Regents of the University of California.  All rights reserved.\n";
 #endif /* not lint */
@@ -41,6 +41,7 @@ static char sccsid[] = "@(#)expand.c	8.1 (Berkeley) 6/9/93";
 #endif
 #endif /* not lint */
 #include <sys/cdefs.h>
+__FBSDID("$FreeBSD$");
 
 #include <ctype.h>
 #include <err.h>
@@ -58,7 +59,7 @@ static int	nstops;
 static int	tabstops[100];
 
 static void getstops(char *);
-static void usage(void); 
+static void usage(void) __dead2; 
 
 int
 main(int argc, char *argv[])

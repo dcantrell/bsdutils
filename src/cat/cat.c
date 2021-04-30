@@ -46,6 +46,7 @@ static char sccsid[] = "@(#)cat.c	8.2 (Berkeley) 4/27/95";
 #endif
 #endif /* not lint */
 #include <sys/cdefs.h>
+__FBSDID("$FreeBSD$");
 
 #include <sys/param.h>
 #include <sys/stat.h>
@@ -67,24 +68,13 @@ static char sccsid[] = "@(#)cat.c	8.2 (Berkeley) 4/27/95";
 #include <wchar.h>
 #include <wctype.h>
 
-/* from sys/param.h on FreeBSD */
-/* max raw I/O transfer size */
-/*
- * XXX: this is _probably_ going to be 1M on the system if it were
- * running FreeBSD.  What is the corresponding Linux parameter here
- * and the sanctioned way to retrieve it?
- */
-#define MAXPHYS (1024 * 1024)
-/* #define MAXPHYS (128 * 1024)    <--- could be this on 32-bit systems */
-
-/* lifted from wchar.h in FreeBSD */
-#define iswascii(wc) (((wc) & ~0x7F) == 0)
+#include "compat.h"
 
 static int bflag, eflag, lflag, nflag, sflag, tflag, vflag;
 static int rval;
 static const char *filename;
 
-static void usage(void);
+static void usage(void) __dead2;
 static void scanfiles(char *argv[], int cooked);
 #ifndef BOOTSTRAP_CAT
 static void cook_cat(FILE *);
@@ -124,6 +114,30 @@ static int udom_open(const char *path, int flags);
 #define SUPPORTED_FLAGS "lu"
 #else
 #define SUPPORTED_FLAGS "belnstuv"
+#endif
+
+#ifndef NO_UDOM_SUPPORT
+static void
+init_casper_net(cap_channel_t *casper)
+{
+	cap_net_limit_t *limit;
+	int familylimit;
+
+	capnet = cap_service_open(casper, "system.net");
+	if (capnet == NULL)
+		err(EXIT_FAILURE, "unable to create network service");
+
+	limit = cap_net_limit_init(capnet, CAPNET_NAME2ADDR |
+	    CAPNET_CONNECTDNS);
+	if (limit == NULL)
+		err(EXIT_FAILURE, "unable to create limits");
+
+	familylimit = AF_LOCAL;
+	cap_net_limit_name2addr_family(limit, &familylimit, 1);
+
+	if (cap_net_limit(limit) < 0)
+		err(EXIT_FAILURE, "unable to apply limits");
+}
 #endif
 
 int
@@ -195,7 +209,7 @@ usage(void)
 }
 
 static void
-scanfiles(char *argv[], int cooked)
+scanfiles(char *argv[], int cooked __unused)
 {
 	int fd, i;
 	char *path;
@@ -293,6 +307,7 @@ cook_cat(FILE *fp)
 			if ((wch = getwc(fp)) == WEOF) {
 				if (ferror(fp) && errno == EILSEQ) {
 					clearerr(fp);
+					/* Resync attempt. */
 					if ((ch = getc(fp)) == EOF)
 						break;
 					wch = ch;

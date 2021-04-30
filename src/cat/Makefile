@@ -4,10 +4,10 @@ OBJS = cat.o
 all: cat
 
 cat: $(OBJS)
-	$(CC) $(CFLAGS) -DNO_UDOM_SUPPORT -o $@ $<
+	$(CC) $(CFLAGS) -DNO_UDOM_SUPPORT -I../../include -o $@ $<
 
 %.o: %.c
-	$(CC) $(CFLAGS) -DNO_UDOM_SUPPORT -c -o $@ $<
+	$(CC) $(CFLAGS) -DNO_UDOM_SUPPORT -I../../include -c -o $@ $<
 
 install:
 	install -D -m 0755 cat $(DESTDIR)$(BINDIR)/cat

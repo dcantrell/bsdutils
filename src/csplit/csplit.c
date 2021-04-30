@@ -45,6 +45,7 @@
  */
 
 #include <sys/cdefs.h>
+__FBSDID("$FreeBSD$");
 
 #include <sys/types.h>
 
@@ -220,7 +221,7 @@ usage(void)
 }
 
 static void
-handlesig(int sig)
+handlesig(int sig __unused)
 {
 	const char msg[] = "csplit: caught signal, cleaning up\n";
 

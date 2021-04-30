@@ -41,6 +41,7 @@ static char sccsid[] = "@(#)echo.c	8.1 (Berkeley) 5/31/93";
 #endif /* not lint */
 #endif
 #include <sys/cdefs.h>
+__FBSDID("$FreeBSD$");
 
 #include <sys/types.h>
 #include <sys/uio.h>
@@ -57,7 +58,7 @@ static char sccsid[] = "@(#)echo.c	8.1 (Berkeley) 5/31/93";
  * Report an error and exit.
  * Use it instead of err(3) to avoid linking-in stdio.
  */
-static void
+static __dead2 void
 errexit(const char *prog, const char *reason)
 {
 	char *errstr = strerror(errno);

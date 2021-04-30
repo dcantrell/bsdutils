@@ -1,17 +1,15 @@
 diff -up cat/cat.c.orig cat/cat.c
---- cat/cat.c.orig	2021-04-08 20:24:01.000000000 -0400
-+++ cat/cat.c	2021-04-27 23:02:26.091982002 -0400
-@@ -46,9 +46,7 @@ static char sccsid[] = "@(#)cat.c	8.2 (B
- #endif
- #endif /* not lint */
+--- cat/cat.c.orig	2021-04-30 09:03:01.997694090 -0400
++++ cat/cat.c	2021-04-30 09:09:28.443572452 -0400
+@@ -48,7 +48,6 @@ static char sccsid[] = "@(#)cat.c	8.2 (B
  #include <sys/cdefs.h>
--__FBSDID("$FreeBSD$");
+ __FBSDID("$FreeBSD$");
  
 -#include <sys/capsicum.h>
  #include <sys/param.h>
  #include <sys/stat.h>
  #ifndef NO_UDOM_SUPPORT
-@@ -57,7 +55,6 @@ __FBSDID("$FreeBSD$");
+@@ -57,7 +56,6 @@ __FBSDID("$FreeBSD$");
  #include <netdb.h>
  #endif
  
@@ -19,64 +17,26 @@ diff -up cat/cat.c.orig cat/cat.c
  #include <ctype.h>
  #include <err.h>
  #include <errno.h>
-@@ -70,16 +67,24 @@ __FBSDID("$FreeBSD$");
+@@ -70,14 +68,11 @@ __FBSDID("$FreeBSD$");
  #include <wchar.h>
  #include <wctype.h>
  
 -#include <libcasper.h>
 -#include <casper/cap_fileargs.h>
 -#include <casper/cap_net.h>
-+/* from sys/param.h on FreeBSD */
-+/* max raw I/O transfer size */
-+/*
-+ * XXX: this is _probably_ going to be 1M on the system if it were
-+ * running FreeBSD.  What is the corresponding Linux parameter here
-+ * and the sanctioned way to retrieve it?
-+ */
-+#define MAXPHYS (1024 * 1024)
-+/* #define MAXPHYS (128 * 1024)    <--- could be this on 32-bit systems */
-+
-+/* lifted from wchar.h in FreeBSD */
-+#define iswascii(wc) (((wc) & ~0x7F) == 0)
++#include "compat.h"
  
  static int bflag, eflag, lflag, nflag, sflag, tflag, vflag;
  static int rval;
  static const char *filename;
 -static fileargs_t *fa;
  
--static void usage(void) __dead2;
-+static void usage(void);
+ static void usage(void) __dead2;
  static void scanfiles(char *argv[], int cooked);
- #ifndef BOOTSTRAP_CAT
- static void cook_cat(FILE *);
-@@ -121,53 +126,6 @@ static int udom_open(const char *path, i
- #define SUPPORTED_FLAGS "belnstuv"
+@@ -145,29 +140,6 @@ init_casper_net(cap_channel_t *casper)
+ }
  #endif
  
--#ifndef NO_UDOM_SUPPORT
--static void
--init_casper_net(cap_channel_t *casper)
--{
--	cap_net_limit_t *limit;
--	int familylimit;
--
--	capnet = cap_service_open(casper, "system.net");
--	if (capnet == NULL)
--		err(EXIT_FAILURE, "unable to create network service");
--
--	limit = cap_net_limit_init(capnet, CAPNET_NAME2ADDR |
--	    CAPNET_CONNECTDNS);
--	if (limit == NULL)
--		err(EXIT_FAILURE, "unable to create limits");
--
--	familylimit = AF_LOCAL;
--	cap_net_limit_name2addr_family(limit, &familylimit, 1);
--
--	if (cap_net_limit(limit) < 0)
--		err(EXIT_FAILURE, "unable to apply limits");
--}
--#endif
--
 -static void
 -init_casper(int argc, char *argv[])
 -{
@@ -103,7 +63,7 @@ diff -up cat/cat.c.orig cat/cat.c
  int
  main(int argc, char *argv[])
  {
-@@ -217,13 +175,6 @@ main(int argc, char *argv[])
+@@ -217,13 +189,6 @@ main(int argc, char *argv[])
  			err(EXIT_FAILURE, "stdout");
  	}
  
@@ -117,16 +77,7 @@ diff -up cat/cat.c.orig cat/cat.c
  	if (bflag || eflag || nflag || sflag || tflag || vflag)
  		scanfiles(argv, 1);
  	else
-@@ -244,7 +195,7 @@ usage(void)
- }
- 
- static void
--scanfiles(char *argv[], int cooked __unused)
-+scanfiles(char *argv[], int cooked)
- {
- 	int fd, i;
- 	char *path;
-@@ -260,7 +211,7 @@ scanfiles(char *argv[], int cooked __unu
+@@ -260,7 +225,7 @@ scanfiles(char *argv[], int cooked __unu
  			fd = STDIN_FILENO;
  		} else {
  			filename = path;
@@ -135,11 +86,10 @@ diff -up cat/cat.c.orig cat/cat.c
  #ifndef NO_UDOM_SUPPORT
  			if (fd < 0 && errno == EOPNOTSUPP)
  				fd = udom_open(path, O_RDONLY);
-@@ -342,8 +293,6 @@ cook_cat(FILE *fp)
- 			if ((wch = getwc(fp)) == WEOF) {
+@@ -343,7 +308,6 @@ cook_cat(FILE *fp)
  				if (ferror(fp) && errno == EILSEQ) {
  					clearerr(fp);
--					/* Resync attempt. */
+ 					/* Resync attempt. */
 -					memset(&fp->_mbstate, 0, sizeof(mbstate_t));
  					if ((ch = getc(fp)) == EOF)
  						break;
