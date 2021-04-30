@@ -12,6 +12,7 @@ COMMANDS = \
 	fold \
 	head \
 	join \
+	nice \
 	true \
 	unexpand
 
