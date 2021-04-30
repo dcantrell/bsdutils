@@ -8,6 +8,7 @@ COMMANDS = \
 	echo \
 	expand \
 	false \
+	fmt \
 	true \
 	unexpand
 
