@@ -28,6 +28,7 @@ COMMANDS = \
 	rmdir \
 	sleep \
 	sync \
+	tee \
 	true \
 	unexpand
 
