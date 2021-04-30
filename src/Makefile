@@ -17,6 +17,7 @@ COMMANDS = \
 	paste \
 	printf \
 	pwd \
+	rmdir \
 	true \
 	unexpand
 
