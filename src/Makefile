@@ -16,6 +16,7 @@ COMMANDS = \
 	nohup \
 	paste \
 	printf \
+	pwd \
 	true \
 	unexpand
 
