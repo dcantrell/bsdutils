@@ -11,6 +11,7 @@ COMMANDS = \
 	fmt \
 	fold \
 	head \
+	join \
 	true \
 	unexpand
 
