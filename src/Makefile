@@ -39,6 +39,8 @@ COMMANDS = \
 all:
 	for command in $(COMMANDS) ; do $(MAKE) -C $${command} ; done
 
+check:
+
 install:
 	for command in $(COMMANDS) ; do $(MAKE) -C $${command} install ; done
 

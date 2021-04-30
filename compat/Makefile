@@ -9,6 +9,8 @@ libcompat.a: $(OBJS)
 %.o: %.c
 	$(CC) $(CFLAGS) -D_POSIX_C_SOURCE -D_GNU_SOURCE -D_DEFAULT_SOURCE -c -o $@ $<
 
+check:
+
 clean:
 	-rm -f $(OBJS) libcompat.a
 

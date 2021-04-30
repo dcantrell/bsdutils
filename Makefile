@@ -11,7 +11,11 @@ all:
 	$(MAKE) -C compat
 	$(MAKE) -C src
 
-install:
+check: all
+	$(MAKE) -C compat check
+	$(MAKE) -C src check
+
+install: all
 	$(MAKE) -C src install
 
 clean:
