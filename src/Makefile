@@ -13,6 +13,7 @@ COMMANDS = \
 	head \
 	join \
 	nice \
+	nohup \
 	true \
 	unexpand
 
