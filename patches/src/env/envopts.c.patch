@@ -1,0 +1,12 @@
+--- env/envopts.c.orig	2021-04-27 23:52:35.231551429 -0400
++++ env/envopts.c	2021-04-30 10:09:56.565260863 -0400
+@@ -418,7 +418,8 @@
+ 	*src_p = vend;
+ 	namelen = vend - vbegin + 1;
+ 	vname = malloc(namelen);
+-	strlcpy(vname, vbegin, namelen);
++	strncpy(vname, vbegin, namelen);
++	vname[namelen - 1] = '\0';
+ 	vvalue = getenv(vname);
+ 	if (vvalue == NULL || *vvalue == '\0') {
+ 		if (env_verbosity > 2)

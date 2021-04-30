@@ -418,7 +418,8 @@ expand_vars(int in_thisarg, char **thisarg_p, char **dest_p, const char **src_p)
 	*src_p = vend;
 	namelen = vend - vbegin + 1;
 	vname = malloc(namelen);
-	strlcpy(vname, vbegin, namelen);
+	strncpy(vname, vbegin, namelen);
+	vname[namelen - 1] = '\0';
 	vvalue = getenv(vname);
 	if (vvalue == NULL || *vvalue == '\0') {
 		if (env_verbosity > 2)

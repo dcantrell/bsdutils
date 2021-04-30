@@ -7,6 +7,7 @@ COMMANDS = \
 	cut \
 	dirname \
 	echo \
+	env \
 	expand \
 	false \
 	fmt \
