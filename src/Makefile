@@ -9,6 +9,7 @@ COMMANDS = \
 	expand \
 	false \
 	fmt \
+	fold \
 	true \
 	unexpand
 
