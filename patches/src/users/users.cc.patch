@@ -1,0 +1,23 @@
+diff -up users/users.cc.orig users/users.cc
+--- users/users.cc.orig	2021-04-27 23:52:35.249551479 -0400
++++ users/users.cc	2021-04-30 11:44:16.430128174 -0400
+@@ -30,9 +30,6 @@
+ #include <sys/cdefs.h>
+ __FBSDID("$FreeBSD$");
+ 
+-#include <sys/capsicum.h>
+-
+-#include <capsicum_helpers.h>
+ #include <err.h>
+ #include <errno.h>
+ #include <utmpx.h>
+@@ -57,9 +54,6 @@ main(int argc, char **)
+ 
+ 	setutxent();
+ 
+-	if (caph_enter())
+-		err(1, "Failed to enter capability mode.");
+-
+ 	while ((ut = getutxent()) != NULL)
+ 		if (ut->ut_type == USER_PROCESS)
+ 			names.insert(ut->ut_user);

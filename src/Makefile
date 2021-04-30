@@ -32,7 +32,8 @@ COMMANDS = \
 	touch \
 	true \
 	unexpand \
-	uniq
+	uniq \
+	users
 
 all:
 	for command in $(COMMANDS) ; do $(MAKE) -C $${command} ; done
