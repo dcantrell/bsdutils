@@ -14,6 +14,7 @@ COMMANDS = \
 	join \
 	nice \
 	nohup \
+	paste \
 	true \
 	unexpand
 
