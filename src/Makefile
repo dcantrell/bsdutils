@@ -26,6 +26,7 @@ COMMANDS = \
 	printf \
 	pwd \
 	rmdir \
+	sleep \
 	sync \
 	true \
 	unexpand
