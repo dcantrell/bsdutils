@@ -18,6 +18,7 @@ COMMANDS = \
 	mknod \
 	mktemp \
 	nice \
+	nl \
 	nohup \
 	paste \
 	printf \
