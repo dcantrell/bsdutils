@@ -18,6 +18,7 @@ COMMANDS = \
 	printf \
 	pwd \
 	rmdir \
+	sync \
 	true \
 	unexpand
 
