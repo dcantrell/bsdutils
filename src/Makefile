@@ -10,6 +10,7 @@ COMMANDS = \
 	false \
 	fmt \
 	fold \
+	head \
 	true \
 	unexpand
 

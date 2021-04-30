@@ -15,3 +15,4 @@ Makefile.bsd
 src/false/false
 src/fmt/fmt
 src/fold/fold
+src/head/head
