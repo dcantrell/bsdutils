@@ -137,10 +137,9 @@ cp -p usr/src/lib/libc/include/un-namespace.h ${CWD}/compat
 #cp -p lib/libutil/fmt_scaled.c ${CWD}/compat
 #cp -p lib/libutil/util.h ${CWD}/compat
 
-# XXX: These files are needed for the factor command
-#cp -p games/primes/primes.h ${CWD}/src/factor
-#cp -p games/primes/pattern.c ${CWD}/src/factor
-#cp -p games/primes/pr_tbl.c ${CWD}/src/factor
+# These files are needed for the factor command
+cp -p usr.bin/primes/primes.h ${CWD}/src/factor
+cp -p games/primes/pr_tbl.c ${CWD}/src/factor
 
 # This header is in the kernel source, but used in userspace
 #cp -p sys/sys/tree.h ${CWD}/compat/tree.h

@@ -9,6 +9,7 @@ COMMANDS = \
 	echo \
 	env \
 	expand \
+	factor \
 	false \
 	fmt \
 	fold \
