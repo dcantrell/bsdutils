@@ -65,6 +65,7 @@ __FBSDID("$FreeBSD$");
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <time.h>
 
 #include "pr.h"
 #include "extern.h"
@@ -1857,7 +1858,9 @@ setup(int argc, char *argv[])
 
 	(void) setlocale(LC_TIME, (Lflag != NULL) ? Lflag : "");
 
-	d_first = (*nl_langinfo(D_MD_ORDER) == 'd');
+	d_first = 0;
+	if (strlen(nl_langinfo(D_FMT)) >= 2 && nl_langinfo(D_FMT)[1] == 'd')
+		d_first = 1;
 	timefrmt = strdup(d_first ? TIMEFMTD : TIMEFMTM);
 
 	return(0);

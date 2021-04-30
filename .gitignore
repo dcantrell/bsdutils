@@ -30,3 +30,4 @@ src/factor/factor
 src/mknod/mknod
 src/mktemp/mktemp
 src/nl/nl
+src/pr/pr

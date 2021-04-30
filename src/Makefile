@@ -21,6 +21,7 @@ COMMANDS = \
 	nl \
 	nohup \
 	paste \
+	pr \
 	printf \
 	pwd \
 	rmdir \
