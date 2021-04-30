@@ -28,3 +28,4 @@ src/cut/cut
 src/env/env
 src/factor/factor
 src/mknod/mknod
+src/mktemp/mktemp

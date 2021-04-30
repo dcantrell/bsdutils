@@ -16,6 +16,7 @@ COMMANDS = \
 	head \
 	join \
 	mknod \
+	mktemp \
 	nice \
 	nohup \
 	paste \
