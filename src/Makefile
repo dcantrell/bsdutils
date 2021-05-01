@@ -16,6 +16,7 @@ COMMANDS = \
 	fmt \
 	fold \
 	head \
+	id \
 	join \
 	mkdir \
 	mknod \

@@ -42,3 +42,4 @@ src/chmod/chmod
 src/chown/chown
 src/mkdir/mkdir
 src/test/test
+src/id/id
