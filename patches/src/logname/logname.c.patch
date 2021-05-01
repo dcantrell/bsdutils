@@ -1,0 +1,21 @@
+diff -up logname/logname.c.orig logname/logname.c
+--- logname/logname.c.orig	2021-04-27 23:52:35.234551437 -0400
++++ logname/logname.c	2021-04-30 23:29:44.311341136 -0400
+@@ -41,7 +41,6 @@ static const char sccsid[] = "@(#)lognam
+ #include <sys/cdefs.h>
+ __FBSDID("$FreeBSD$");
+ 
+-#include <capsicum_helpers.h>
+ #include <err.h>
+ #include <unistd.h>
+ #include <stdio.h>
+@@ -54,9 +53,6 @@ main(int argc, char *argv[] __unused)
+ {
+ 	char *p;
+ 
+-	if (caph_limit_stdio() < 0 || caph_enter() < 0)
+-		err(1, "capsicum");
+-
+ 	if (argc != 1)
+ 		usage();
+ 	if ((p = getlogin()) == NULL)

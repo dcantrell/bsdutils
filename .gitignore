@@ -43,3 +43,4 @@ src/chown/chown
 src/mkdir/mkdir
 src/test/test
 src/id/id
+src/logname/logname

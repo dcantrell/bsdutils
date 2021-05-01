@@ -18,6 +18,7 @@ COMMANDS = \
 	head \
 	id \
 	join \
+	logname \
 	mkdir \
 	mknod \
 	mktemp \
