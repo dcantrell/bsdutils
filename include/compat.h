@@ -54,7 +54,7 @@
 mode_t getmode(const void *, mode_t);
 void *setmode(const char *);
 void strmode(int, char *);
-int mergesort(void *, size_t, size_t, cmp_t);
+int mergesort(void *, size_t, size_t, int (*)(const void *, const void *));
 int heapsort(void *, size_t, size_t, int (*)(const void *, const void *));
 
 #endif /* _COMPAT_H */
