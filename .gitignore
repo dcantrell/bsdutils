@@ -38,3 +38,7 @@ src/touch/touch
 src/uniq/uniq
 src/users/users
 src/yes/yes
+src/chmod/chmod
+src/chown/chown
+src/mkdir/mkdir
+src/test/test

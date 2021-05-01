@@ -1,0 +1,12 @@
+diff -up mkdir/mkdir.c.orig mkdir/mkdir.c
+--- mkdir/mkdir.c.orig	2021-04-27 23:52:35.235551440 -0400
++++ mkdir/mkdir.c	2021-04-30 19:27:38.822503455 -0400
+@@ -55,6 +55,8 @@ __FBSDID("$FreeBSD$");
+ #include <sysexits.h>
+ #include <unistd.h>
+ 
++#include "compat.h"
++
+ static int	build(char *, mode_t);
+ static void	usage(void);
+ 

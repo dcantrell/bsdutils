@@ -120,18 +120,17 @@ for p in ${CMDS} ; do
 done
 
 # 'compat' is our static library with a subset of BSD library functions
-#cp -p lib/libc/gen/pwcache.c ${CWD}/compat
 cp -p usr/src/lib/libc/gen/setmode.c ${CWD}/compat
-cp -p usr/src/lib/libc/include/namespace.h ${CWD}/compat
-cp -p usr/src/lib/libc/include/un-namespace.h ${CWD}/compat
-#cp -p lib/libc/gen/getbsize.c ${CWD}/compat
+cp -p lib/libc/string/strmode.c ${CWD}/compat
+cp -p lib/libc/gen/getbsize.c ${CWD}/compat
+#cp -p lib/libc/gen/pwcache.c ${CWD}/compat
 #cp -p lib/libc/gen/devname.c ${CWD}/compat
-#cp -p lib/libc/stdlib/merge.c ${CWD}/compat
+cp -p lib/libc/stdlib/merge.c ${CWD}/compat
+cp -p lib/libc/stdlib/heapsort.c ${CWD}/compat
 #cp -p lib/libc/stdlib/recallocarray.c ${CWD}/compat
 #cp -p lib/libc/stdlib/strtonum.c ${CWD}/compat
 #cp -p lib/libc/string/strlcat.c ${CWD}/compat
 #cp -p lib/libc/string/strlcpy.c ${CWD}/compat
-#cp -p lib/libc/string/strmode.c ${CWD}/compat
 #cp -p lib/libutil/ohash.c ${CWD}/compat
 #cp -p lib/libutil/ohash.h ${CWD}/compat
 #cp -p lib/libutil/fmt_scaled.c ${CWD}/compat
@@ -143,37 +142,6 @@ cp -p games/primes/pr_tbl.c ${CWD}/src/factor
 
 # This header is in the kernel source, but used in userspace
 #cp -p sys/sys/tree.h ${CWD}/compat/tree.h
-
-#################
-## COMMON EDITS #
-#################
-#
-## Perform some common compatibility edits on the imported source
-#for cfile in ${CWD}/compat/*.c ; do
-#    # This macro does not exist and we don't want it
-#    sed -i -e '/DEF_WEAK/d' ${cfile}
-#
-#    # Include our 'compat.h' header before other includes
-#    if ! grep -q "compat\.h" ${cfile} 2>&1 ; then
-#        linenum=$(($(grep -n ^#include ${cfile} | sort -n | head -n 1 | cut -d ':' -f 1) - 1))
-#        [ ${linenum} = 0 ] && linenum=1
-#        sed -i -e "${linenum}i #include \"compat.h\"" ${cfile}
-#    fi
-#done
-#
-## Remove unnecessary declarations in compat/util.h
-#strtline=$(grep -n "^__BEGIN_DECLS" ${CWD}/compat/util.h | cut -d ':' -f 1)
-#lastline=$(grep -n "^__END_DECLS" ${CWD}/compat/util.h | cut -d ':' -f 1)
-#sed -i -e "${strtline},${lastline}d" ${CWD}/compat/util.h
-#
-## Common edits needed for src/ files
-#for cfile in $(find ${CWD}/src -type f -name '*.c' -print) ; do
-#    # remove __dead
-#    sed -i -r 's|\s+__dead\s+| |g' ${cfile}
-#    sed -i -r 's|^__dead\s+||g' ${cfile}
-#    sed -i -r 's|\s+__dead$||g' ${cfile}
-#    sed -i -r 's|\s+__dead;|;|g' ${cfile}
-#done
 
 #####################
 # APPLY ANY PATCHES #

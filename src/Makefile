@@ -1,6 +1,8 @@
 COMMANDS = \
 	basename \
 	cat \
+	chmod \
+	chown \
 	chroot \
 	comm \
 	csplit \
@@ -15,6 +17,7 @@ COMMANDS = \
 	fold \
 	head \
 	join \
+	mkdir \
 	mknod \
 	mktemp \
 	nice \
@@ -29,6 +32,7 @@ COMMANDS = \
 	sleep \
 	sync \
 	tee \
+	test \
 	touch \
 	true \
 	unexpand \

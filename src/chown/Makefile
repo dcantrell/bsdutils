@@ -1,13 +1,23 @@
-#	@(#)Makefile	8.1 (Berkeley) 6/6/93
-# $FreeBSD$
+SRCS = chown.c
+OBJS = $(SRCS:.c=.o)
 
-.include <src.opts.mk>
+all: chown
 
-PROG=	chown
-LINKS=	${BINDIR}/chown /usr/bin/chgrp
-MAN=	chgrp.1 chown.8
+chown: $(OBJS)
+	$(CC) $(CFLAGS) -DUID_MAX=INT_MAX -DGID_MAX=INT_MAX -o $@ $<
 
-HAS_TESTS=
-SUBDIR.${MK_TESTS}+= tests
+%.o: %.c
+	$(CC) $(CFLAGS) -DUID_MAX=INT_MAX -DGID_MAX=INT_MAX -c -o $@ $<
 
-.include <bsd.prog.mk>
+install:
+	install -D -m 0755 chown $(DESTDIR)$(BINDIR)/chown
+	ln -s chown $(DESTDIR)$(BINDIR)/chgrp
+	install -D -m 0644 chown.1 $(DESTDIR)$(MANDIR)/man1/chown.1
+	install -D -m 0644 chgrp.1 $(DESTDIR)$(MANDIR)/man1/chgrp.1
+
+clean:
+	-rm -f $(OBJS) chown
+
+.PHONY: install clean
+
+include $(shell pwd)/../../config.mk

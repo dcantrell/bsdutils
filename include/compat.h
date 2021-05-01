@@ -31,6 +31,9 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef _COMPAT_H
+#define _COMPAT_H
+
 /* from sys/param.h on FreeBSD */
 /* max raw I/O transfer size */
 /*
@@ -41,5 +44,17 @@
 #define MAXPHYS (1024 * 1024)
 /* #define MAXPHYS (128 * 1024)    <--- could be this on 32-bit systems */
 
-/* lifted from wchar.h in FreeBSD */
+/* Macros for counting and rounding. */
+#define roundup2(x, y)  (((x)+((y)-1))&(~((y)-1))) /* if y is powers of two */
+
+/* from wchar.h in FreeBSD */
 #define iswascii(wc) (((wc) & ~0x7F) == 0)
+
+/* from libc in FreeBSD */
+mode_t getmode(const void *, mode_t);
+void *setmode(const char *);
+void strmode(int, char *);
+int mergesort(void *, size_t, size_t, cmp_t);
+int heapsort(void *, size_t, size_t, int (*)(const void *, const void *));
+
+#endif /* _COMPAT_H */

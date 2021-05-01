@@ -35,7 +35,7 @@ __FBSDID("$FreeBSD$");
 #else
 #include <locale.h>
 
-static void error(const char *, ...) __dead2 __printf0like(1, 2);
+static void error(const char *, ...);
 
 static void
 error(const char *msg, ...)
