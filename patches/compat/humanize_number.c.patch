@@ -1,0 +1,12 @@
+--- compat/humanize_number.c.orig	2021-05-03 10:40:34.806557316 -0400
++++ compat/humanize_number.c	2021-05-03 10:42:18.674002818 -0400
+@@ -43,7 +43,8 @@
+ #include <stdlib.h>
+ #include <string.h>
+ #include <locale.h>
+-#include <libutil.h>
++
++#include "compat.h"
+ 
+ static const int maxscale = 6;
+ 

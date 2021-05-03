@@ -1,0 +1,11 @@
+--- ls/extern.h.orig	2021-04-27 23:52:35.234551437 -0400
++++ ls/extern.h	2021-05-03 09:34:57.951195690 -0400
+@@ -36,8 +36,6 @@
+ 
+ int	 acccmp(const FTSENT *, const FTSENT *);
+ int	 revacccmp(const FTSENT *, const FTSENT *);
+-int	 birthcmp(const FTSENT *, const FTSENT *);
+-int	 revbirthcmp(const FTSENT *, const FTSENT *);
+ int	 modcmp(const FTSENT *, const FTSENT *);
+ int	 revmodcmp(const FTSENT *, const FTSENT *);
+ int	 namecmp(const FTSENT *, const FTSENT *);

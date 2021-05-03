@@ -27,49 +27,78 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- *
- *	from: @(#)extern.h	8.1 (Berkeley) 5/31/93
- * $FreeBSD$
  */
 
-#include <stdbool.h>
+#include <sys/cdefs.h>
+__SCCSID("@(#)getbsize.c	8.1 (Berkeley) 6/4/93");
+__FBSDID("$FreeBSD$");
 
-int	 acccmp(const FTSENT *, const FTSENT *);
-int	 revacccmp(const FTSENT *, const FTSENT *);
-int	 modcmp(const FTSENT *, const FTSENT *);
-int	 revmodcmp(const FTSENT *, const FTSENT *);
-int	 namecmp(const FTSENT *, const FTSENT *);
-int	 revnamecmp(const FTSENT *, const FTSENT *);
-int	 statcmp(const FTSENT *, const FTSENT *);
-int	 revstatcmp(const FTSENT *, const FTSENT *);
-int	 sizecmp(const FTSENT *, const FTSENT *);
-int	 revsizecmp(const FTSENT *, const FTSENT *);
+#include <err.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-void	 printcol(const DISPLAY *);
-void	 printlong(const DISPLAY *);
-int	 printname(const char *);
-void	 printscol(const DISPLAY *);
-void	 printstream(const DISPLAY *);
-void	 usage(void);
-int	 prn_normal(const char *);
-size_t	 len_octal(const char *, int);
-int	 prn_octal(const char *);
-int	 prn_printable(const char *);
-#ifdef COLORLS
-void	 parsecolors(const char *cs);
-void	 colorquit(int);
+char *
+getbsize(int *headerlenp, long *blocksizep)
+{
+	static char header[20];
+	long n, max, mul, blocksize;
+	char *ep, *p;
+	const char *form;
 
-extern	char	*ansi_fgcol;
-extern	char	*ansi_bgcol;
-extern	char	*ansi_coloff;
-extern	char	*attrs_off;
-extern	char	*enter_bold;
+#define	KB	(1024L)
+#define	MB	(1024L * 1024L)
+#define	GB	(1024L * 1024L * 1024L)
+#define	MAXB	GB		/* No tera, peta, nor exa. */
+	form = "";
+	if ((p = getenv("BLOCKSIZE")) != NULL && *p != '\0') {
+		if ((n = strtol(p, &ep, 10)) < 0)
+			goto underflow;
+		if (n == 0)
+			n = 1;
+		if (*ep && ep[1])
+			goto fmterr;
+		switch (*ep) {
+		case 'G': case 'g':
+			form = "G";
+			max = MAXB / GB;
+			mul = GB;
+			break;
+		case 'K': case 'k':
+			form = "K";
+			max = MAXB / KB;
+			mul = KB;
+			break;
+		case 'M': case 'm':
+			form = "M";
+			max = MAXB / MB;
+			mul = MB;
+			break;
+		case '\0':
+			max = MAXB;
+			mul = 1;
+			break;
+		default:
+fmterr:			warnx("%s: unknown blocksize", p);
+			n = 512;
+			max = MAXB;
+			mul = 1;
+			break;
+		}
+		if (n > max) {
+			warnx("maximum blocksize is %ldG", MAXB / GB);
+			n = max;
+		}
+		if ((blocksize = n * mul) < 512) {
+underflow:		warnx("minimum blocksize is 512");
+			form = "";
+			blocksize = n = 512;
+		}
+	} else
+		blocksize = n = 512;
 
-extern int	 colorflag;
-extern bool	 explicitansi;
-
-#define	COLORFLAG_NEVER		0
-#define	COLORFLAG_AUTO		1
-#define	COLORFLAG_ALWAYS	2
-#endif
-extern int	termwidth;
+	(void)snprintf(header, sizeof(header), "%ld%s-blocks", n, form);
+	*headerlenp = strlen(header);
+	*blocksizep = blocksize;
+	return (header);
+}

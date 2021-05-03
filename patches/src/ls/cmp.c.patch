@@ -1,0 +1,38 @@
+--- ls/cmp.c.orig	2021-04-27 23:52:35.234551437 -0400
++++ ls/cmp.c	2021-05-03 09:35:05.896214568 -0400
+@@ -123,35 +123,6 @@
+ }
+ 
+ int
+-birthcmp(const FTSENT *a, const FTSENT *b)
+-{
+-
+-	if (b->fts_statp->st_birthtim.tv_sec >
+-	    a->fts_statp->st_birthtim.tv_sec)
+-		return (1);
+-	if (b->fts_statp->st_birthtim.tv_sec <
+-	    a->fts_statp->st_birthtim.tv_sec)
+-		return (-1);
+-	if (b->fts_statp->st_birthtim.tv_nsec >
+-	    a->fts_statp->st_birthtim.tv_nsec)
+-		return (1);
+-	if (b->fts_statp->st_birthtim.tv_nsec <
+-	    a->fts_statp->st_birthtim.tv_nsec)
+-		return (-1);
+-	if (f_samesort)
+-		return (strcoll(b->fts_name, a->fts_name));
+-	else
+-		return (strcoll(a->fts_name, b->fts_name));
+-}
+-
+-int
+-revbirthcmp(const FTSENT *a, const FTSENT *b)
+-{
+-
+-	return (birthcmp(b, a));
+-}
+-
+-int
+ statcmp(const FTSENT *a, const FTSENT *b)
+ {
+ 

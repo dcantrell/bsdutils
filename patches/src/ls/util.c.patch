@@ -1,0 +1,14 @@
+--- ls/util.c.orig	2021-04-27 23:52:35.235551440 -0400
++++ ls/util.c	2021-05-03 10:46:10.773885277 -0400
+@@ -227,9 +227,9 @@
+ {
+ 	(void)fprintf(stderr,
+ #ifdef COLORLS
+-	"usage: ls [-ABCFGHILPRSTUWZabcdfghiklmnopqrstuwxy1,] [--color=when] [-D format]"
++	"usage: ls [-ABCFGHILPRSTWabcdfghiklmnpqrstuwxy1,] [--color=when] [-D format]"
+ #else
+-	"usage: ls [-ABCFHILPRSTUWZabcdfghiklmnopqrstuwxy1,] [-D format]"
++	"usage: ls [-ABCFHILPRSTWabcdfghiklmnpqrstuwxy1,] [-D format]"
+ #endif
+ 		      " [file ...]\n");
+ 	exit(1);

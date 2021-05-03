@@ -149,6 +149,319 @@ asprintf()
 glibc has this if you define _GNU_SOURCE.
 
 
+SIGINFO
+-------
+If you look at the 'kill -l' output on your Linux system, you will see
+a lot of signal types but SIGINFO (INFO in the kill output) is
+missing.  Linux has never had a SIGINFO signal that functions in the
+same way as FreeBSD systems.  The idea is that you can send SIGINFO to
+a long running process like cp on a large file or dd on a large device
+and the signal handler will print stats on the process.  The
+statistics come from the kernel, so any implementation on Linux would
+require a kernel patch and that doesn't seem likely or really
+necessary.  All signal handlers for SIGINFO and their accompanying
+functions have been removed from the bsdutils source code.
+
+
+login_cap.h and related functions
+---------------------------------
+FreeBSD has a concept of login capabilities and user classes.  We
+don't have that on Linux, so code that makes use of this has been
+removed.  For example, on FreeBSD the env(1) command has the -L and -U
+options for specifying the user name to operate under (-U) and the
+login class (-L).  These have been removed from the code as well as
+the man page since the functionality is not present under Linux.
+Other commands that offer login_cap functionality have had it removed.
+
+
+strlcpy()
+---------
+This string function appeared at some point in the Unix lineage as a
+better replacement for strncpy() (which itself was a better strcpy()).
+Neither strncpy() nor strcpy() will guarantee a NUL terminated string,
+which can lead to all sorts of problems as nearly every C programmer
+on the planet assumes a string is NUL terminated.  strlcpy() entered
+the mix basically to guarantee that the destination string was NUL
+terminated at all costs, even if it meant truncating data.  Some would
+say this is good behavior for a C string library function but others
+argue that possibly eliminating data in the name of NUL termination
+can lead to unexpected behavior in the calling program.  While that is
+true, you could also argue that a calling program should not be so
+fast and loose with strings.
+
+OK, so strlcpy() is present on a lot of commercial Unix systems and
+the BSD family.  For instance, Solaris, the open source BSDs, MacOS X,
+and IRIX offer strlcpy().  But AIX and HP-UX do not.  Also Linux, by
+way of glibc, does not offer this function.  There is a long and
+colorful debate about whether or not strlcpy() should be added to
+glibc.  Patches show up from time to time and get rejected.  It is
+worth noting that strlcpy() are not part of POSIX.1-2008 and that
+should count for something.  LWN has a fun article about strlcpy():
+
+    https://lwn.net/Articles/507319/
+
+Where does that leave this project?  Where strlcpy() is used like
+this:
+
+    strlcpy(dest, src, size);
+
+We will do this:
+
+    strncpy(dest, src, size);
+    dest[size - 1] = '\0';
+
+Problem solved.
+
+
+strlcat()
+---------
+Similar to the strlcpy() discussion is the strlcat() function.  See
+the LWN article above as it includes strlcat() as well.  This is not a
+POSIX function and it is not present in glibc.  In place of strlcat()
+we can do a couple of things depending on what the program needs:
+
+* We can use strncat() and make sure the 3rd argument is the size of
+  the 2nd argument.  This works when the dest buffer is static.  And
+  in a lot of these programs, that is the case.
+
+* We can use stpcpy() to build up a dynamic string of parts and avoid
+  scanning the dest string for each concatenation.  Must free the
+  memory afterwards.
+
+* In cases where a string of length 1 is going through strlcat(), we
+  can just reference that array element directly and set it.
+
+Whichever of these methods is used, we still need to set the trailing
+NUL like we do for the strlcpy() replacements.
+
+
+major() and minor()
+-------------------
+These macros are for use with st_rdev members of a struct stat.  They
+are available from the <sys/sysmacros.h> header on Linux.
+
+
+makedev()
+---------
+This is defined in the <sys/sysmacros.h> header on Linux.
+
+
+NL_TEXTMAX
+----------
+Linux has this when __USE_XOPEN is defined.  You can get this through
+_GNU_SOURCE or _XOPEN_SOURCE or _POSIX_C_SOURCE.  For us, _GNU_SOURCE
+tends to be the better option so we don't accidentally turn off other
+definitions.
+
+
+wcwidth() and wchar.h functions
+-------------------------------
+Available in glibc by defining _XOPEN_SOURCE.  Programs requiring this
+have it added to their Makefile.am file.  Note that _GNU_SOURCE also
+implies _XOPEN_SOURCE.
+
+
+D_MD_ORDER
+----------
+This is a local extension on FreeBSD in langinfo.h for nl_langinfo().
+If you call nl_langinfo() with D_MD_ORDER, it will give you a
+locale-appropriate format string suitable for strftime() to print the
+date.  The purpose is to order the output correctly for the locale and
+print the month before the day or the day before the month.  glibc
+lacks the D_MD_ORDER extension, but we can get the same effect by
+using D_FMT and looking at the second character in the returned
+string.  If the second character is 'd' it means order with the day
+first, otherwise order with the month first.
+
+
+setmode() and getmode()
+-----------------------
+These C library functions on FreeBSD are not present on Linux.  But we
+can import setmode.c to our libcompat library and add function
+prototypes to the include/compat.h header file.
+
+
+strmode()
+---------
+This convenience function is in the FreeBSD libc and has been copied
+over to our libcompat.  It is not available in glibc.  The function is
+defined in our include/compat.h header.
+
+
+UID_MAX and GID_MAX
+-------------------
+Defined in /etc/login.defs on Linux.  Using INT_MAX here to keep
+things simple.  Might need a better solution in the future.  Passing
+them with -D options to the compiler.
+
+
+'chmod -h' and lchmod()
+-----------------------
+FreeBSD and other BSD systems offer an lchmod() call that is like
+chmod(), but it changes permissions on a symlink instead of what the
+symlink points to.  Think about stat() vs. lstat().  Likewise, the
+chmod command offers the -h option to do the same thing.  Linux does
+not have lchmod() nor has it had the 'chmod -h' functionality.  It's
+possible to implement the functionality with fchmodat(), but we are
+not doing that because the -h functionality has not been present on
+Linux in the past.  Support for -h in chmod.c has been removed and it
+has been removed from the chmod.1 man page (though the historical
+information and BSD-specification information remove).
+
+
+lpathconf()
+-----------
+Linux does not have lpathconf().  It does have pathconf().  On both
+FreeBSD and Linux the pathconf() function returns configuration values
+for files.  The lpathconf() function does the same thing for symlinks,
+but of the actual link itself and not what it points to.  Use of
+lpathconf() is either removed or replaced as necessary.  In chmod.c,
+it is used to request the value of _PC_ACL_NFS4, but since that value
+name doesn't appear on Linux the use of lpathconf() is dropped.  Also
+the corresponding NFS4 stuff in chmod.c is dropped.
+
+
+struct passwd
+-------------
+As defined in pwd.h, this is mostly similar on Linux from FreeBSD but
+FreeBSD does include some things beyond what a standard Unix system
+has.  Notably their pw_class attribute which defines the user class.
+This is a thing specific to FreeBSD and is not present on other
+systems.  At least it's not present on Linux.  For our port, we are
+removing the pw_class support in code that uses it.
+
+You may also see code that uses pw_change or pw_expire.  These members
+are not available on Linux either and have been removed from the code
+in this port.
+
+
+<sys/mac.h> and related functions
+---------------------------------
+Code for FreeBSD's MAC (Mandatory Access Control) is not available on
+Linux and has been removed.  This could, arguably, be swapped out with
+SELinux functionality.  Patches welcome.
+
+The ls(1) command has the -Z option removed from the command and man
+page.
+
+
+strtonum()
+----------
+This is a BSD extension meant as a more flexible alternative to atoi()
+and strtol().  It converts a string to a long long in base 10.  The
+main advantage it offers is accounting for arbitrary whitespace
+followed by an optional '+' or '-' before the number begins.  But
+glibc's strtoll() already does this plus it offers the ability to
+specify the base for conversion.  In instances where strtonum() is
+used, we will convert it to use strtoll() and handle errno results.
+
+
+user_from_uid() and group_from_gid()
+------------------------------------
+Where user_from_uid() is used, we will replace it with a call to
+getpwnam() and then using the pw_name member of the struct passwd
+returned from that function.  Where group_from_gid() is used, we will
+replace it with a call to getgrgid() and then use the gr_name member
+of the struct group returned from that function.
+
+
+fflagstostr(), fchflags(), stat.st_flags, and related things
+------------------------------------------------------------
+Files in BSD have various flags that can be set.  Make it immutable,
+for instance.  In Linux we have the chattr and lsattr commands for the
+same type functionality.  These are filesystem-specific.  In BSD,
+everything is implemented in the same source tree and they only have
+the one main filesystem, so this is implemented in the main API for
+the operating system.
+
+Linux doesn't have a generic way to do this, so the functionality has
+been removed from commands that try to use it.
+
+The stat(1) command has the st_flags handling code removed as well.
+The ls(1) command has the -U and -o options removed from the code and
+from the man page.
+
+
+struct stat (st_birthtim and other things)
+----------------------------------------------------
+There are a number of differences between the stat structures on Linux
+and FreeBSD.
+
+The st_birthtim member is not present on Linux because this is
+filesystem specific and there is not a generic way to handle it.  Even
+FreeBSD has this problem for some filesystems.  In those cases, the
+st_btime output is undefined if the filesystem lacks support for it.
+GNU stat works this way too.  For consistency with the other stuff we
+are doing, our code removes the st_birthtime code whenever it appears
+in the code.
+
+
+S_IFWHT
+-------
+Linux does not support whiteouts as a struct stat member.  Where
+S_IFWHT is used or checked, it is removed from the code.
+
+
+fts_open()
+----------
+The compare function uses a different prototype on Linux.  On FreeBSD,
+the expectation is:
+
+    int (*compar)(const FTSENT * const *, const FTSENT * const *);
+
+while on Linux it is:
+
+    int (*compar)(const FTSENT **, const FTSENT **);
+
+Our port removes the second 'const' in the prototype.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+
+  Linux does not have the st_mtimensec member.  Linux has
+st_atim, st_mtim, and st_ctim (note the lack of the trailing 'e')
+which are all struct timespec structures.  There is st_atime,
+st_mtime, and st_ctime which are the .tv_sec members of the timespec
+structures.  You can get the nanoseconds from the .tv_nsec member on
+the timespec structures.  For code that uses this, make sure to add
+-D_XOPEN_SOURCE=700 (or higher than 700) to the CFLAGS.
+
+The st_birthtime member is not present on Linux because this is
+filesystem specific and there is not a generic way to handle it.  Even
+FreeBSD has this problem for some filesystems.  In those cases, the
+st_btime output is undefined if the filesystem lacks support.  GNU
+stat works this way too.  For consistency with the other stuff we are
+doing, our code removes the st_birthtime code whenever it appears in
+code.
+
+The st_gen member is the file generation number and this is not
+present on Linux, so it has been removed from the code.
+
+
+*/
+
+
+
+
+
+
+
+
+
 
 
 
@@ -185,32 +498,8 @@ XXXXXXXXXXXXXXXXX ---> below here is former OpenBSD notes, I will
 
 
 
-SIGINFO
--------
-If you look at the 'kill -l' output on your Linux system, you will see
-a lot of signal types but SIGINFO (INFO in the kill output) is
-missing.  Linux has never had a SIGINFO signal that functions in the
-same way as BSD systems.  The idea is that you can send SIGINFO to a
-long running process like cp on a large file or dd on a large device
-and the signal handler will print stats on the process.  The
-statistics come from the kernel, so any implementation on Linux would
-require a kernel patch and that doesn't seem likely or really
-necessary.  All signal handlers for SIGINFO and their accompanying
-functions have been removed from the bsdutils source code.
 
 
-setmode() and getmode()
------------------------
-These C library functions on OpenBSD are not present on Linux.  But we
-can import setmode.c to our libcompat library.
-
-
-
-
-wcwidth() and wchar.h functions
--------------------------------
-Available in glibc by defining _XOPEN_SOURCE.  Programs requiring this
-have it added to their Makefile.am file.
 
 
 DEF_WEAK
@@ -221,53 +510,6 @@ HIDDEN renames the item with a prefix of __libc_.  We don't need that
 here since our compat library is just a static library used to build
 this handful of programs.  Where DEF_WEAK is present in source, it
 will be removed.
-
-
-NL_TEXTMAX
-----------
-Linux has this when __USE_XOPEN is defined.  You can get this through
-_GNU_SOURCE or _XOPEN_SOURCE or _POSIX_C_SOURCE.  For us, _GNU_SOURCE
-tends to be the better option so we don't accidentally turn off other
-definitions.
-
-
-struct passwd
--------------
-As defined in pwd.h, this is mostly similar on Linux from OpenBSD but
-OpenBSD does include some things beyond what a standard Unix system
-has.  Notably their pw_class attribute which defines the user class.
-This is a thing specific to OpenBSD and is not present on other
-systems.  At least it's not present on Linux.  For our port, we are
-removing the pw_class support in code that uses it.
-
-
-strmode()
----------
-This convenience function is in the OpenBSD libc and has been copied
-over to our libcompat.  It is not available in glibc.
-
-
-user_from_uid() and group_from_gid()
-------------------------------------
-These come from pwcache.c in the OpenBSD libc source.  These use macro
-limits defined in the OpenBSD pwd.h and grp.h header files, but those
-definitions do not exist on Linux.  Our build will just copy in the
-OpenBSD limits for now.
-
-
-fchflags(), stat.st_flags, and related things
----------------------------------------------
-Files in BSD have various flags that can be set.  Make it immutable,
-for instance.  In Linux we have the chattr and lsattr commands for the
-same type functionality.  These are filesystem-specific.  In BSD,
-everything is implemented in the same source tree and they only have
-the one main filesystem, so this is implemented in the main API for
-the operating system.
-
-Linux doesn't have a generic way to do this, so the functionality has
-been removed from commands that try to use it.
-
-The stat(1) command has the st_flags handling code removed as well.
 
 
 MAXBSIZE
@@ -308,29 +550,6 @@ where statfs is used.  The statvfs struct and functions are defined in
 
 The struct statvfs on Linux does not have the f_mntonname member, so
 uses of that in these tools has been removed.
-
-
-struct stat (st_birthtime, st_gen, and other things)
-----------------------------------------------------
-There are a number of differences between the stat structures on Linux
-and OpenBSD.  Linux does not have the st_mtimensec member.  Linux has
-st_atim, st_mtim, and st_ctim (note the lack of the trailing 'e')
-which are all struct timespec structures.  There is st_atime,
-st_mtime, and st_ctime which are the .tv_sec members of the timespec
-structures.  You can get the nanoseconds from the .tv_nsec member on
-the timespec structures.  For code that uses this, make sure to add
--D_XOPEN_SOURCE=700 (or higher than 700) to the CFLAGS.
-
-The st_birthtime member is not present on Linux because this is
-filesystem specific and there is not a generic way to handle it.  Even
-OpenBSD has this problem for some filesystems.  In those cases, the
-st_btime output is undefined if the filesystem lacks support.  GNU
-stat works this way too.  For consistency with the other stuff we are
-doing, our code removes the st_birthtime code whenever it appears in
-code.
-
-The st_gen member is the file generation number and this is not
-present on Linux, so it has been removed from the code.
 
 
 getbsize()
@@ -407,17 +626,6 @@ kerninfo, and onoeot.  In those cases, the support for them is removed
 from stty(1).
 
 
-login_cap.h and setlogin()
---------------------------
-Linux doesn't have any of this.  The chroot command's -u option has
-been removed as a result as well as the other checks in the program
-and the setsid() call based on the login.  The coreutils one claims to
-do this, but I'm not sure I believe it.  coreutils is generic and can
-work on BSD, so the man page might be saying that while it really
-doesn't work on Linux.  If that functionality actually worked on
-Linux, then the fakechroot program wouldn't need to exist.
-
-
 sysctl()
 --------
 Linux frowns on using sysctl() to gather information about the system.
@@ -454,79 +662,12 @@ tail(1) has been modified to use the epoll API on Linux and roughly
 work in the same manner as the OpenBSD one.
 
 
-strlcpy()
----------
-This string function appeared at some point in the Unix lineage as a
-better replacement for strncpy() (which itself was a better strcpy()).
-Neither strncpy() nor strcpy() will guarantee a NUL terminated string,
-which can lead to all sorts of problems as nearly every C programmer
-on the planet assumes a string is NUL terminated.  strlcpy() entered
-the mix basically to guarantee that the destination string was NUL
-terminated at all costs, even if it meant truncating data.  Some would
-say this is good behavior for a C string library function but others
-argue that possibly eliminating data in the name of NUL termination
-can lead to unexpected behavior in the calling program.  While that is
-true, you could also argue that a calling program should not be so
-fast and loose with strings.
-
-OK, so strlcpy() is present on a lot of commercial Unix systems and
-the BSD family.  For instance, Solaris, the open source BSDs, MacOS X,
-and IRIX offer strlcpy().  But AIX and HP-UX do not.  Also Linux, by
-way of glibc, does not offer this function.  There is a long and
-colorful debate about whether or not strlcpy() should be added to
-glibc.  Patches show up from time to time and get rejected.  It is
-worth noting that strlcpy() are not part of POSIX.1-2008 and that
-should count for something.  LWN has a fun article about strlcpy():
-
-    https://lwn.net/Articles/507319/
-
-Where does that leave this project?  Where strlcpy() is used like
-this:
-
-    strlcpy(dest, src, size);
-
-We will do this:
-
-    strncpy(dest, src, size);
-    dest[size - 1] = '\0';
-
-Problem solved.
-
-
-strlcat()
----------
-Similar to the strlcpy() discussion is the strlcat() function.  See
-the LWN article above as it includes strlcat() as well.  This is not a
-POSIX function and it is not present in glibc.  In place of strlcat()
-we can do a couple of things depending on what the program needs:
-
-* We can use strncat() and make sure the 3rd argument is the size of
-  the 2nd argument.  This works when the dest buffer is static.  And
-  in a lot of these programs, that is the case.
-
-* We can use stpcpy() to build up a dynamic string of parts and avoid
-  scanning the dest string for each concatenation.  Must free the
-  memory afterwards.
-
-* In cases where a string of length 1 is going through strlcat(), we
-  can just reference that array element directly and set it.
-
-Whichever of these methods is used, we still need to set the trailing
-NUL like we do for the strlcpy() replacements.
-
-
 sys_signame[]
 -------------
 This array contains strings describing the signal number.  The array
 index is the signal number.  The POSIX standard for getting a signal
 name if you have the signal number is strsignal(), which is available
 on glibc and is what we will use.
-
-
-UID_MAX and GID_MAX
--------------------
-Defined in /etc/login.defs on Linux.  Using INT_MAX here to keep
-things simple.  Might need a better solution in the future.
 
 
 'id -R' and getrtable()
@@ -549,12 +690,6 @@ removed from ls in this port.
 howmany()
 ---------
 This macro is available in <sys/param.h> on Linux.
-
-
-major() and minor()
--------------------
-These macros are for use with st_rdev members of a struct stat.  They
-are available from the <sys/sysmacros.h> header on Linux.
 
 
 optreset

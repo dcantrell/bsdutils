@@ -1,0 +1,11 @@
+--- ls/ls.h.orig	2021-04-27 23:52:35.234551437 -0400
++++ ls/ls.h	2021-05-03 10:29:55.737384317 -0400
+@@ -42,8 +42,6 @@
+ extern long blocksize;		/* block size units */
+ 
+ extern int f_accesstime;	/* use time of last access */
+-extern int f_birthtime;	/* use time of file creation */
+-extern int f_flags;		/* show flags associated with a file */
+ extern int f_humanval;		/* show human-readable file sizes */
+ extern int f_label;		/* show MAC label */
+ extern int f_inode;		/* print inode */

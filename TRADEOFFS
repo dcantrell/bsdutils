@@ -31,16 +31,6 @@ BSD-GNU command set gap.
 
 
 
-No color support in ls(1)
--------------------------
-
-Believe it or not, color ls is not a standard Unix thing.  Color consoles did
-not come along until well after Unix was established.  It is a nice user addon,
-but is not critical for the functionality of ls.  And it, arguably, makes using
-ls in scripts more prone to errors unless you remember to check for and disable
-color output.
-
-
 Lack of long options
 --------------------
 
