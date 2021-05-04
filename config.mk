@@ -10,6 +10,7 @@ CFLAGS   += -D'__FBSDID(x)='
 CFLAGS   += -D__dead2=
 CFLAGS   += -D__unused=
 CFLAGS   += -D'__printf0like(x, y)='
+CFLAGS   += -D'__SCCSID(x)='
 
 # Use the C flags for C++ code
 CXXFLAGS  = $(CFLAGS)

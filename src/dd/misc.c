@@ -46,7 +46,6 @@ __FBSDID("$FreeBSD$");
 #include <err.h>
 #include <errno.h>
 #include <inttypes.h>
-#include <libutil.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,6 +55,8 @@ __FBSDID("$FreeBSD$");
 
 #include "dd.h"
 #include "extern.h"
+
+#include "compat.h"
 
 double
 secs_elapsed(void)
@@ -129,14 +130,6 @@ progress(void)
 	fflush(stderr);
 	free(buf);
 	need_progress = 0;
-}
-
-/* ARGSUSED */
-void
-siginfo_handler(int signo __unused)
-{
-
-	need_summary = 1;
 }
 
 /* ARGSUSED */

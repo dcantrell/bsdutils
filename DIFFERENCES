@@ -416,6 +416,19 @@ while on Linux it is:
 Our port removes the second 'const' in the prototype.
 
 
+FIODTYPE and D_DISK/D_TAPE/etc
+------------------------------
+These appear in the dd(1) command.  This ioctl() is not available on
+Linux.  Remove the checks against D_DISK/D_TAPE/etc as well.  Only
+make the determination based on S_ISCHR() or S_ISBLK() and leave it at
+that.
+
+
+OFF_MAX
+-------
+FreeBSD defines this as the maximum value for an off_t.  On Linux we
+don't have this, but an off_t is a long int, so we can use LONG_MAX
+instead.
 
 
 

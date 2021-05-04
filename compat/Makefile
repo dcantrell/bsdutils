@@ -1,4 +1,4 @@
-SRCS = setmode.c strmode.c merge.c heapsort.c
+SRCS = setmode.c strmode.c merge.c heapsort.c getbsize.c humanize_number.c
 OBJS = $(SRCS:.c=.o)
 
 all: libcompat.a

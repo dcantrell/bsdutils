@@ -1,5 +1,6 @@
 *.orig
 *.o
+src/dd/dd
 src/ls/ls
 src/basename/basename
 src/cat/cat

@@ -1,0 +1,24 @@
+--- dd/args.c.orig	2021-04-27 23:52:35.230551426 -0400
++++ dd/args.c	2021-05-03 13:01:06.710745502 -0400
+@@ -55,6 +55,8 @@
+ #include "dd.h"
+ #include "extern.h"
+ 
++#include "compat.h"
++
+ static int	c_arg(const void *, const void *);
+ static int	c_conv(const void *, const void *);
+ static int	c_iflag(const void *, const void *);
+@@ -214,8 +216,10 @@
+ 	uintmax_t res;
+ 
+ 	res = get_num(arg);
+-	if (res == UINTMAX_MAX)
+-		errc(1, ERANGE, "%s", oper);
++	if (res == UINTMAX_MAX) {
++		errno = ERANGE;
++		err(1, "%s", oper);
++	}
+ 	if (res == 0)
+ 		cpy_cnt = UINTMAX_MAX;
+ 	else

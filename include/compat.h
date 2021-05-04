@@ -44,8 +44,10 @@
 #define MAXPHYS (1024 * 1024)
 /* #define MAXPHYS (128 * 1024)    <--- could be this on 32-bit systems */
 
+/* from <sys/param.h> in FreeBSD */
 /* Macros for counting and rounding. */
 #define roundup2(x, y)  (((x)+((y)-1))&(~((y)-1))) /* if y is powers of two */
+#define nitems(x)       (sizeof((x)) / sizeof((x)[0]))
 
 /* from wchar.h in FreeBSD */
 #define iswascii(wc) (((wc) & ~0x7F) == 0)
@@ -56,5 +58,20 @@ void *setmode(const char *);
 void strmode(int, char *);
 int mergesort(void *, size_t, size_t, int (*)(const void *, const void *));
 int heapsort(void *, size_t, size_t, int (*)(const void *, const void *));
+char *getbsize(int *, long *);
+
+/* from lib/libutil/libutil.h in FreeBSD */
+/* Values for humanize_number(3)'s flags parameter. */
+#define HN_DECIMAL              0x01
+#define HN_NOSPACE              0x02
+#define HN_B                    0x04
+#define HN_DIVISOR_1000         0x08
+#define HN_IEC_PREFIXES         0x10
+
+/* Values for humanize_number(3)'s scale parameter. */
+#define HN_GETSCALE             0x10
+#define HN_AUTOSCALE            0x20
+
+int humanize_number(char *, size_t, int64_t, const char *, int, int);
 
 #endif /* _COMPAT_H */

@@ -123,6 +123,7 @@ done
 cp -p usr/src/lib/libc/gen/setmode.c ${CWD}/compat
 cp -p lib/libc/string/strmode.c ${CWD}/compat
 cp -p lib/libc/gen/getbsize.c ${CWD}/compat
+cp -p lib/libutil/humanize_number.c ${CWD}/compat
 #cp -p lib/libc/gen/pwcache.c ${CWD}/compat
 #cp -p lib/libc/gen/devname.c ${CWD}/compat
 cp -p lib/libc/stdlib/merge.c ${CWD}/compat

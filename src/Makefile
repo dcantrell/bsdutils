@@ -7,6 +7,7 @@ COMMANDS = \
 	comm \
 	csplit \
 	cut \
+	dd \
 	dirname \
 	echo \
 	env \

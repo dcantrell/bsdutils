@@ -1,0 +1,14 @@
+--- dd/position.c.orig	2021-04-27 23:52:35.230551426 -0400
++++ dd/position.c	2021-05-03 12:56:40.756811522 -0400
+@@ -72,9 +72,9 @@
+ 	 *
+ 	 * Bail out if the calculation of a file offset would overflow.
+ 	 */
+-	if ((io->flags & ISCHR) == 0 && (n < 0 || n > OFF_MAX / (ssize_t)sz))
++	if ((io->flags & ISCHR) == 0 && (n < 0 || n > LONG_MAX / (ssize_t)sz))
+ 		errx(1, "seek offsets cannot be larger than %jd",
+-		    (intmax_t)OFF_MAX);
++		    (intmax_t)LONG_MAX);
+ 	else if ((io->flags & ISCHR) != 0 && (uint64_t)n > UINT64_MAX / sz)
+ 		errx(1, "seek offsets cannot be larger than %ju",
+ 		    (uintmax_t)UINT64_MAX);
