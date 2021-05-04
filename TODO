@@ -29,3 +29,6 @@
 
 - Update import-src.sh to be able to import new versions and overlay them
   in the source tree so the tree can try to keep up with upstream.
+  - Move this script to utils/
+  - Add Makefile targets for it
+  - Move upstream.conf settings in to the Makefile
