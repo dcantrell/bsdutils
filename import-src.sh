@@ -33,14 +33,17 @@ xz -dc src.txz | tar -xf -
 # copy in the source for all coreutils programs
 CMDS="bin/test
       usr.bin/basename
+      usr.bin/bc
       bin/cat
       bin/chmod
       usr.sbin/chown
+      usr.bin/cksum
       usr.bin/comm
       bin/cp
       usr.bin/csplit
       usr.bin/cut
       bin/date
+      usr.bin/dc
       bin/dd
       bin/df
       usr.bin/dirname
@@ -72,19 +75,24 @@ CMDS="bin/test
       usr.bin/printenv
       usr.bin/printf
       bin/pwd
+      bin/realpath
       bin/rm
       bin/rmdir
+      usr.bin/seq
       bin/sleep
       usr.bin/sort
       usr.bin/split
       usr.bin/stat
+      usr.bin/stdbuf
       bin/stty
       bin/sync
       usr.bin/tail
       usr.bin/tee
+      usr.bin/timeout
       usr.bin/touch
       usr.bin/tr
       usr.bin/true
+      usr.bin/truncate
       usr.bin/tsort
       usr.bin/tty
       usr.bin/uname

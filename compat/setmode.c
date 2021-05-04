@@ -33,6 +33,8 @@
  */
 
 #include <sys/cdefs.h>
+__SCCSID("@(#)setmode.c	8.2 (Berkeley) 3/25/94");
+__FBSDID("$FreeBSD$");
 
 #include <sys/types.h>
 #include <sys/stat.h>

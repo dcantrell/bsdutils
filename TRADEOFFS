@@ -47,15 +47,17 @@ listings.  Since this is Linux-specific, the bsdutils do not have support for
 it.  If you don't need this or don't care about SELinux, then the bsdutils
 should be functionally equivalent for you.
 
-We are open to extending these utilities with SELinux functionality if enough
-people want it.
+Some commands have FreeBSD mac.h functionality which is sort of like
+SELinux on Linux.  Those commands have had the mac.h functionality
+removed, but they would be an ideal starting point for flipping that
+over to SELinux on Linux systems.
 
 
 No translations
 ---------------
 
 The bsdutils commands come with very simple untranslated help output and an
-English language man page.  There may be translated man pages in the OpenBSD
+English language man page.  There may be translated man pages in the FreeBSD
 source tree (we should look for those), but the commands themselves don't
 output text in other languages.  However, text manipulation commands and things
 like ls(1) do work with UTF-8 encodings and wide characters.

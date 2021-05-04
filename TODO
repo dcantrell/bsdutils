@@ -1,17 +1,14 @@
-- The following programs in coreutils are not found in the OpenBSD source tree:
+- The following programs in coreutils are not found in the FreeBSD source tree:
 
       b2sum
       base32
       base64
       chcon
-      cksum
       link
       md5sum
       numfmt
       ptx
-      realpath
       runcon
-      seq
       sha1sum
       sha224sum
       sha256sum
@@ -19,15 +16,8 @@
       sha512sum
       shred
       shuf
-      stdbuf
       sum
-      timeout
-      truncate
       unlink
-
-- Maybe incorporate find and xargs in to the tree.
-
-- Maybe incorporate bc and dc in to the tree.
 
 - Maybe incorporate diffutils in to the tree (diff, diff3, sdiff).
 

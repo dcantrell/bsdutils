@@ -1,31 +1,6 @@
 diff -up cut/cut.c.orig cut/cut.c
 --- cut/cut.c.orig	2021-04-27 23:52:35.229551423 -0400
 +++ cut/cut.c	2021-04-30 09:56:12.330241269 -0400
-@@ -33,13 +33,12 @@
-  */
- 
- #ifndef lint
--static const char copyright[] =
-+__attribute__ ((unused)) static const char copyright[] =
- "@(#) Copyright (c) 1989, 1993\n\
- 	The Regents of the University of California.  All rights reserved.\n";
--static const char sccsid[] = "@(#)cut.c	8.3 (Berkeley) 5/4/95";
-+__attribute__ ((unused)) static const char sccsid[] = "@(#)cut.c	8.3 (Berkeley) 5/4/95";
- #endif /* not lint */
- #include <sys/cdefs.h>
--__FBSDID("$FreeBSD$");
- 
- #include <ctype.h>
- #include <err.h>
-@@ -241,7 +240,7 @@ needpos(size_t n)
- }
- 
- static int
--b_cut(FILE *fp, const char *fname __unused)
-+b_cut(FILE *fp, const char *fname)
- {
- 	int ch, col;
- 	char *pos;
 @@ -277,14 +276,14 @@ b_cut(FILE *fp, const char *fname __unus
  static int
  b_n_cut(FILE *fp, const char *fname)
