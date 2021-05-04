@@ -1,0 +1,10 @@
+--- ln/ln.c.orig	2021-05-04 17:34:52.772639682 -0400
++++ ln/ln.c	2021-05-04 17:36:30.556917078 -0400
+@@ -148,6 +148,7 @@
+ 	switch(argc) {
+ 	case 0:
+ 		usage();
++		break;
+ 		/* NOTREACHED */
+ 	case 1:				/* ln source */
+ 		exit(linkit(argv[0], ".", 1));

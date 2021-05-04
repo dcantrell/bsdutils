@@ -680,7 +680,7 @@ traverse(int argc, char *argv[], int options)
  * points to the parent directory of the display list.
  */
 static void
-display(const FTSENT *p, FTSENT *list, int options)
+display(const FTSENT *p, FTSENT *list, int options __attribute__((unused)))
 {
 	struct stat *sp;
 	DISPLAY d;
