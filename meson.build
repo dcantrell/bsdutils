@@ -63,6 +63,9 @@ tinfo = dependency('tinfo', required : true)
 # bc(1) needs libedit
 libedit = dependency('libedit', required : true)
 
+# dc(1) needs libcrypto
+libcrypto = dependency('libcrypto', required : true)
+
 # Header files for libcompat
 inc = include_directories('include')
 
