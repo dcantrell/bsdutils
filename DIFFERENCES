@@ -110,7 +110,7 @@ This is defined in glibc if you define _XOPEN_SOURCE.
 SIZE_T_MAX
 ----------
 glibc does not offer this.  Where it is used, we will use SIZE_MAX
-from stdint.h instead.
+from stdint.h.
 
 
 getline()
@@ -141,7 +141,8 @@ Which is a simple change without needing to bring in fgetln().  Note
 that for getline(), we need to ensure the first argument is
 initialized to NULL and the second argument is initialized to 0.
 Typical FreeBSD code does not have variable declaration with
-initialization, just the declaration.
+initialization, just the declaration.  Though sometimes you see
+separate initialization lines, but not always.
 
 
 asprintf()
@@ -348,6 +349,16 @@ The ls(1) command has the -Z option removed from the command and man
 page.
 
 
+<sys/acl.h> and related functions
+---------------------------------
+Code for FreeBSD's ACL subsystem is not available on Linux.  We have
+libacl, but that is independent of the base system and also provides
+its own command line tools for manipulating ACLs.  Where this is
+present in commands, it has been removed.  We are not opposed to
+patches that introduce libacl functionality via the FreeBSD command
+line options in things like ls(1) and other commands.
+
+
 strtonum()
 ----------
 This is a BSD extension meant as a more flexible alternative to atoi()
@@ -383,6 +394,14 @@ been removed from commands that try to use it.
 The stat(1) command has the st_flags handling code removed as well.
 The ls(1) command has the -U and -o options removed from the code and
 from the man page.
+
+
+'ls -o'
+-------
+The ls(1) command has the -o option to show the file flags in the long
+listing output.  Flags come from st_flags on struct stat structures
+and is specific to BSD operating systems.  This option has been
+removed from ls in this port.
 
 
 struct stat (st_birthtim and other things)
@@ -693,14 +712,6 @@ the routing table of the current process when run as 'id -R'.  The
 option calls getrtable(), which is not a function that Linux provides.
 This functionality is not really in scope for the id(1) command, so it
 has been removed.
-
-
-'ls -o'
--------
-The ls(1) command has the -o option to show the file flags in the long
-listing output.  Flags come from st_flags on struct stat structures
-and is specific to BSD operating systems.  This option has been
-removed from ls in this port.
 
 
 howmany()

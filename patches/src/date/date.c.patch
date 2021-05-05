@@ -1,0 +1,59 @@
+--- date/date.c.orig	2021-04-27 23:52:35.230551426 -0400
++++ date/date.c	2021-05-05 11:52:17.376657445 -0400
+@@ -58,9 +58,12 @@ __FBSDID("$FreeBSD$");
+ #include <syslog.h>
+ #include <unistd.h>
+ #include <utmpx.h>
++#include <time.h>
+ 
+ #include "vary.h"
+ 
++#include "compat.h"
++
+ #ifndef	TM_YEAR_BASE
+ #define	TM_YEAR_BASE	1900
+ #endif
+@@ -231,8 +234,10 @@ printisodate(struct tm *lt)
+ 	char fmtbuf[32], buf[32], tzbuf[8];
+ 
+ 	fmtbuf[0] = 0;
+-	for (it = iso8601_fmts; it <= iso8601_selected; it++)
+-		strlcat(fmtbuf, it->format_string, sizeof(fmtbuf));
++	for (it = iso8601_fmts; it <= iso8601_selected; it++) {
++		strncat(fmtbuf, it->format_string, 31);
++		fmtbuf[31] = '\0';
++	}
+ 
+ 	(void)strftime(buf, sizeof(buf), fmtbuf, lt);
+ 
+@@ -240,7 +245,8 @@ printisodate(struct tm *lt)
+ 		(void)strftime(tzbuf, sizeof(tzbuf), "%z", lt);
+ 		memmove(&tzbuf[4], &tzbuf[3], 3);
+ 		tzbuf[3] = ':';
+-		strlcat(buf, tzbuf, sizeof(buf));
++		strncat(buf, tzbuf, 31);
++		buf[31] = '\0';
+ 	}
+ 
+ 	printdate(buf);
+@@ -344,14 +350,18 @@ setthetime(const char *fmt, const char *
+ 	if (!jflag) {
+ 		utx.ut_type = OLD_TIME;
+ 		memset(utx.ut_id, 0, sizeof(utx.ut_id));
+-		(void)gettimeofday(&utx.ut_tv, NULL);
++		(void)gettimeofday(&tv, NULL);
++		utx.ut_tv.tv_sec = tv.tv_sec;
++		utx.ut_tv.tv_usec = tv.tv_usec;
+ 		pututxline(&utx);
+ 		tv.tv_sec = tval;
+ 		tv.tv_usec = 0;
+ 		if (settimeofday(&tv, NULL) != 0)
+ 			err(1, "settimeofday (timeval)");
+ 		utx.ut_type = NEW_TIME;
+-		(void)gettimeofday(&utx.ut_tv, NULL);
++		(void)gettimeofday(&tv, NULL);
++		utx.ut_tv.tv_sec = tv.tv_sec;
++		utx.ut_tv.tv_usec = tv.tv_usec;
+ 		pututxline(&utx);
+ 
+ 		if ((p = getlogin()) == NULL)
