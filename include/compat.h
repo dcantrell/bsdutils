@@ -34,6 +34,8 @@
 #ifndef _COMPAT_H
 #define _COMPAT_H
 
+#include <stdint.h>
+
 /* from sys/param.h on FreeBSD */
 /* max raw I/O transfer size */
 /*
@@ -72,6 +74,8 @@ char *getbsize(int *, long *);
 #define HN_GETSCALE             0x10
 #define HN_AUTOSCALE            0x20
 
+/* functions from libutil in FreeBSD */
 int humanize_number(char *, size_t, int64_t, const char *, int, int);
+int expand_number(const char *, uint64_t *);
 
 #endif /* _COMPAT_H */
