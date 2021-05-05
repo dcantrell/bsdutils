@@ -1,5 +1,5 @@
 subdir('basename')
-#subdir('bc')
+subdir('bc')
 subdir('cat')
 subdir('chmod')
 subdir('chown')

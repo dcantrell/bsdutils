@@ -24,7 +24,7 @@ find $1 \( -name "*$2" -o -name ".*$2" \) -print | sort |
 while read f; do
     U="${GENPATCH_DIFF_ARGS}"
     [ "$(basename ${f})" = "ChangeLog${2}" ] && U="${GENPATCH_DIFF_CHANGELOG_ARGS}"
-    OF="${OUTPUT_DIR}/${f%$2}.patch"
+    OF="${OUTPUT_DIR}/$(basename ${f%$2}).patch"
     diffcmd="${DIFF} ${U} /dev/null ${f%$2}"
 #    ${DIFF} ${U} $f `echo $f | sed s/$2\$//`
     [ -r "${f}" ] && diffcmd="${DIFF} ${U} ${f} ${f%$2}"
