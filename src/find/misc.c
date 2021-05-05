@@ -71,7 +71,7 @@ brace_subst(char *orig, char **store, char *path, size_t len)
 		newlen += plen - 2;
 	}
 	if (newlen > len) {
-		*store = reallocf(*store, newlen);
+		*store = realloc(*store, newlen);
 		if (*store == NULL)
 			err(2, NULL);
 	}

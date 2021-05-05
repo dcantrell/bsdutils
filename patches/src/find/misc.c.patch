@@ -1,0 +1,11 @@
+--- find/misc.c.orig	2021-04-27 23:52:35.233551434 -0400
++++ find/misc.c	2021-05-05 13:37:27.004188788 -0400
+@@ -71,7 +71,7 @@ brace_subst(char *orig, char **store, ch
+ 		newlen += plen - 2;
+ 	}
+ 	if (newlen > len) {
+-		*store = reallocf(*store, newlen);
++		*store = realloc(*store, newlen);
+ 		if (*store == NULL)
+ 			err(2, NULL);
+ 	}

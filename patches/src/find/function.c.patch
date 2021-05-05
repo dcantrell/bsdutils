@@ -1,0 +1,50 @@
+--- find/function.c.orig	2021-04-27 23:52:35.232551432 -0400
++++ find/function.c	2021-05-05 13:25:59.168511346 -0400
+@@ -40,7 +40,6 @@ static const char sccsid[] = "@(#)functi
+ __FBSDID("$FreeBSD$");
+ 
+ #include <sys/param.h>
+-#include <sys/ucred.h>
+ #include <sys/stat.h>
+ #include <sys/types.h>
+ #include <sys/acl.h>
+@@ -64,6 +63,8 @@ __FBSDID("$FreeBSD$");
+ 
+ #include "find.h"
+ 
++#include "compat.h"
++
+ static PLAN *palloc(OPTION *);
+ static long long find_parsenum(PLAN *, const char *, char *, char *);
+ static long long find_parsetime(PLAN *, const char *, char *);
+@@ -1261,7 +1262,9 @@ c_newer(OPTION *option, char ***argvp)
+ int
+ f_nogroup(PLAN *plan __unused, FTSENT *entry)
+ {
+-	return group_from_gid(entry->fts_statp->st_gid, 1) == NULL;
++	struct group *gr;
++	gr = getgrgid(entry->fts_statp->st_gid);
++	return gr == NULL;
+ }
+ 
+ PLAN *
+@@ -1281,7 +1284,9 @@ c_nogroup(OPTION *option, char ***argvp
+ int
+ f_nouser(PLAN *plan __unused, FTSENT *entry)
+ {
+-	return user_from_uid(entry->fts_statp->st_uid, 1) == NULL;
++	struct passwd *pw;
++	pw = getpwuid(entry->fts_statp->st_uid);
++	return pw == NULL;
+ }
+ 
+ PLAN *
+@@ -1320,7 +1325,7 @@ f_perm(PLAN *plan, FTSENT *entry)
+ 	mode_t mode;
+ 
+ 	mode = entry->fts_statp->st_mode &
+-	    (S_ISUID|S_ISGID|S_ISTXT|S_IRWXU|S_IRWXG|S_IRWXO);
++	    (S_ISUID|S_ISGID|S_ISVTX|S_IRWXU|S_IRWXG|S_IRWXO);
+ 	if (plan->flags & F_ATLEAST)
+ 		return (plan->m_data | mode) == mode;
+ 	else if (plan->flags & F_ANY)

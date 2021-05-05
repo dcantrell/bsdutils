@@ -1,0 +1,32 @@
+--- find/find.c.orig	2021-04-27 23:52:35.232551432 -0400
++++ find/find.c	2021-05-05 13:36:04.100958052 -0400
+@@ -52,7 +52,7 @@ __FBSDID("$FreeBSD$");
+ 
+ #include "find.h"
+ 
+-static int find_compare(const FTSENT * const *s1, const FTSENT * const *s2);
++static int find_compare(const FTSENT **s1, const FTSENT **s2);
+ 
+ /*
+  * find_compare --
+@@ -61,7 +61,7 @@ static int find_compare(const FTSENT * c
+  *	order within each directory.
+  */
+ static int
+-find_compare(const FTSENT * const *s1, const FTSENT * const *s2)
++find_compare(const FTSENT **s1, const FTSENT **s2)
+ {
+ 
+ 	return (strcoll((*s1)->fts_name, (*s2)->fts_name));
+@@ -235,7 +235,9 @@ find_execute(PLAN *plan, char *paths[])
+ 	}
+ 	e = errno;
+ 	finish_execplus();
+-	if (e && (!ignore_readdir_race || e != ENOENT))
+-		errc(1, e, "fts_read");
++	if (e && (!ignore_readdir_race || e != ENOENT)) {
++		errno = e;
++		err(1, "fts_read");
++	}
+ 	return (exitstatus);
+ }

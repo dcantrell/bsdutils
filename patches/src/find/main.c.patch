@@ -1,0 +1,20 @@
+--- find/main.c.orig	2021-04-27 23:52:35.233551434 -0400
++++ find/main.c	2021-05-05 13:37:51.764257699 -0400
+@@ -32,7 +32,7 @@
+  * SUCH DAMAGE.
+  */
+ 
+-static const char copyright[] =
++__attribute__((unused)) static const char copyright[] =
+ "@(#) Copyright (c) 1990, 1993, 1994\n\
+ 	The Regents of the University of California.  All rights reserved.\n";
+ 
+@@ -68,7 +68,7 @@ int isoutput;			/* user specified output
+ int issort;         		/* do hierarchies in lexicographical order */
+ int isxargs;			/* don't permit xargs delimiting chars */
+ int mindepth = -1, maxdepth = -1; /* minimum and maximum depth */
+-int regexp_flags = REG_BASIC;	/* use the "basic" regexp by default*/
++int regexp_flags = 0;	/* use the "basic" regexp by default*/
+ int exitstatus;
+ 
+ static void usage(void);

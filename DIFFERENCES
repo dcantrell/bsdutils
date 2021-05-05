@@ -470,6 +470,25 @@ If no configuration is found, compatibility mode is disabled.
 We don't have this function on Linux so calls to it have been removed.
 
 
+QUAD_MAX
+--------
+This is defined on FreeBSD as LONG_MAX, so we'll just call it LONG_MAX
+via CFLAGS.
+
+
+MAXLOGNAME
+----------
+The maximum login name length is defined as LOGIN_NAME_MAX on Linux.
+Linux has both the POSIX limit and the Linux limit.  The POSIX limit
+is 9 while the Linux limit is 256.  We're building with _GNU_SOURCE,
+so we're getting the Linux limit.
+
+
+reallocf()
+----------
+This is a FreeBSD function that does realloc() but if it fails to
+allocate more memory it will free the already allocated memory before
+returning NULL.  We change these calls to realloc().
 
 
 
