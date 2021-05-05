@@ -308,6 +308,9 @@ Linux in the past.  Support for -h in chmod.c has been removed and it
 has been removed from the chmod.1 man page (though the historical
 information and BSD-specification information remove).
 
+lchmod() is also used in cp(1) from FreeBSD, but that functionality
+has been removed from this port.
+
 
 lpathconf()
 -----------

@@ -1,0 +1,10 @@
+--- ./cp/extern.h.orig	2021-04-27 23:52:35.229551423 -0400
++++ ./cp/extern.h	2021-05-05 08:45:11.615126756 -0400
+@@ -40,7 +40,6 @@ typedef struct {
+ 
+ extern PATH_T to;
+ extern int fflag, iflag, lflag, nflag, pflag, sflag, vflag;
+-extern volatile sig_atomic_t info;
+ 
+ __BEGIN_DECLS
+ int	copy_fifo(struct stat *, int);

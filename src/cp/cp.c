@@ -87,12 +87,10 @@ PATH_T to = { to.p_path, emptystring, "" };
 
 int fflag, iflag, lflag, nflag, pflag, sflag, vflag;
 static int Rflag, rflag;
-volatile sig_atomic_t info;
 
 enum op { FILE_TO_FILE, FILE_TO_DIR, DIR_TO_DNE };
 
 static int copy(char *[], enum op, int);
-static void siginfo(int __unused);
 
 int
 main(int argc, char *argv[])
@@ -183,12 +181,11 @@ main(int argc, char *argv[])
 		fts_options &= ~FTS_PHYSICAL;
 		fts_options |= FTS_LOGICAL | FTS_COMFOLLOW;
 	}
-	(void)signal(SIGINFO, siginfo);
 
 	/* Save the target base in "to". */
 	target = argv[--argc];
-	if (strlcpy(to.p_path, target, sizeof(to.p_path)) >= sizeof(to.p_path))
-		errx(1, "%s: name too long", target);
+	strncpy(to.p_path, target, sizeof(to.p_path));
+	to.p_path[sizeof(to.p_path) - 1] = '\0';
 	to.p_end = to.p_path + strlen(to.p_path);
 	if (to.p_path == to.p_end) {
 		*to.p_end++ = '.';
@@ -375,12 +372,9 @@ copy(char *argv[], enum op type, int fts_options)
 			if (pflag) {
 				if (setfile(curr->fts_statp, -1))
 					rval = 1;
-				if (preserve_dir_acls(curr->fts_statp,
-				    curr->fts_accpath, to.p_path) != 0)
-					rval = 1;
 			} else {
 				mode = curr->fts_statp->st_mode;
-				if ((mode & (S_ISUID | S_ISGID | S_ISTXT)) ||
+				if ((mode & (S_ISUID | S_ISGID | S_ISVTX)) ||
 				    ((mode | S_IRWXU) & mask) != (mode & mask))
 					if (chmod(to.p_path, mode & mask) !=
 					    0) {
@@ -494,11 +488,4 @@ copy(char *argv[], enum op type, int fts_options)
 		err(1, "fts_read");
 	fts_close(ftsp);
 	return (rval);
-}
-
-static void
-siginfo(int sig __unused)
-{
-
-	info = 1;
 }
