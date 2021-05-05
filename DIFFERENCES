@@ -453,6 +453,23 @@ don't have this, but an off_t is a long int, so we can use LONG_MAX
 instead.
 
 
+check_utility_compat()
+----------------------
+
+The check_utility_compat() function checks whether utility should
+behave in a traditional (FreeBSD 4.7-compatible) manner, or in
+accordance with IEEE Std 1003.1-2001 (“POSIX.1”).  The configuration
+is given as a comma- separated list of utility names; if the list is
+present but empty, all supported utilities assume their most
+compatible mode.  The check_utility_compat() function first checks for
+an environment variable named _COMPAT_FreeBSD_4.  If that environment
+variable does not exist, then check_utility_compat() will attempt to
+read the contents of a symbolic link named /etc/compat-FreeBSD-4-util.
+If no configuration is found, compatibility mode is disabled.
+
+We don't have this function on Linux so calls to it have been removed.
+
+
 
 
 

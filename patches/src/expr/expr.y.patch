@@ -1,0 +1,12 @@
+--- expr/expr.y.orig	2021-04-27 23:52:35.232551432 -0400
++++ expr/expr.y	2021-05-05 11:59:17.289811610 -0400
+@@ -270,8 +270,7 @@ main(int argc, char *argv[])
+ 	int c;
+ 
+ 	setlocale(LC_ALL, "");
+-	if (getenv("EXPR_COMPAT") != NULL
+-	    || check_utility_compat("expr")) {
++	if (getenv("EXPR_COMPAT") != NULL) {
+ 		av = argv + 1;
+ 		nonposix = 1;
+ 	} else {
