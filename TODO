@@ -32,3 +32,6 @@
   - Move this script to utils/
   - Add Makefile targets for it
   - Move upstream.conf settings in to the Makefile
+
+- Use libacl to implement the preserve ACL stuff in cp & mv and other
+  programs that have ACL support on FreeBSD

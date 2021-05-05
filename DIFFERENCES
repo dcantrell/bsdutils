@@ -491,6 +491,28 @@ allocate more memory it will free the already allocated memory before
 returning NULL.  We change these calls to realloc().
 
 
+struct statfs
+-------------
+This is available on Linux in the <sys/vfs.h> header.  Not all of the
+struct members are the same as the ones in FreeBSD.  For instance,
+Linux has .f_bsize whereas FreeBSD has .f_iosize.  The statfs
+structures are OS-specific and the similarly named struct statvfs is
+defined to be the portable one.  We will use the statvfs structure and
+functions where statfs is used.  The statvfs struct and functions are
+defined in <sys/statvfs.h>.
+
+The struct statvfs on Linux does not have the f_mntonname member, so
+uses of that in these tools has been removed.
+
+
+_PATH_CP and _PATH_RM
+---------------------
+These are defined as /bin/cp and /bin/rm, respectively.  Where we need
+them we will just define them in CFLAGS and move on.
+
+
+
+
 
 
 
@@ -607,20 +629,6 @@ ARC4 or ARCFOUR or Alleged RC4.  Later versions of arc4random() have
 changed to other algorithms leading the man pages to say arc4random
 stands for "a replacement for random" referring to the original
 random() library call.
-
-
-struct statfs
--------------
-This is available on Linux in the <sys/vfs.h> header.  Not all of the
-struct members are the same as the ones in BSD.  For instance, Linux
-has .f_bsize whereas BSD has .f_iosize.  The statfs structures are
-OS-specific and the similarly named struct statvfs is defined to be
-the portable one.  We will use the statvfs structure and functions
-where statfs is used.  The statvfs struct and functions are defined in
-<sys/statvfs.h>.
-
-The struct statvfs on Linux does not have the f_mntonname member, so
-uses of that in these tools has been removed.
 
 
 getbsize()
