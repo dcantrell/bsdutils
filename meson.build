@@ -66,6 +66,9 @@ libedit = dependency('libedit', required : true)
 # dc(1) needs libcrypto
 libcrypto = dependency('libcrypto', required : true)
 
+# seq(1) needs libm
+libm = cc.find_library('m', required : true)
+
 # Header files for libcompat
 inc = include_directories('include')
 

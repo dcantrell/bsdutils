@@ -1,0 +1,20 @@
+--- seq/seq.c.orig	2021-04-08 20:24:12.000000000 -0400
++++ seq/seq.c	2021-05-05 17:33:45.839347252 -0400
+@@ -52,6 +52,8 @@ __FBSDID("$FreeBSD$");
+ #define ISEXP(c)	((int)(c) == 'e' || (int)(c) == 'E')
+ #define ISODIGIT(c)	((int)(c) >= '0' && (int)(c) <= '7')
+ 
++extern char *__progname;
++
+ /* Globals */
+ 
+ static const char *decimal_point = ".";	/* default */
+@@ -143,7 +145,7 @@ main(int argc, char *argv[])
+ 	if (errflg) {
+ 		fprintf(stderr,
+ 		    "usage: %s [-w] [-f format] [-s string] [-t string] [first [incr]] last\n",
+-		    getprogname());
++		    __progname);
+ 		exit(1);
+ 	}
+ 
