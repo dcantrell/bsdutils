@@ -511,6 +511,13 @@ These are defined as /bin/cp and /bin/rm, respectively.  Where we need
 them we will just define them in CFLAGS and move on.
 
 
+MAXBSIZE
+--------
+Defined in the <sys/param.h> header from the FreeBSD kernel as 65536.
+This is the maximum filesystem block size.  Linux lacks a generic
+definition for this as it is per-filesystem dependent.  We lift the
+FreeBSD definition from their <sys/param.h> and use it.
+
 
 
 

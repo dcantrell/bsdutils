@@ -36,7 +36,9 @@
 
 #include <stdint.h>
 
-/* from sys/param.h on FreeBSD */
+/* FreeBSD kernel stuff */
+
+/* from <sys/param.h> on FreeBSD */
 /* max raw I/O transfer size */
 /*
  * XXX: this is _probably_ going to be 1M on the system if it were
@@ -46,15 +48,28 @@
 #define MAXPHYS (1024 * 1024)
 /* #define MAXPHYS (128 * 1024)    <--- could be this on 32-bit systems */
 
+/*
+ * File system parameters and macros.
+ *
+ * MAXBSIZE - Filesystems are made out of blocks of at most MAXBSIZE
+ *            bytes per block.  MAXBSIZE may be made larger without
+ *            effecting any existing filesystems as long as it does
+ *            not exceed MAXPHYS, and may be made smaller at the
+ *            risk of not being able to use filesystems which
+ *            require a block size exceeding MAXBSIZE.
+ */
+#define MAXBSIZE        65536   /* must be power of 2 */
+
 /* from <sys/param.h> in FreeBSD */
 /* Macros for counting and rounding. */
 #define roundup2(x, y)  (((x)+((y)-1))&(~((y)-1))) /* if y is powers of two */
 #define nitems(x)       (sizeof((x)) / sizeof((x)[0]))
 
-/* from wchar.h in FreeBSD */
+/* FreeBSD libc stuff */
+
+/* from <wchar.h> in FreeBSD */
 #define iswascii(wc) (((wc) & ~0x7F) == 0)
 
-/* from libc in FreeBSD */
 mode_t getmode(const void *, mode_t);
 void *setmode(const char *);
 void strmode(int, char *);
@@ -62,7 +77,9 @@ int mergesort(void *, size_t, size_t, int (*)(const void *, const void *));
 int heapsort(void *, size_t, size_t, int (*)(const void *, const void *));
 char *getbsize(int *, long *);
 
-/* from lib/libutil/libutil.h in FreeBSD */
+/* FreeBSD libutil stuff */
+
+/* from <libutil.h> in FreeBSD */
 /* Values for humanize_number(3)'s flags parameter. */
 #define HN_DECIMAL              0x01
 #define HN_NOSPACE              0x02
