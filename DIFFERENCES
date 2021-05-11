@@ -418,10 +418,10 @@ are doing, our code removes the st_birthtime code whenever it appears
 in the code.
 
 
-S_IFWHT
--------
+S_IFWHT and S_ISWHT
+-------------------
 Linux does not support whiteouts as a struct stat member.  Where
-S_IFWHT is used or checked, it is removed from the code.
+S_IFWHT or S_ISWHT is used or checked, it is removed from the code.
 
 
 fts_open()
@@ -518,6 +518,12 @@ This is the maximum filesystem block size.  Linux lacks a generic
 definition for this as it is per-filesystem dependent.  We lift the
 FreeBSD definition from their <sys/param.h> and use it.
 
+
+undelete()
+----------
+The rm(1) command offers the -W option to try to undelete files marked
+as whiteout on a unionfs volume.  This is FreeBSD-specific and has
+been removed.
 
 
 
