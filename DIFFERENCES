@@ -526,39 +526,117 @@ as whiteout on a unionfs volume.  This is FreeBSD-specific and has
 been removed.
 
 
+vis.h functions
+---------------
+Starting with 4.4BSD, the C library gained a header called vis.h that
+defined a number of functions to "visually encode characters".
+Functions such as strvis().  These functions are present in FreeBSD
+and are used by some programs, such as install(1).  Linux with glibc
+lacks the vis.h functions.  BSD systems tend to have a source file in
+libc called vis.c which provides strvis(), but we provide them in the
+local libcompat library.  The header file is available in include/ and
+programs are patched to include "vis.h" instead of <vis.h>.
 
 
+EPROCLIM
+--------
+This is a FreeBSD specific error code that means "too many processes".
+Linux does not provide this so it is removed from the code where it
+appears.
 
 
+getbsize()
+----------
+The FreeBSD standard C library includes the getbsize() function which
+returns a formatted string based on the value in the BLOCKSIZE
+environment variable.  This appears to be a standard BSD thing as it
+claims to have originated with 4.4 BSD.  We take the one from the
+FreeBSD source tree and put it in our compat library.
 
 
+EFTYPE
+------
+This is an errno value from FreeBSD that we do not have on Linux.  It
+means "invalid file type".  Where we need to use EFTYPE for reporting,
+we will use EINVAL instead.
 
 
+MD5 and SHA API differences
+---------------------------
+We use libcrypto from OpenSSL for MD5 and SHA message digest
+algorithms.  The API is mostly the same, but some types and functions
+are spelled differently.  For example, in FreeBSD they have SHA1_CTX
+and OpenSSL provides SHA_CTX.  FreeBSD has MD5Init and OpenSSL
+provides MD5_Init.  Our port patches these instances in the code.
+
+FreeBSD also provides *_File() functions that compute the named
+message digest given a filename.  OpenSSL does not provide this.
+Where the function is used in install(1), we have rewritten
+digest_file() to compute the digest with an open/read loop.
+
+The *_End() function calls have been replaced with *_Final() function
+calls.
 
 
-/*
-
-  Linux does not have the st_mtimensec member.  Linux has
+st_atimespec, st_ctimespec, and st_mtimespec
+--------------------------------------------
+Linux does not have the st_{a,c,m}timespec members.  Linux has
 st_atim, st_mtim, and st_ctim (note the lack of the trailing 'e')
 which are all struct timespec structures.  There is st_atime,
 st_mtime, and st_ctime which are the .tv_sec members of the timespec
 structures.  You can get the nanoseconds from the .tv_nsec member on
-the timespec structures.  For code that uses this, make sure to add
--D_XOPEN_SOURCE=700 (or higher than 700) to the CFLAGS.
-
-The st_birthtime member is not present on Linux because this is
-filesystem specific and there is not a generic way to handle it.  Even
-FreeBSD has this problem for some filesystems.  In those cases, the
-st_btime output is undefined if the filesystem lacks support.  GNU
-stat works this way too.  For consistency with the other stuff we are
-doing, our code removes the st_birthtime code whenever it appears in
-code.
-
-The st_gen member is the file generation number and this is not
-present on Linux, so it has been removed from the code.
+the timespec structures.  Code using these stat(2) struct members, we
+patch it to use the Linux struct syntax.  So st_atimespec becomes
+st_atim.
 
 
-*/
+st_birthtime
+------------
+The st_birthtime member in struct stat is not present on Linux because
+this is filesystem specific and there is not a generic way to handle
+it.  Even FreeBSD has this problem for some filesystems.  In those
+cases, the st_btime output is undefined if the filesystem lacks
+support.  GNU stat works this way too.  For consistency with the other
+stuff we are doing, our code removes the st_birthtime code whenever it
+appears in code.
+
+
+st_gen
+------
+The st_gen struct stat member is the file generation number and this
+is not present on Linux, so it has been removed from the code.
+
+
+SPECNAMELEN
+-----------
+FreeBSD defines SPECNAMELEN as 255.  We change this to MAXPATHLEN on
+Linux (also 255).  This is used in stat(1) and relates to path name
+limits.
+
+
+ishexdigit()
+------------
+Present on FreeBSD but not on Linux.  We change this to isxdigit()
+which we have via ctype.h on glibc.
+
+
+'stat -H'
+---------
+The fhandle_t type and fhstat() function are not available on Linux,
+so the special handling of NFS handles in stat(1) via the -H option
+has been removed.
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -608,25 +686,6 @@ XXXXXXXXXXXXXXXXX ---> below here is former OpenBSD notes, I will
 
 
 
-DEF_WEAK
---------
-Linux does not have the namespace.h definitions from OpenBSD, which
-includes DEF_WEAK.  This expands to __weak_alias(x, HIDDEN(x)) and
-HIDDEN renames the item with a prefix of __libc_.  We don't need that
-here since our compat library is just a static library used to build
-this handful of programs.  Where DEF_WEAK is present in source, it
-will be removed.
-
-
-MAXBSIZE
---------
-Defined in sys/param.h on OpenBSD, but filesystem specific.  Similar
-to fchflags(), we don't have a generic definition for this in Linux.
-The OpenBSD definition is the same as the definition that comes with
-e2fsprogs, which seems like a reasonable default.  So we define this
-one as-is in the source.
-
-
 arc4random() and related things
 -------------------------------
 Linux has the standard C library random functions and does not include
@@ -642,15 +701,6 @@ ARC4 or ARCFOUR or Alleged RC4.  Later versions of arc4random() have
 changed to other algorithms leading the man pages to say arc4random
 stands for "a replacement for random" referring to the original
 random() library call.
-
-
-getbsize()
-----------
-The OpenBSD standard C library includes the getbsize() function which
-returns a formatted string based on the value in the BLOCKSIZE
-environment variable.  This appears to be a standard BSD thing as it
-claims to have originated with 4.4 BSD.  We take the one from the
-OpenBSD source tree and put it in our compat library.
 
 
 VDSUSP
@@ -780,13 +830,6 @@ optreset
 --------
 getopt() on OpenBSD uses an optreset variable.  glibc does not have
 this on Linux, so uses of it are removed from this port.
-
-
-EFTYPE
-------
-This is an errno value from OpenBSD that we do not have on Linux.  It
-means "invalid file type".  Where we need to use EFTYPE for reporting,
-we will use EINVAL instead.
 
 
 MACHINE_ARCH

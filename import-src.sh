@@ -133,25 +133,17 @@ cp -p lib/libc/string/strmode.c ${CWD}/compat
 cp -p lib/libc/gen/getbsize.c ${CWD}/compat
 cp -p lib/libutil/humanize_number.c ${CWD}/compat
 cp -p lib/libutil/expand_number.c ${CWD}/compat
-#cp -p lib/libc/gen/pwcache.c ${CWD}/compat
-#cp -p lib/libc/gen/devname.c ${CWD}/compat
 cp -p lib/libc/stdlib/merge.c ${CWD}/compat
 cp -p lib/libc/stdlib/heapsort.c ${CWD}/compat
-#cp -p lib/libc/stdlib/recallocarray.c ${CWD}/compat
-#cp -p lib/libc/stdlib/strtonum.c ${CWD}/compat
-#cp -p lib/libc/string/strlcat.c ${CWD}/compat
-#cp -p lib/libc/string/strlcpy.c ${CWD}/compat
-#cp -p lib/libutil/ohash.c ${CWD}/compat
-#cp -p lib/libutil/ohash.h ${CWD}/compat
-#cp -p lib/libutil/fmt_scaled.c ${CWD}/compat
-#cp -p lib/libutil/util.h ${CWD}/compat
+cp -p contrib/libc-vis/vis.c ${CWD}/compat
+cp -p contrib/libc-vis/vis.h ${CWD}/include
 
 # These files are needed for the factor command
 cp -p usr.bin/primes/primes.h ${CWD}/src/factor
 cp -p games/primes/pr_tbl.c ${CWD}/src/factor
 
-# This header is in the kernel source, but used in userspace
-#cp -p sys/sys/tree.h ${CWD}/compat/tree.h
+# These files are need for the install command
+cp -p contrib/mtree/mtree.h ${CWD}/src/xinstall
 
 #####################
 # APPLY ANY PATCHES #

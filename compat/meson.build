@@ -6,6 +6,7 @@ libcompat_sources = [
     'setmode.c',
     'strmode.c',
     'expand_number.c',
+    'vis.c',
 ]
 
 libcompat = static_library(

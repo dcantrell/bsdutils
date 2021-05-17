@@ -63,7 +63,7 @@ tinfo = dependency('tinfo', required : true)
 # bc(1) needs libedit
 libedit = dependency('libedit', required : true)
 
-# dc(1) needs libcrypto
+# dc(1) and install(1) need libcrypto
 libcrypto = dependency('libcrypto', required : true)
 
 # seq(1) needs libm
