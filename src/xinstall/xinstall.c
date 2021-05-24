@@ -1068,8 +1068,8 @@ install(const char *from_name, const char *to_name, u_long fset, u_int flags)
  *	unless it points to pre-computed digest.
  */
 static int
-compare(int from_fd, const char *from_name __unused, size_t from_len,
-	int to_fd, const char *to_name __unused, size_t to_len,
+compare(int from_fd, const char *from_name __attribute__((unused)), size_t from_len,
+	int to_fd, const char *to_name __attribute__((unused)), size_t to_len,
 	char **dresp)
 {
 	char *p, *q;

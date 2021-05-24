@@ -1,6 +1,7 @@
 paste_prog = executable(
     'paste',
     [ 'paste.c' ],
+    include_directories : inc,
     install : true,
 )
 

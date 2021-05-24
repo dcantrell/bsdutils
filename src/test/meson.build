@@ -1,6 +1,7 @@
 test_prog = executable(
     'xtest',
     [ 'test.c' ],
+    include_directories : inc,
     install : true,
 )
 

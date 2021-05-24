@@ -1,6 +1,7 @@
 users_prog = executable(
     'users',
     [ 'users.cc' ],
+    include_directories : inc,
     install : true,
 )
 

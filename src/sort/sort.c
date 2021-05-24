@@ -441,8 +441,8 @@ parse_memory_buffer_value(const char *value)
  * Signal handler that clears the temporary files.
  */
 static void
-sig_handler(int sig __unused, siginfo_t *siginfo __unused,
-    void *context __unused)
+sig_handler(int sig __attribute__((unused)), siginfo_t *siginfo __attribute__((unused)),
+    void *context __attribute__((unused)))
 {
 
 	clear_tmp_files();

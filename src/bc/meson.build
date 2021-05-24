@@ -4,6 +4,7 @@ bc_prog = executable(
       lex.process('scan.l'),
       'tty.c',
     ],
+    include_directories : inc,
     dependencies : [ libedit ],
     install : true,
 )

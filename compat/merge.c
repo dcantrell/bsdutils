@@ -52,6 +52,7 @@ __FBSDID("$FreeBSD$");
  * (The default is pairwise merging.)
  */
 
+#include <sys/types.h>
 #include <sys/param.h>
 
 #include <errno.h>

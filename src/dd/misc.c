@@ -134,7 +134,7 @@ progress(void)
 
 /* ARGSUSED */
 void
-sigalarm_handler(int signo __unused)
+sigalarm_handler(int signo __attribute__((unused)))
 {
 
 	need_progress = 1;

@@ -524,7 +524,7 @@ static TABLE const MilitaryTable[] = {
 
 /* ARGSUSED */
 static int
-yyerror(const char *s __unused)
+yyerror(const char *s __attribute__((unused)))
 {
   return 0;
 }

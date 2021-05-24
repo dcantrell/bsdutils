@@ -1,6 +1,7 @@
 tty_prog = executable(
     'tty',
     [ 'tty.c' ],
+    include_directories : inc,
     install : true,
 )
 

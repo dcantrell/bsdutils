@@ -57,7 +57,7 @@ gerr(const char *s)
 }
 
 void
-gprint(struct termios *tp, struct winsize *wp __unused, int ldisc __unused)
+gprint(struct termios *tp, struct winsize *wp __attribute__((unused)), int ldisc __attribute__((unused)))
 {
 	struct cchar *cp;
 

@@ -1,6 +1,7 @@
 basename_prog = executable(
     'basename',
     [ 'basename.c' ],
+    include_directories : inc,
     install : true,
 )
 

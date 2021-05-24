@@ -209,7 +209,7 @@ usage(void)
 }
 
 static void
-scanfiles(char *argv[], int cooked __unused)
+scanfiles(char *argv[], int cooked __attribute__((unused)))
 {
 	int fd, i;
 	char *path;

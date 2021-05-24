@@ -3,6 +3,7 @@ env_prog = executable(
     [ 'env.c',
       'envopts.c',
     ],
+    include_directories : inc,
     install : true,
 )
 
