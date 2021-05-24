@@ -3,6 +3,7 @@ cp_prog = executable(
     [ 'cp.c',
       'utils.c',
     ],
+    dependencies : [ fts, ],
     include_directories : inc,
     install : true,
 )

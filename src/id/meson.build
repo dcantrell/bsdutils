@@ -1,6 +1,7 @@
 id_prog = executable(
     'id',
     [ 'id.c' ],
+    include_directories : inc,
     install : true,
 )
 
@@ -8,6 +9,7 @@ id_prog = executable(
 groups_prog = executable(
     'groups',
     [ 'id.c' ],
+    include_directories : inc,
     install : true,
 )
 
@@ -15,6 +17,7 @@ groups_prog = executable(
 whoami_prog = executable(
     'whoami',
     [ 'id.c' ],
+    include_directories : inc,
     install : true,
 )
 

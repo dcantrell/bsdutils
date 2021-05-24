@@ -4,6 +4,7 @@ cksum_prog = executable(
     'cksum',
     srcs,
     c_args : [ '-Duint32_t=u_int32_t' ],
+    include_directories : inc,
     install : true,
 )
 
@@ -12,6 +13,7 @@ sum_prog = executable(
     'sum',
     srcs,
     c_args : [ '-Duint32_t=u_int32_t' ],
+    include_directories : inc,
     install : true,
 )
 

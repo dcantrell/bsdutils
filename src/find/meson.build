@@ -12,6 +12,7 @@ find_prog = executable(
     c_args : [ '-DQUAD_MAX=LONG_MAX',
                '-DMAXLOGNAME=LOGIN_NAME_MAX', ],
     include_directories : inc,
+    dependencies : [ fts, rpmatch, ],
     link_with : [ libcompat ],
     install : true,
 )

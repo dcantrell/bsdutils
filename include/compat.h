@@ -35,6 +35,7 @@
 #define _COMPAT_H
 
 #include <stdint.h>
+#include <sys/stat.h>
 
 /* FreeBSD kernel stuff */
 

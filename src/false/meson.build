@@ -1,6 +1,7 @@
 false_prog = executable(
     'false',
     [ 'false.c' ],
+    include_directories : inc,
     install : true,
 )
 

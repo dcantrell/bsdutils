@@ -88,7 +88,7 @@ volatile sig_atomic_t need_summary;
 volatile sig_atomic_t need_progress;
 
 int
-main(int argc __unused, char *argv[])
+main(int argc __attribute__((unused)), char *argv[])
 {
 	struct itimerval itv = { { 1, 0 }, { 1, 0 } }; /* SIGALARM every second, if needed */
 

@@ -6,6 +6,7 @@ dc_prog = executable(
       'mem.c',
       'stack.c',
     ],
+    include_directories : inc,
     dependencies : [ libcrypto, ],
     install : true,
 )

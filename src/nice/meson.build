@@ -1,6 +1,7 @@
 nice_prog = executable(
     'nice',
     [ 'nice.c' ],
+    include_directories : inc,
     install : true,
 )
 

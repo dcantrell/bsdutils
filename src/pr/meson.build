@@ -3,6 +3,7 @@ pr_prog = executable(
     [ 'egetopt.c',
       'pr.c'
     ],
+    include_directories : inc,
     install : true,
 )
 

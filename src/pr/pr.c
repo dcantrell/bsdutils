@@ -1548,7 +1548,7 @@ prtail(int cnt, int incomp)
  * terminate():	when a SIGINT is recvd
  */
 void
-terminate(int which_sig __unused)
+terminate(int which_sig __attribute__((unused)))
 {
 	flsh_errs();
 	exit(1);

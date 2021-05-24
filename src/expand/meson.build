@@ -1,6 +1,7 @@
 expand_prog = executable(
     'expand',
     [ 'expand.c' ],
+    include_directories : inc,
     install : true,
 )
 

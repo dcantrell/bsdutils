@@ -1,6 +1,7 @@
 fmt_prog = executable(
     'fmt',
     [ 'fmt.c' ],
+    include_directories : inc,
     install : true,
 )
 

@@ -1,6 +1,7 @@
 csplit_prog = executable(
     'csplit',
     [ 'csplit.c' ],
+    include_directories : inc,
     install : true,
 )
 

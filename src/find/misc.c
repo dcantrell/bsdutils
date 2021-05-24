@@ -51,6 +51,10 @@ __FBSDID("$FreeBSD$");
 
 #include "find.h"
 
+#if defined(__linux__) && !defined(__GLIBC__)
+#include <rpmatch.h>
+#endif
+
 /*
  * brace_subst --
  *	Replace occurrences of {} in s1 with s2 and return the result string.

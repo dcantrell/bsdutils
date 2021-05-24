@@ -45,11 +45,11 @@ endif
 # Define some macros to eliminate some FreeBSD-specifics in the code
 add_global_arguments(
     [ '-Dlint',
-      '-D__FBSDID(x)=',
-      '-D__dead2=',
-      '-D__unused=__attribute__((unused))',
-      '-D__printf0like(x, y)=',
-      '-D__SCCSID(x)=',
+      '-DDEFFILEMODE=(S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH)',
+      '-DALLPERMS=(S_ISUID|S_ISGID|S_ISVTX|S_IRWXU|S_IRWXG|S_IRWXO)',
+      '-DO_FSYNC=O_SYNC',
+      '-Dstrtoq=strtoull',
+      '-DREG_STARTEND=0',
     ],
     language : [ 'c', 'cpp' ]
 )
@@ -76,6 +76,10 @@ libcrypto = dependency('libcrypto', required : true)
 
 # seq(1) needs libm
 libm = cc.find_library('m', required : true)
+
+# needed by a few utils; provided by glibc, but not by e.g. musl
+fts = cc.find_library('fts', required : false)
+rpmatch = cc.find_library('rpmatch', required : false)
 
 # Header files for libcompat
 inc = include_directories('include')

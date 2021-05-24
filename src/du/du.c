@@ -80,7 +80,7 @@ static void	prthumanval(int64_t);
 static void	ignoreadd(const char *);
 static void	ignoreclean(void);
 static int	ignorep(FTSENT *);
-static void	siginfo(int __unused);
+static void	siginfo(int __attribute__((unused)));
 
 static int	nodumpflag = 0;
 static int	Aflag, hflag;
@@ -556,7 +556,7 @@ ignorep(FTSENT *ent)
 }
 
 static void
-siginfo(int sig __unused)
+siginfo(int sig __attribute__((unused)))
 {
 
 	info = 1;
