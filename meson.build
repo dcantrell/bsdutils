@@ -58,7 +58,15 @@ add_global_arguments(
 add_global_arguments('-D_GNU_SOURCE', language : [ 'c', 'cpp' ])
 
 # ls(1) needs the terminfo library
-tinfo = dependency('tinfo', required : true)
+foreach opt : ['tinfo', 'ncursesw', 'ncurses']
+    tinfo = cc.find_library(opt, required : false)
+    if tinfo.found()
+        break
+    endif
+endforeach
+if not tinfo.found()
+    error('a terminfo library is needed')
+endif
 
 # bc(1) needs libedit
 libedit = dependency('libedit', required : true)
