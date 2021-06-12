@@ -1,6 +1,5 @@
-diff -up chown/chown.c.orig chown/chown.c
---- chown/chown.c.orig	2021-04-27 23:52:35.229551423 -0400
-+++ chown/chown.c	2021-04-30 18:27:11.625136464 -0400
+--- chown/chown.c.orig	2021-04-09 02:24:13.000000000 +0200
++++ chown/chown.c	2021-06-12 06:47:02.271086318 +0200
 @@ -73,14 +73,6 @@ static uid_t uid;
  static gid_t gid;
  static int ischown;

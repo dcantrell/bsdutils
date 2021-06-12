@@ -1,6 +1,6 @@
---- ls/ls.c.orig	2021-04-08 20:24:01.000000000 -0400
-+++ ls/ls.c	2021-05-04 17:38:36.949275641 -0400
-@@ -49,7 +49,7 @@
+--- ls/ls.c.orig	2021-04-09 02:24:01.000000000 +0200
++++ ls/ls.c	2021-06-12 06:22:35.108177570 +0200
+@@ -49,7 +49,7 @@ __FBSDID("$FreeBSD$");
  #include <sys/param.h>
  #include <sys/stat.h>
  #include <sys/ioctl.h>
@@ -9,7 +9,7 @@
  
  #include <ctype.h>
  #include <dirent.h>
-@@ -75,6 +75,8 @@
+@@ -75,6 +75,8 @@ __FBSDID("$FreeBSD$");
  #include "ls.h"
  #include "extern.h"
  
@@ -18,7 +18,7 @@
  /*
   * Upward approximation of the maximum number of characters needed to
   * represent a value of integral type t as a string, excluding the
-@@ -98,7 +100,7 @@
+@@ -98,7 +100,7 @@ __FBSDID("$FreeBSD$");
  	} while(0)
  
  static void	 display(const FTSENT *, FTSENT *, int);
@@ -27,7 +27,7 @@
  static void	 traverse(int, char **, int);
  
  #define	COLOR_OPT	(CHAR_MAX + 1)
-@@ -119,12 +121,9 @@
+@@ -119,12 +121,9 @@ int termwidth = 80;		/* default terminal
  
  /* flags */
         int f_accesstime;	/* use time of last access */
@@ -40,7 +40,7 @@
  static int f_listdir;		/* list actual directory, not contents */
  static int f_listdot;		/* list files beginning with . */
         int f_longform;		/* long listing format */
-@@ -234,7 +233,6 @@
+@@ -234,7 +233,6 @@ main(int argc, char *argv[])
  	struct winsize win;
  	int ch, fts_options, notused;
  	char *p;
@@ -48,7 +48,7 @@
  #ifdef COLORLS
  	char termcapbuf[1024];	/* termcap definition buffer */
  	char tcapbuf[512];	/* capability buffer */
-@@ -246,8 +244,12 @@
+@@ -246,8 +244,12 @@ main(int argc, char *argv[])
  	/* Terminal defaults to -Cq, non-terminal defaults to -1. */
  	if (isatty(STDOUT_FILENO)) {
  		termwidth = 80;
@@ -63,7 +63,7 @@
  		else if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &win) != -1 &&
  		    win.ws_col > 0)
  			termwidth = win.ws_col;
-@@ -256,13 +258,14 @@
+@@ -256,13 +258,14 @@ main(int argc, char *argv[])
  		f_singlecol = 1;
  		/* retrieve environment variable, in case of explicit -C */
  		p = getenv("COLUMNS");
@@ -83,7 +83,7 @@
  	fts_options = FTS_PHYSICAL;
  	if (getenv("LS_SAMESORT"))
  		f_samesort = 1;
-@@ -276,7 +279,7 @@
+@@ -276,7 +279,7 @@ main(int argc, char *argv[])
  		colorflag = COLORFLAG_AUTO;
  #endif
  	while ((ch = getopt_long(argc, argv,
@@ -92,7 +92,7 @@
  	    NULL)) != -1) {
  		switch (ch) {
  		/*
-@@ -301,21 +304,14 @@
+@@ -301,21 +304,14 @@ main(int argc, char *argv[])
  			f_longform = 0;
  			f_singlecol = 0;
  			break;
@@ -115,7 +115,7 @@
  			break;
  		case 'f':
  			f_nosort = 1;
-@@ -389,9 +385,6 @@
+@@ -389,9 +385,6 @@ main(int argc, char *argv[])
  		case 'W':
  			f_whiteout = 1;
  			break;
@@ -125,7 +125,7 @@
  		case 'b':
  			f_nonprint = 0;
  			f_octal = 0;
-@@ -422,9 +415,6 @@
+@@ -422,9 +415,6 @@ main(int argc, char *argv[])
  		case 'n':
  			f_numericonly = 1;
  			break;
@@ -135,7 +135,7 @@
  		case 'p':
  			f_slash = 1;
  			f_type = 1;
-@@ -572,8 +562,6 @@
+@@ -572,8 +562,6 @@ main(int argc, char *argv[])
  			sortfcn = revsizecmp;
  		else if (f_accesstime)
  			sortfcn = revacccmp;
@@ -144,7 +144,7 @@
  		else if (f_statustime)
  			sortfcn = revstatcmp;
  		else		/* Use modification time. */
-@@ -585,8 +573,6 @@
+@@ -585,8 +573,6 @@ main(int argc, char *argv[])
  			sortfcn = sizecmp;
  		else if (f_accesstime)
  			sortfcn = acccmp;
@@ -153,7 +153,7 @@
  		else if (f_statustime)
  			sortfcn = statcmp;
  		else		/* Use modification time. */
-@@ -643,7 +629,7 @@
+@@ -643,7 +629,7 @@ traverse(int argc, char *argv[], int opt
  	 * If not recursing down this tree and don't need stat info, just get
  	 * the names.
  	 */
@@ -162,7 +162,7 @@
  	    options & FTS_NOSTAT ? FTS_NAMEONLY : 0;
  
  	while (errno = 0, (p = fts_read(ftsp)) != NULL)
-@@ -694,7 +680,7 @@
+@@ -694,7 +680,7 @@ traverse(int argc, char *argv[], int opt
   * points to the parent directory of the display list.
   */
  static void
@@ -171,7 +171,7 @@
  {
  	struct stat *sp;
  	DISPLAY d;
-@@ -703,8 +689,7 @@
+@@ -703,8 +689,7 @@ display(const FTSENT *p, FTSENT *list, i
  	off_t maxsize;
  	long maxblock;
  	uintmax_t maxinode;
@@ -181,7 +181,7 @@
  	u_int sizelen;
  	int maxflags;
  	gid_t maxgroup;
-@@ -712,8 +697,9 @@
+@@ -712,8 +697,9 @@ display(const FTSENT *p, FTSENT *list, i
  	size_t flen, ulen, glen;
  	char *initmax;
  	int entries, needstats;
@@ -192,7 +192,7 @@
  	char ngroup[STRBUF_SIZEOF(uid_t) + 1];
  	char nuser[STRBUF_SIZEOF(gid_t) + 1];
  	u_long width[9];
-@@ -761,7 +747,6 @@
+@@ -761,7 +747,6 @@ display(const FTSENT *p, FTSENT *list, i
  	maxflags = width[5];
  	maxsize = width[6];
  	maxlen = width[7];
@@ -200,7 +200,7 @@
  
  	MAKENINES(maxinode);
  	MAKENINES(maxblock);
-@@ -770,7 +755,6 @@
+@@ -770,7 +755,6 @@ display(const FTSENT *p, FTSENT *list, i
  
  	d.s_size = 0;
  	sizelen = 0;
@@ -208,7 +208,7 @@
  	for (cur = list, entries = 0; cur; cur = cur->fts_link) {
  		if (cur->fts_info == FTS_ERR || cur->fts_info == FTS_NS) {
  			warnx("%s: %s",
-@@ -825,7 +809,7 @@
+@@ -825,7 +809,7 @@ display(const FTSENT *p, FTSENT *list, i
  					user = nuser;
  					group = ngroup;
  				} else {
@@ -217,7 +217,7 @@
  					/*
  					 * user_from_uid(..., 0) only returns
  					 * NULL in OOM conditions.  We could
-@@ -835,86 +819,21 @@
+@@ -835,86 +819,21 @@ display(const FTSENT *p, FTSENT *list, i
  					 * path directly below, which will
  					 * likely exit anyway.
  					 */
@@ -312,7 +312,7 @@
  				    ulen + glen + flen + 4)) == NULL)
  					err(1, "malloc");
  
-@@ -931,17 +850,6 @@
+@@ -931,17 +850,6 @@ label_out:
  						d.s_size = sizelen;
  				}
  
@@ -330,7 +330,7 @@
  				cur->fts_pointer = np;
  			}
  		}
-@@ -964,7 +872,6 @@
+@@ -964,7 +872,6 @@ label_out:
  		d.btotal = btotal;
  		d.s_block = snprintf(NULL, 0, "%lu", howmany(maxblock, blocksize));
  		d.s_flags = maxflags;
@@ -338,7 +338,7 @@
  		d.s_group = maxgroup;
  		d.s_inode = snprintf(NULL, 0, "%ju", maxinode);
  		d.s_nlink = snprintf(NULL, 0, "%lu", maxnlink);
-@@ -991,7 +898,7 @@
+@@ -991,7 +898,7 @@ label_out:
   * All other levels use the sort function.  Error entries remain unsorted.
   */
  static int

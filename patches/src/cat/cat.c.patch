@@ -1,6 +1,5 @@
-diff -up cat/cat.c.orig cat/cat.c
---- cat/cat.c.orig	2021-04-30 09:03:01.997694090 -0400
-+++ cat/cat.c	2021-04-30 09:09:28.443572452 -0400
+--- cat/cat.c.orig	2021-04-09 02:24:01.000000000 +0200
++++ cat/cat.c	2021-06-12 06:47:02.271086318 +0200
 @@ -48,7 +48,6 @@ static char sccsid[] = "@(#)cat.c	8.2 (B
  #include <sys/cdefs.h>
  __FBSDID("$FreeBSD$");
@@ -77,6 +76,15 @@ diff -up cat/cat.c.orig cat/cat.c
  	if (bflag || eflag || nflag || sflag || tflag || vflag)
  		scanfiles(argv, 1);
  	else
+@@ -244,7 +209,7 @@ usage(void)
+ }
+ 
+ static void
+-scanfiles(char *argv[], int cooked __unused)
++scanfiles(char *argv[], int cooked __attribute__((unused)))
+ {
+ 	int fd, i;
+ 	char *path;
 @@ -260,7 +225,7 @@ scanfiles(char *argv[], int cooked __unu
  			fd = STDIN_FILENO;
  		} else {

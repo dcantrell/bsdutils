@@ -1,6 +1,6 @@
---- compat/humanize_number.c.orig	2021-05-03 10:40:34.806557316 -0400
-+++ compat/humanize_number.c	2021-05-03 10:42:18.674002818 -0400
-@@ -43,7 +43,8 @@
+--- compat/humanize_number.c.orig	2021-04-09 02:24:07.000000000 +0200
++++ compat/humanize_number.c	2021-06-12 05:22:40.063700121 +0200
+@@ -43,7 +43,8 @@ __FBSDID("$FreeBSD$");
  #include <stdlib.h>
  #include <string.h>
  #include <locale.h>

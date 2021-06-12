@@ -1,5 +1,5 @@
---- expr/expr.y.orig	2021-04-27 23:52:35.232551432 -0400
-+++ expr/expr.y	2021-05-05 11:59:17.289811610 -0400
+--- expr/expr.y.orig	2021-04-09 02:24:01.000000000 +0200
++++ expr/expr.y	2021-06-12 06:47:02.271086318 +0200
 @@ -270,8 +270,7 @@ main(int argc, char *argv[])
  	int c;
  
@@ -10,3 +10,12 @@
  		av = argv + 1;
  		nonposix = 1;
  	} else {
+@@ -299,7 +298,7 @@ main(int argc, char *argv[])
+ }
+ 
+ int
+-yyerror(const char *s __unused)
++yyerror(const char *s __attribute__((unused)))
+ {
+ 	errx(ERR_EXIT, "syntax error");
+ }

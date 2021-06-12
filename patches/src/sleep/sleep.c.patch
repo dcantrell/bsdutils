@@ -1,6 +1,5 @@
-diff -up sleep/sleep.c.orig sleep/sleep.c
---- sleep/sleep.c.orig	2021-04-27 23:52:35.237551446 -0400
-+++ sleep/sleep.c	2021-04-30 11:27:27.443176638 -0400
+--- sleep/sleep.c.orig	2021-04-09 02:24:01.000000000 +0200
++++ sleep/sleep.c	2021-06-12 06:47:02.275085923 +0200
 @@ -41,7 +41,6 @@ static char sccsid[] = "@(#)sleep.c	8.3
  #include <sys/cdefs.h>
  __FBSDID("$FreeBSD$");

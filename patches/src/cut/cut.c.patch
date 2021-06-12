@@ -1,7 +1,15 @@
-diff -up cut/cut.c.orig cut/cut.c
---- cut/cut.c.orig	2021-04-27 23:52:35.229551423 -0400
-+++ cut/cut.c	2021-04-30 09:56:12.330241269 -0400
-@@ -277,14 +276,14 @@ b_cut(FILE *fp, const char *fname __unus
+--- cut/cut.c.orig	2021-04-09 02:24:12.000000000 +0200
++++ cut/cut.c	2021-06-12 06:47:02.271086318 +0200
+@@ -241,7 +241,7 @@ needpos(size_t n)
+ }
+ 
+ static int
+-b_cut(FILE *fp, const char *fname __unused)
++b_cut(FILE *fp, const char *fname __attribute__((unused)))
+ {
+ 	int ch, col;
+ 	char *pos;
+@@ -277,14 +277,14 @@ b_cut(FILE *fp, const char *fname __unus
  static int
  b_n_cut(FILE *fp, const char *fname)
  {
@@ -19,7 +27,7 @@ diff -up cut/cut.c.orig cut/cut.c
  		for (col = 0; lbuflen > 0; col += clen) {
  			if ((clen = mbrlen(lbuf, lbuflen, &mbs)) < 0) {
  				if (!warned) {
-@@ -391,11 +390,11 @@ f_cut(FILE *fp, const char *fname)
+@@ -391,11 +391,11 @@ f_cut(FILE *fp, const char *fname)
  	int field, i, isdelim;
  	char *pos, *p;
  	int output;
@@ -34,7 +42,7 @@ diff -up cut/cut.c.orig cut/cut.c
  		reallen = lbuflen;
  		/* Assert EOL has a newline. */
  		if (*(lbuf + lbuflen - 1) != '\n') {
-@@ -412,7 +411,8 @@ f_cut(FILE *fp, const char *fname)
+@@ -412,7 +412,8 @@ f_cut(FILE *fp, const char *fname)
  		for (isdelim = 0, p = lbuf;; p += clen) {
  			clen = mbrtowc(&ch, p, lbuf + reallen - p, NULL);
  			if (clen == (size_t)-1 || clen == (size_t)-2) {
@@ -44,7 +52,7 @@ diff -up cut/cut.c.orig cut/cut.c
  				free(mlbuf);
  				return (1);
  			}
-@@ -439,7 +439,8 @@ f_cut(FILE *fp, const char *fname)
+@@ -439,7 +440,8 @@ f_cut(FILE *fp, const char *fname)
  				clen = mbrtowc(&ch, p, lbuf + reallen - p,
  				    NULL);
  				if (clen == (size_t)-1 || clen == (size_t)-2) {

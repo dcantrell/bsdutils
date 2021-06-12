@@ -1,5 +1,5 @@
---- compat/vis.c.orig	2021-04-08 20:24:02.000000000 -0400
-+++ compat/vis.c	2021-05-12 09:51:11.783478031 -0400
+--- compat/vis.c.orig	2021-04-09 02:24:02.000000000 +0200
++++ compat/vis.c	2021-06-12 05:22:40.071699330 +0200
 @@ -64,7 +64,6 @@ __FBSDID("$FreeBSD$");
  #define	_DIAGASSERT(x)	assert(x)
  #endif

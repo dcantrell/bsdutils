@@ -1,6 +1,5 @@
-diff -up logname/logname.c.orig logname/logname.c
---- logname/logname.c.orig	2021-04-27 23:52:35.234551437 -0400
-+++ logname/logname.c	2021-04-30 23:29:44.311341136 -0400
+--- logname/logname.c.orig	2021-04-09 02:24:12.000000000 +0200
++++ logname/logname.c	2021-06-12 06:47:02.271086318 +0200
 @@ -41,7 +41,6 @@ static const char sccsid[] = "@(#)lognam
  #include <sys/cdefs.h>
  __FBSDID("$FreeBSD$");
@@ -9,7 +8,12 @@ diff -up logname/logname.c.orig logname/logname.c
  #include <err.h>
  #include <unistd.h>
  #include <stdio.h>
-@@ -54,9 +53,6 @@ main(int argc, char *argv[] __unused)
+@@ -50,13 +49,10 @@ __FBSDID("$FreeBSD$");
+ void usage(void);
+ 
+ int
+-main(int argc, char *argv[] __unused)
++main(int argc, char *argv[] __attribute__((unused)))
  {
  	char *p;
  

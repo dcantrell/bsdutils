@@ -1,6 +1,6 @@
---- chmod/chmod.c.orig	2021-04-08 20:24:01.000000000 -0400
-+++ chmod/chmod.c	2021-04-30 18:17:40.993005560 -0400
-@@ -41,7 +41,6 @@
+--- chmod/chmod.c.orig	2021-04-09 02:24:01.000000000 +0200
++++ chmod/chmod.c	2021-06-12 06:47:02.271086318 +0200
+@@ -41,7 +41,6 @@ static char sccsid[] = "@(#)chmod.c	8.8
  #endif /* not lint */
  #endif
  #include <sys/cdefs.h>
@@ -8,7 +8,7 @@
  
  #include <sys/param.h>
  #include <sys/stat.h>
-@@ -57,17 +56,9 @@
+@@ -57,17 +56,9 @@ __FBSDID("$FreeBSD$");
  #include <string.h>
  #include <unistd.h>
  
@@ -27,7 +27,7 @@
  
  int
  main(int argc, char *argv[])
-@@ -75,14 +66,14 @@
+@@ -75,14 +66,14 @@ main(int argc, char *argv[])
  	FTS *ftsp;
  	FTSENT *p;
  	mode_t *set;
@@ -45,7 +45,7 @@
  		switch (ch) {
  		case 'H':
  			Hflag = 1;
-@@ -101,16 +92,6 @@
+@@ -101,16 +92,6 @@ main(int argc, char *argv[])
  		case 'f':
  			fflag = 1;
  			break;
@@ -62,7 +62,7 @@
  		/*
  		 * XXX
  		 * "-[rwx]" are valid mode commands.  If they are the entire
-@@ -137,12 +118,7 @@
+@@ -137,12 +118,7 @@ done:	argv += optind;
  	if (argc < 2)
  		usage();
  
@@ -75,7 +75,7 @@
  		if (Lflag) {
  			fts_options = FTS_LOGICAL;
  		} else {
-@@ -152,8 +128,6 @@
+@@ -152,8 +128,6 @@ done:	argv += optind;
  				fts_options |= FTS_COMFOLLOW;
  			}
  		}
@@ -84,7 +84,7 @@
  	} else {
  		fts_options = FTS_LOGICAL;
  	}
-@@ -194,22 +168,14 @@
+@@ -194,22 +168,14 @@ done:	argv += optind;
  			break;
  		}
  		newmode = getmode(set, p->fts_statp->st_mode);
@@ -109,7 +109,7 @@
  				char m1[12], m2[12];
  
  				strmode(p->fts_statp->st_mode, m1);
-@@ -221,7 +187,6 @@
+@@ -221,7 +187,6 @@ done:	argv += optind;
  				    newmode, m2);
  			}
  			(void)printf("\n");
@@ -117,7 +117,7 @@
  		}
  	}
  	if (errno)
-@@ -236,27 +201,3 @@
+@@ -236,27 +201,3 @@ usage(void)
  	    "usage: chmod [-fhv] [-R [-H | -L | -P]] mode file ...\n");
  	exit(1);
  }

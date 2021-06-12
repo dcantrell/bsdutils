@@ -1,6 +1,5 @@
-diff -up tee/tee.c.orig tee/tee.c
---- tee/tee.c.orig	2021-04-27 23:52:35.239551451 -0400
-+++ tee/tee.c	2021-04-30 11:34:01.564317411 -0400
+--- tee/tee.c.orig	2021-04-09 02:24:12.000000000 +0200
++++ tee/tee.c	2021-06-12 06:22:35.176170846 +0200
 @@ -43,11 +43,9 @@ static const char rcsid[] =
    "$FreeBSD$";
  #endif /* not lint */

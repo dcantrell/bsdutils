@@ -1,0 +1,11 @@
+--- wc/wc.c.orig	2021-04-09 02:24:13.000000000 +0200
++++ wc/wc.c	2021-06-12 06:22:35.196168868 +0200
+@@ -78,7 +78,7 @@ static int	cnt(const char *);
+ static void	usage(void);
+ 
+ static void
+-siginfo_handler(int sig __unused)
++siginfo_handler(int sig __attribute__((unused)))
+ {
+ 
+ 	siginfo = 1;

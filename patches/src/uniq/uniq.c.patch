@@ -1,6 +1,5 @@
-diff -up uniq/uniq.c.orig uniq/uniq.c
---- uniq/uniq.c.orig	2021-04-27 23:52:35.241551457 -0400
-+++ uniq/uniq.c	2021-04-30 11:42:58.286893273 -0400
+--- uniq/uniq.c.orig	2021-04-09 02:24:13.000000000 +0200
++++ uniq/uniq.c	2021-06-12 06:22:35.192169263 +0200
 @@ -46,9 +46,6 @@ static const char rcsid[] =
    "$FreeBSD$";
  #endif /* not lint */

@@ -1,0 +1,13 @@
+--- xinstall/xinstall.c.orig	2021-04-09 02:24:13.000000000 +0200
++++ xinstall/xinstall.c	2021-06-12 06:22:35.204168077 +0200
+@@ -1068,8 +1068,8 @@ install(const char *from_name, const cha
+  *	unless it points to pre-computed digest.
+  */
+ static int
+-compare(int from_fd, const char *from_name __unused, size_t from_len,
+-	int to_fd, const char *to_name __unused, size_t to_len,
++compare(int from_fd, const char *from_name __attribute__((unused)), size_t from_len,
++	int to_fd, const char *to_name __attribute__((unused)), size_t to_len,
+ 	char **dresp)
+ {
+ 	char *p, *q;

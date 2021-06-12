@@ -1,0 +1,13 @@
+--- sort/sort.c.orig	2021-04-09 02:24:12.000000000 +0200
++++ sort/sort.c	2021-06-12 06:22:35.156172823 +0200
+@@ -441,8 +441,8 @@ parse_memory_buffer_value(const char *va
+  * Signal handler that clears the temporary files.
+  */
+ static void
+-sig_handler(int sig __unused, siginfo_t *siginfo __unused,
+-    void *context __unused)
++sig_handler(int sig __attribute__((unused)), siginfo_t *siginfo __attribute__((unused)),
++    void *context __attribute__((unused)))
+ {
+ 
+ 	clear_tmp_files();

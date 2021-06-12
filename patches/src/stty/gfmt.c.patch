@@ -1,0 +1,11 @@
+--- stty/gfmt.c.orig	2021-04-09 02:24:01.000000000 +0200
++++ stty/gfmt.c	2021-06-12 06:22:35.168171637 +0200
+@@ -57,7 +57,7 @@ gerr(const char *s)
+ }
+ 
+ void
+-gprint(struct termios *tp, struct winsize *wp __unused, int ldisc __unused)
++gprint(struct termios *tp, struct winsize *wp __attribute__((unused)), int ldisc __attribute__((unused)))
+ {
+ 	struct cchar *cp;
+ 

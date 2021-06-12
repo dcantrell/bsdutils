@@ -1,5 +1,5 @@
---- xargs/xargs.c.orig	2021-04-27 23:52:35.242551460 -0400
-+++ xargs/xargs.c	2021-05-11 09:38:21.329178289 -0400
+--- xargs/xargs.c.orig	2021-04-09 02:24:13.000000000 +0200
++++ xargs/xargs.c	2021-06-12 06:22:35.200168473 +0200
 @@ -51,8 +51,8 @@ __FBSDID("$FreeBSD$");
  #include <sys/types.h>
  #include <sys/wait.h>
