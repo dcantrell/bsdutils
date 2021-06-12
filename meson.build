@@ -87,6 +87,9 @@ rpmatch = cc.find_library('rpmatch', required : false)
 # Header files for libcompat
 inc = include_directories('include')
 
+# Symlink installation script
+install_link = meson.current_source_dir() / 'utils/install-link.sh'
+
 # Include all of the relevant subdirectories
 subdir('compat')
 subdir('src')
