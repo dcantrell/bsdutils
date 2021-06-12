@@ -129,21 +129,21 @@ done
 
 # 'compat' is our static library with a subset of BSD library functions
 cp -p usr/src/lib/libc/gen/setmode.c ${CWD}/compat
-cp -p lib/libc/string/strmode.c ${CWD}/compat
-cp -p lib/libc/gen/getbsize.c ${CWD}/compat
-cp -p lib/libutil/humanize_number.c ${CWD}/compat
-cp -p lib/libutil/expand_number.c ${CWD}/compat
-cp -p lib/libc/stdlib/merge.c ${CWD}/compat
-cp -p lib/libc/stdlib/heapsort.c ${CWD}/compat
-cp -p contrib/libc-vis/vis.c ${CWD}/compat
-cp -p contrib/libc-vis/vis.h ${CWD}/include
+cp -p usr/src/lib/libc/string/strmode.c ${CWD}/compat
+cp -p usr/src/lib/libc/gen/getbsize.c ${CWD}/compat
+cp -p usr/src/lib/libutil/humanize_number.c ${CWD}/compat
+cp -p usr/src/lib/libutil/expand_number.c ${CWD}/compat
+cp -p usr/src/lib/libc/stdlib/merge.c ${CWD}/compat
+cp -p usr/src/lib/libc/stdlib/heapsort.c ${CWD}/compat
+cp -p usr/src/contrib/libc-vis/vis.c ${CWD}/compat
+cp -p usr/src/contrib/libc-vis/vis.h ${CWD}/include
 
 # These files are needed for the factor command
-cp -p usr.bin/primes/primes.h ${CWD}/src/factor
-cp -p games/primes/pr_tbl.c ${CWD}/src/factor
+cp -p usr/src/usr.bin/primes/primes.h ${CWD}/src/factor
+cp -p usr/src/usr.bin/primes/pr_tbl.c ${CWD}/src/factor
 
 # These files are need for the install command
-cp -p contrib/mtree/mtree.h ${CWD}/src/xinstall
+cp -p usr/src/contrib/mtree/mtree.h ${CWD}/src/xinstall
 
 #####################
 # APPLY ANY PATCHES #
@@ -153,7 +153,7 @@ if [ -d ${CWD}/patches/compat ]; then
     for patchfile in ${CWD}/patches/compat/*.patch ; do
         destfile="$(basename ${patchfile} .patch)"
         [ -f "${CWD}/compat/${destfile}.orig" ] && rm -f "${CWD}/compat/${destfile}.orig"
-        patch -d ${CWD}/compat -p0 -b -z .orig < ${patchfile}
+        patch -d ${CWD} -p0 -b -z .orig < ${patchfile}
     done
 fi
 
@@ -164,7 +164,7 @@ if [ -d ${CWD}/patches/src ]; then
         for patchfile in ${CWD}/patches/src/${subdir}/*.patch ; do
             destfile="$(basename ${patchfile} .patch)"
             [ -f "${CWD}/src/${subdir}/${destfile}.orig" ] && rm -f "${CWD}/src/${subdir}/${destfile}.orig"
-            patch -d ${CWD}/src/${subdir} -p0 -b -z .orig < ${patchfile}
+            patch -d ${CWD}/src -p0 -b -z .orig < ${patchfile}
         done
     done
 fi
