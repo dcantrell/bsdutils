@@ -1,6 +1,6 @@
---- dd/misc.c.orig	2021-04-27 23:52:35.230551426 -0400
-+++ dd/misc.c	2021-05-03 12:50:56.227724584 -0400
-@@ -46,7 +46,6 @@
+--- dd/misc.c.orig	2021-04-09 02:24:01.000000000 +0200
++++ dd/misc.c	2021-06-12 06:47:02.271086318 +0200
+@@ -46,7 +46,6 @@ __FBSDID("$FreeBSD$");
  #include <err.h>
  #include <errno.h>
  #include <inttypes.h>
@@ -8,7 +8,7 @@
  #include <signal.h>
  #include <stdio.h>
  #include <stdlib.h>
-@@ -57,6 +56,8 @@
+@@ -57,6 +56,8 @@ __FBSDID("$FreeBSD$");
  #include "dd.h"
  #include "extern.h"
  
@@ -17,11 +17,10 @@
  double
  secs_elapsed(void)
  {
-@@ -132,14 +133,6 @@
- }
+@@ -133,15 +134,7 @@ progress(void)
  
  /* ARGSUSED */
--void
+ void
 -siginfo_handler(int signo __unused)
 -{
 -
@@ -29,6 +28,9 @@
 -}
 -
 -/* ARGSUSED */
- void
- sigalarm_handler(int signo __unused)
+-void
+-sigalarm_handler(int signo __unused)
++sigalarm_handler(int signo __attribute__((unused)))
  {
+ 
+ 	need_progress = 1;

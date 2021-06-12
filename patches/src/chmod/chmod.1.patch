@@ -1,5 +1,5 @@
---- chmod/chmod.1.orig	2021-04-27 23:52:35.228551421 -0400
-+++ chmod/chmod.1	2021-04-30 18:22:53.665214313 -0400
+--- chmod/chmod.1.orig	2021-04-09 02:24:01.000000000 +0200
++++ chmod/chmod.1	2021-06-12 06:22:34.988189435 +0200
 @@ -40,7 +40,7 @@
  .Nd change file modes
  .Sh SYNOPSIS
@@ -9,7 +9,7 @@
  .Op Fl R Op Fl H | L | P
  .Ar mode
  .Ar
-@@ -66,9 +66,6 @@
+@@ -66,9 +66,6 @@ If the
  option is specified, symbolic links on the command line are followed
  and hence unaffected by the command.
  (Symbolic links encountered during tree traversal are not followed.)

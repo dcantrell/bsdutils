@@ -1,5 +1,5 @@
---- find/function.c.orig	2021-04-27 23:52:35.232551432 -0400
-+++ find/function.c	2021-05-05 13:25:59.168511346 -0400
+--- find/function.c.orig	2021-04-09 02:24:12.000000000 +0200
++++ find/function.c	2021-06-12 06:47:02.271086318 +0200
 @@ -40,7 +40,6 @@ static const char sccsid[] = "@(#)functi
  __FBSDID("$FreeBSD$");
  
@@ -17,9 +17,110 @@
  static PLAN *palloc(OPTION *);
  static long long find_parsenum(PLAN *, const char *, char *, char *);
  static long long find_parsetime(PLAN *, const char *, char *);
-@@ -1261,7 +1262,9 @@ c_newer(OPTION *option, char ***argvp)
+@@ -371,7 +372,7 @@ c_mXXdepth(OPTION *option, char ***argvp
+  *	Show files with EXTENDED ACL attributes.
+  */
  int
- f_nogroup(PLAN *plan __unused, FTSENT *entry)
+-f_acl(PLAN *plan __unused, FTSENT *entry)
++f_acl(PLAN *plan __attribute__((unused)), FTSENT *entry)
+ {
+ 	acl_t facl;
+ 	acl_type_t acl_type;
+@@ -418,7 +419,7 @@ f_acl(PLAN *plan __unused, FTSENT *entry
+ #endif
+ 
+ PLAN *
+-c_acl(OPTION *option, char ***argvp __unused)
++c_acl(OPTION *option, char ***argvp __attribute__((unused)))
+ {
+ 	ftsoptions &= ~FTS_NOSTAT;
+ 	return (palloc(option));
+@@ -430,7 +431,7 @@ c_acl(OPTION *option, char ***argvp __un
+  *	True always.  Makes its best shot and continues on regardless.
+  */
+ int
+-f_delete(PLAN *plan __unused, FTSENT *entry)
++f_delete(PLAN *plan __attribute__((unused)), FTSENT *entry)
+ {
+ 	/* ignore these from fts */
+ 	if (strcmp(entry->fts_accpath, ".") == 0 ||
+@@ -475,7 +476,7 @@ f_delete(PLAN *plan __unused, FTSENT *en
+ }
+ 
+ PLAN *
+-c_delete(OPTION *option, char ***argvp __unused)
++c_delete(OPTION *option, char ***argvp __attribute__((unused)))
+ {
+ 
+ 	ftsoptions &= ~FTS_NOSTAT;	/* no optimise */
+@@ -500,7 +501,7 @@ c_delete(OPTION *option, char ***argvp _
+  *	Always true, used for -maxdepth, -mindepth, -xdev, -follow, and -true
+  */
+ int
+-f_always_true(PLAN *plan __unused, FTSENT *entry __unused)
++f_always_true(PLAN *plan __attribute__((unused)), FTSENT *entry __attribute__((unused)))
+ {
+ 	return 1;
+ }
+@@ -560,7 +561,7 @@ c_depth(OPTION *option, char ***argvp)
+  *	True if the file or directory is empty
+  */
+ int
+-f_empty(PLAN *plan __unused, FTSENT *entry)
++f_empty(PLAN *plan __attribute__((unused)), FTSENT *entry)
+ {
+ 	if (S_ISREG(entry->fts_statp->st_mode) &&
+ 	    entry->fts_statp->st_size == 0)
+@@ -588,7 +589,7 @@ f_empty(PLAN *plan __unused, FTSENT *ent
+ }
+ 
+ PLAN *
+-c_empty(OPTION *option, char ***argvp __unused)
++c_empty(OPTION *option, char ***argvp __attribute__((unused)))
+ {
+ 	ftsoptions &= ~FTS_NOSTAT;
+ 
+@@ -865,7 +866,7 @@ c_flags(OPTION *option, char ***argvp)
+  *	basis.
+  */
+ PLAN *
+-c_follow(OPTION *option, char ***argvp __unused)
++c_follow(OPTION *option, char ***argvp __attribute__((unused)))
+ {
+ 	ftsoptions &= ~FTS_PHYSICAL;
+ 	ftsoptions |= FTS_LOGICAL;
+@@ -1028,7 +1029,7 @@ c_group(OPTION *option, char ***argvp)
+  */
+ 
+ PLAN *
+-c_ignore_readdir_race(OPTION *option, char ***argvp __unused)
++c_ignore_readdir_race(OPTION *option, char ***argvp __attribute__((unused)))
+ {
+ 	if (strcmp(option->name, "-ignore_readdir_race") == 0)
+ 		ignore_readdir_race = 1;
+@@ -1123,14 +1124,14 @@ c_links(OPTION *option, char ***argvp)
+  *	Always true - prints the current entry to stdout in "ls" format.
+  */
+ int
+-f_ls(PLAN *plan __unused, FTSENT *entry)
++f_ls(PLAN *plan __attribute__((unused)), FTSENT *entry)
+ {
+ 	printlong(entry->fts_path, entry->fts_accpath, entry->fts_statp);
+ 	return 1;
+ }
+ 
+ PLAN *
+-c_ls(OPTION *option, char ***argvp __unused)
++c_ls(OPTION *option, char ***argvp __attribute__((unused)))
+ {
+ 	ftsoptions &= ~FTS_NOSTAT;
+ 	isoutput = 1;
+@@ -1259,13 +1260,15 @@ c_newer(OPTION *option, char ***argvp)
+  *	of the getgrnam() 9.2.1 [POSIX.1] function returns NULL.
+  */
+ int
+-f_nogroup(PLAN *plan __unused, FTSENT *entry)
++f_nogroup(PLAN *plan __attribute__((unused)), FTSENT *entry)
  {
 -	return group_from_gid(entry->fts_statp->st_gid, 1) == NULL;
 +	struct group *gr;
@@ -28,9 +129,17 @@
  }
  
  PLAN *
-@@ -1281,7 +1284,9 @@ c_nogroup(OPTION *option, char ***argvp
+-c_nogroup(OPTION *option, char ***argvp __unused)
++c_nogroup(OPTION *option, char ***argvp __attribute__((unused)))
+ {
+ 	ftsoptions &= ~FTS_NOSTAT;
+ 
+@@ -1279,13 +1282,15 @@ c_nogroup(OPTION *option, char ***argvp
+  *	of the getpwuid() 9.2.2 [POSIX.1] function returns NULL.
+  */
  int
- f_nouser(PLAN *plan __unused, FTSENT *entry)
+-f_nouser(PLAN *plan __unused, FTSENT *entry)
++f_nouser(PLAN *plan __attribute__((unused)), FTSENT *entry)
  {
 -	return user_from_uid(entry->fts_statp->st_uid, 1) == NULL;
 +	struct passwd *pw;
@@ -39,6 +148,11 @@
  }
  
  PLAN *
+-c_nouser(OPTION *option, char ***argvp __unused)
++c_nouser(OPTION *option, char ***argvp __attribute__((unused)))
+ {
+ 	ftsoptions &= ~FTS_NOSTAT;
+ 
 @@ -1320,7 +1325,7 @@ f_perm(PLAN *plan, FTSENT *entry)
  	mode_t mode;
  
@@ -48,3 +162,117 @@
  	if (plan->flags & F_ATLEAST)
  		return (plan->m_data | mode) == mode;
  	else if (plan->flags & F_ANY)
+@@ -1365,14 +1370,14 @@ c_perm(OPTION *option, char ***argvp)
+  *	standard output.
+  */
+ int
+-f_print(PLAN *plan __unused, FTSENT *entry)
++f_print(PLAN *plan __attribute__((unused)), FTSENT *entry)
+ {
+ 	(void)puts(entry->fts_path);
+ 	return 1;
+ }
+ 
+ PLAN *
+-c_print(OPTION *option, char ***argvp __unused)
++c_print(OPTION *option, char ***argvp __attribute__((unused)))
+ {
+ 	isoutput = 1;
+ 
+@@ -1386,7 +1391,7 @@ c_print(OPTION *option, char ***argvp __
+  *	standard output followed by a NUL character
+  */
+ int
+-f_print0(PLAN *plan __unused, FTSENT *entry)
++f_print0(PLAN *plan __attribute__((unused)), FTSENT *entry)
+ {
+ 	fputs(entry->fts_path, stdout);
+ 	fputc('\0', stdout);
+@@ -1401,7 +1406,7 @@ f_print0(PLAN *plan __unused, FTSENT *en
+  *	Prune a portion of the hierarchy.
+  */
+ int
+-f_prune(PLAN *plan __unused, FTSENT *entry)
++f_prune(PLAN *plan __attribute__((unused)), FTSENT *entry)
+ {
+ 	if (fts_set(tree, entry, FTS_SKIP))
+ 		err(1, "%s", entry->fts_path);
+@@ -1480,7 +1485,7 @@ c_regex(OPTION *option, char ***argvp)
+ /* c_simple covers c_prune, c_openparen, c_closeparen, c_not, c_or, c_true, c_false */
+ 
+ PLAN *
+-c_simple(OPTION *option, char ***argvp __unused)
++c_simple(OPTION *option, char ***argvp __attribute__((unused)))
+ {
+ 	return palloc(option);
+ }
+@@ -1562,7 +1567,7 @@ c_size(OPTION *option, char ***argvp)
+  *      than we expect based on its size.
+  */
+ int
+-f_sparse(PLAN *plan __unused, FTSENT *entry)
++f_sparse(PLAN *plan __attribute__((unused)), FTSENT *entry)
+ {
+ 	off_t expected_blocks;
+ 
+@@ -1571,7 +1576,7 @@ f_sparse(PLAN *plan __unused, FTSENT *en
+ }
+ 
+ PLAN *
+-c_sparse(OPTION *option, char ***argvp __unused)
++c_sparse(OPTION *option, char ***argvp __attribute__((unused)))
+ {
+ 	ftsoptions &= ~FTS_NOSTAT;
+ 
+@@ -1692,7 +1697,7 @@ c_user(OPTION *option, char ***argvp)
+  *	different device ID (st_dev, see stat() S5.6.2 [POSIX.1])
+  */
+ PLAN *
+-c_xdev(OPTION *option, char ***argvp __unused)
++c_xdev(OPTION *option, char ***argvp __attribute__((unused)))
+ {
+ 	ftsoptions |= FTS_XDEV;
+ 
+@@ -1723,13 +1728,13 @@ f_expr(PLAN *plan, FTSENT *entry)
+  */
+ 
+ int
+-f_openparen(PLAN *plan __unused, FTSENT *entry __unused)
++f_openparen(PLAN *plan __attribute__((unused)), FTSENT *entry __attribute__((unused)))
+ {
+ 	abort();
+ }
+ 
+ int
+-f_closeparen(PLAN *plan __unused, FTSENT *entry __unused)
++f_closeparen(PLAN *plan __attribute__((unused)), FTSENT *entry __attribute__((unused)))
+ {
+ 	abort();
+ }
+@@ -1741,7 +1746,7 @@ f_closeparen(PLAN *plan __unused, FTSENT
+  * AND operator. Since AND is implicit, no node is allocated.
+  */
+ PLAN *
+-c_and(OPTION *option __unused, char ***argvp __unused)
++c_and(OPTION *option __attribute__((unused)), char ***argvp __attribute__((unused)))
+ {
+ 	return NULL;
+ }
+@@ -1795,7 +1800,7 @@ f_or(PLAN *plan, FTSENT *entry)
+  *	Always false.
+  */
+ int
+-f_false(PLAN *plan __unused, FTSENT *entry __unused)
++f_false(PLAN *plan __attribute__((unused)), FTSENT *entry __attribute__((unused)))
+ {
+ 	return 0;
+ }
+@@ -1808,7 +1813,7 @@ f_false(PLAN *plan __unused, FTSENT *ent
+  *	Exits the program
+  */
+ int
+-f_quit(PLAN *plan __unused, FTSENT *entry __unused)
++f_quit(PLAN *plan __attribute__((unused)), FTSENT *entry __attribute__((unused)))
+ {
+ 	finish_execplus();
+ 	exit(exitstatus);

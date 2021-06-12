@@ -1,0 +1,12 @@
+--- tail/forward.c.orig	2021-04-09 02:24:12.000000000 +0200
++++ tail/forward.c	2021-06-12 06:22:35.176170846 +0200
+@@ -57,9 +57,6 @@ static const char sccsid[] = "@(#)forwar
+ #include <string.h>
+ #include <unistd.h>
+ 
+-#include <libcasper.h>
+-#include <casper/cap_fileargs.h>
+-
+ #include "extern.h"
+ 
+ static void rlines(FILE *, const char *fn, off_t, struct stat *);

@@ -1,5 +1,5 @@
---- split/split.c.orig	2021-04-27 23:52:35.238551448 -0400
-+++ split/split.c	2021-05-06 09:19:13.140023843 -0400
+--- split/split.c.orig	2021-04-09 02:24:12.000000000 +0200
++++ split/split.c	2021-06-12 06:22:35.160172428 +0200
 @@ -51,7 +51,6 @@ static const char sccsid[] = "@(#)split.
  #include <errno.h>
  #include <fcntl.h>

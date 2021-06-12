@@ -1,0 +1,11 @@
+--- sync/sync.c.orig	2021-04-09 02:24:01.000000000 +0200
++++ sync/sync.c	2021-06-12 06:22:35.172171241 +0200
+@@ -45,7 +45,7 @@ __FBSDID("$FreeBSD$");
+ #include <unistd.h>
+ 
+ int
+-main(int argc __unused, char *argv[] __unused)
++main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
+ {
+ 	sync();
+ 	exit(0);

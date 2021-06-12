@@ -1,5 +1,5 @@
---- compat/setmode.c.orig	2021-04-30 18:20:37.385687472 -0400
-+++ compat/setmode.c	2021-05-04 09:45:48.005088741 -0400
+--- compat/setmode.c.orig	2021-04-09 02:24:06.000000000 +0200
++++ compat/setmode.c	2021-06-12 05:22:40.067699725 +0200
 @@ -36,10 +36,8 @@
  __SCCSID("@(#)setmode.c	8.2 (Berkeley) 3/25/94");
  __FBSDID("$FreeBSD$");
@@ -11,7 +11,7 @@
  
  #include <ctype.h>
  #include <errno.h>
-@@ -52,8 +50,6 @@
+@@ -52,8 +50,6 @@ __FBSDID("$FreeBSD$");
  #ifdef SETMODE_DEBUG
  #include <stdio.h>
  #endif
@@ -20,7 +20,7 @@
  
  #define	SET_LEN	6		/* initial # of bitcmd struct to malloc */
  #define	SET_LEN_INCR 4		/* # of bitcmd structs to add as needed */
-@@ -208,12 +204,12 @@
+@@ -208,12 +204,12 @@ setmode(const char *p)
  		}
  		if (errno == ERANGE && (perml == LONG_MAX || perml == LONG_MIN))
  			goto out;
@@ -35,7 +35,7 @@
  		set->cmd = 0;
  		return (saveset);
  	}
-@@ -251,7 +247,7 @@
+@@ -251,7 +247,7 @@ getop:		if ((op = *p++) != '+' && op !=
  		if (op == '=')
  			equalopdone = 0;
  
@@ -44,7 +44,7 @@
  		for (perm = 0, permXbits = 0;; ++p) {
  			switch (*p) {
  			case 'r':
-@@ -265,8 +261,8 @@
+@@ -265,8 +261,8 @@ getop:		if ((op = *p++) != '+' && op !=
  			case 't':
  				/* If only "other" bits ignore sticky. */
  				if (!who || who & ~S_IRWXO) {
@@ -55,7 +55,7 @@
  				}
  				break;
  			case 'w':
-@@ -346,9 +342,7 @@
+@@ -346,9 +342,7 @@ static mode_t
  get_current_umask(void)
  {
  	sigset_t sigset, sigoset;
@@ -65,7 +65,7 @@
  
  #ifdef KERN_PROC_UMASK
  	/*
-@@ -366,9 +360,9 @@
+@@ -366,9 +360,9 @@ get_current_umask(void)
  	 * handler, protect them as best we can.
  	 */
  	sigfillset(&sigset);

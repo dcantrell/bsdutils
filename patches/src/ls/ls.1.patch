@@ -1,5 +1,5 @@
---- ls/ls.1.orig	2021-04-27 23:52:35.234551437 -0400
-+++ ls/ls.1	2021-05-03 09:39:21.624821866 -0400
+--- ls/ls.1.orig	2021-04-09 02:24:01.000000000 +0200
++++ ls/ls.1	2021-06-12 06:22:35.104177965 +0200
 @@ -40,7 +40,7 @@
  .Nd list directory contents
  .Sh SYNOPSIS
@@ -9,7 +9,7 @@
  .Op Fl -color Ns = Ns Ar when
  .Op Fl D Ar format
  .Op Ar
-@@ -185,19 +185,10 @@
+@@ -185,19 +185,10 @@ The
  option gives even more control over the output format.
  This option is not defined in
  .St -p1003.1-2008 .
@@ -29,7 +29,7 @@
  .It Fl a
  Include directory entries whose names begin with a
  dot
-@@ -338,15 +329,6 @@
+@@ -338,15 +329,6 @@ Display user and group IDs numerically r
  or group name in a long
  .Pq Fl l
  output.
@@ -45,7 +45,7 @@
  .It Fl p
  Write a slash
  .Pq Ql /
-@@ -856,11 +838,10 @@
+@@ -856,11 +838,10 @@ List the contents of the current working
  .Dl $ ls -l
  .Pp
  In addition to listing the contents of the current working directory in
@@ -59,7 +59,7 @@
  .Pp
  List the files in
  .Pa /var/log ,
-@@ -874,7 +855,6 @@
+@@ -874,7 +855,6 @@ files in order to be compatible with the
  .St -p1003.2
  specification.
  .Sh SEE ALSO
@@ -67,7 +67,7 @@
  .Xr chmod 1 ,
  .Xr getfacl 1 ,
  .Xr sort 1 ,
-@@ -889,9 +869,9 @@
+@@ -889,9 +869,9 @@ specification.
  .Xr getfmac 8
  .Sh STANDARDS
  With the exception of options
@@ -79,7 +79,7 @@
  the
  .Nm
  utility conforms to
-@@ -899,7 +879,7 @@
+@@ -899,7 +879,7 @@ utility conforms to
  and
  .St -p1003.1-2008 .
  The options

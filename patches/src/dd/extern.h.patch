@@ -1,0 +1,11 @@
+--- dd/extern.h.orig	2021-04-09 02:24:01.000000000 +0200
++++ dd/extern.h	2021-06-12 06:22:35.032185085 +0200
+@@ -36,6 +36,8 @@
+  * $FreeBSD$
+  */
+ 
++#include <signal.h>
++
+ void block(void);
+ void block_close(void);
+ void dd_out(int);

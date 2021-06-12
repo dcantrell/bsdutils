@@ -1,6 +1,5 @@
-diff -up fmt/fmt.c.orig fmt/fmt.c
---- fmt/fmt.c.orig	2021-04-27 23:52:35.233551434 -0400
-+++ fmt/fmt.c	2021-04-30 08:50:23.073969157 -0400
+--- fmt/fmt.c.orig	2021-04-09 02:24:12.000000000 +0200
++++ fmt/fmt.c	2021-06-12 06:22:35.080180338 +0200
 @@ -185,6 +185,7 @@ __FBSDID("$FreeBSD$");
  #include <unistd.h>
  #include <wchar.h>

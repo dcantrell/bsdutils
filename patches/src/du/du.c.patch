@@ -1,0 +1,20 @@
+--- du/du.c.orig	2021-04-09 02:24:12.000000000 +0200
++++ du/du.c	2021-06-12 06:22:35.044183898 +0200
+@@ -80,7 +80,7 @@ static void	prthumanval(int64_t);
+ static void	ignoreadd(const char *);
+ static void	ignoreclean(void);
+ static int	ignorep(FTSENT *);
+-static void	siginfo(int __unused);
++static void	siginfo(int __attribute__((unused)));
+ 
+ static int	nodumpflag = 0;
+ static int	Aflag, hflag;
+@@ -556,7 +556,7 @@ ignorep(FTSENT *ent)
+ }
+ 
+ static void
+-siginfo(int sig __unused)
++siginfo(int sig __attribute__((unused)))
+ {
+ 
+ 	info = 1;

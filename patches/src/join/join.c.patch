@@ -1,7 +1,14 @@
-diff -up join/join.c.orig join/join.c
---- join/join.c.orig	2021-04-27 23:52:35.234551437 -0400
-+++ join/join.c	2021-04-30 09:34:36.343074799 -0400
-@@ -276,9 +276,9 @@ static void
+--- join/join.c.orig	2021-04-09 02:24:12.000000000 +0200
++++ join/join.c	2021-06-12 06:22:35.092179152 +0200
+@@ -47,6 +47,7 @@ static char sccsid[] = "@(#)join.c	8.6 (
+ #include <sys/cdefs.h>
+ __FBSDID("$FreeBSD$");
+ 
++#include <sys/types.h>
+ #include <sys/param.h>
+ 
+ #include <err.h>
+@@ -276,9 +277,9 @@ static void
  slurp(INPUT *F)
  {
  	LINE *lp, *lastlp, tmp;
@@ -13,7 +20,7 @@ diff -up join/join.c.orig join/join.c
  
  	/*
  	 * Read all of the lines from an input file that have the same
-@@ -321,7 +321,7 @@ slurp(INPUT *F)
+@@ -321,7 +322,7 @@ slurp(INPUT *F)
  			F->pushbool = 0;
  			continue;
  		}
@@ -22,7 +29,7 @@ diff -up join/join.c.orig join/join.c
  			return;
  		if (lp->linealloc <= len + 1) {
  			lp->linealloc += MAX(100, len + 1 - lp->linealloc);
-@@ -373,8 +373,10 @@ mbssep(char **stringp, const wchar_t *de
+@@ -373,8 +374,10 @@ mbssep(char **stringp, const wchar_t *de
  		return (NULL);
  	for (tok = s;;) {
  		n = mbrtowc(&c, s, MB_LEN_MAX, NULL);

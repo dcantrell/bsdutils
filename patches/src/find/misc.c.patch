@@ -1,6 +1,17 @@
---- find/misc.c.orig	2021-04-27 23:52:35.233551434 -0400
-+++ find/misc.c	2021-05-05 13:37:27.004188788 -0400
-@@ -71,7 +71,7 @@ brace_subst(char *orig, char **store, ch
+--- find/misc.c.orig	2021-04-09 02:24:12.000000000 +0200
++++ find/misc.c	2021-06-12 06:22:35.076180734 +0200
+@@ -51,6 +51,10 @@ __FBSDID("$FreeBSD$");
+ 
+ #include "find.h"
+ 
++#if defined(__linux__) && !defined(__GLIBC__)
++#include <rpmatch.h>
++#endif
++
+ /*
+  * brace_subst --
+  *	Replace occurrences of {} in s1 with s2 and return the result string.
+@@ -71,7 +75,7 @@ brace_subst(char *orig, char **store, ch
  		newlen += plen - 2;
  	}
  	if (newlen > len) {
