@@ -1,0 +1,8 @@
+#!/bin/sh
+
+ORIGIN="${1}"
+TARGET="${2}"
+BINDIR="${3}"
+
+mkdir -p "${DESTDIR}/${MESON_INSTALL_PREFIX}/${BINDIR}"
+ln -sf "${ORIGIN}" "${DESTDIR}/${MESON_INSTALL_PREFIX}/${BINDIR}/${TARGET}"

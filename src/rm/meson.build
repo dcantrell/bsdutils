@@ -8,3 +8,5 @@ rm_prog = executable(
 )
 
 install_man('rm.1')
+
+meson.add_install_script(install_link, 'rm', 'unlink', get_option('bindir'))
