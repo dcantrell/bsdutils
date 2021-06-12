@@ -48,11 +48,14 @@ add_global_arguments(
       '-DDEFFILEMODE=(S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH)',
       '-DALLPERMS=(S_ISUID|S_ISGID|S_ISVTX|S_IRWXU|S_IRWXG|S_IRWXO)',
       '-DO_FSYNC=O_SYNC',
-      '-Dstrtoq=strtoull',
       '-DREG_STARTEND=0',
     ],
     language : [ 'c', 'cpp' ]
 )
+
+if not cc.has_function('strtoq')
+   add_global_arguments([ '-Dstrtoq=strtoull' ], language : [ 'c', 'cpp' ])
+endif
 
 # Build everything with _GNU_SOURCE enabled
 add_global_arguments('-D_GNU_SOURCE', language : [ 'c', 'cpp' ])
