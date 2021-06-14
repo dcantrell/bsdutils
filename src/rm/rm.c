@@ -257,10 +257,6 @@ rm_tree(char **argv)
 				if (rval == 0 && vflag)
 					(void)printf("%s\n",
 					    p->fts_path);
-				if (rval == 0) {
-					(void)printf("%s\n",
-					    p->fts_path);
-				}
 				continue;
 			}
 			break;
@@ -280,10 +276,6 @@ rm_tree(char **argv)
 				if (rval == 0 && vflag)
 					(void)printf("%s\n",
 					    p->fts_path);
-				if (rval == 0) {
-					(void)printf("%s\n",
-					    p->fts_path);
-				}
 				continue;
 			}
 		}
@@ -333,9 +325,6 @@ rm_file(char **argv)
 		}
 		if (vflag && rval == 0)
 			(void)printf("%s\n", f);
-		if (rval == 0) {
-			(void)printf("%s\n", f);
-		}
 	}
 }
 

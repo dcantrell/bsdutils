@@ -71,7 +71,7 @@
  			continue;
  		case FTS_DP:
  			/* Post-order: see if user skipped. */
-@@ -256,77 +244,49 @@ rm_tree(char **argv)
+@@ -256,77 +244,41 @@ rm_tree(char **argv)
  				continue;
  		}
  
@@ -95,10 +95,6 @@
 +				if (rval == 0 && vflag)
 +					(void)printf("%s\n",
 +					    p->fts_path);
-+				if (rval == 0) {
-+					(void)printf("%s\n",
-+					    p->fts_path);
-+				}
 +				continue;
 +			}
 +			break;
@@ -165,6 +161,7 @@
 -						    p->fts_path);
 -					}
 -					continue;
+-				}
 +			if (fflag)
 +				continue;
 +			/* FALLTHROUGH */
@@ -176,10 +173,6 @@
 +				if (rval == 0 && vflag)
 +					(void)printf("%s\n",
 +					    p->fts_path);
-+				if (rval == 0) {
-+					(void)printf("%s\n",
-+					    p->fts_path);
- 				}
 +				continue;
  			}
  		}
@@ -187,7 +180,7 @@
  		warn("%s", p->fts_path);
  		eval = 1;
  	}
-@@ -349,18 +309,10 @@ rm_file(char **argv)
+@@ -349,18 +301,10 @@ rm_file(char **argv)
  	while ((f = *argv++) != NULL) {
  		/* Assume if can't stat the file, can't unlink it. */
  		if (lstat(f, &sb)) {
@@ -209,7 +202,7 @@
  			continue;
  		}
  
-@@ -369,29 +321,19 @@ rm_file(char **argv)
+@@ -369,31 +313,18 @@ rm_file(char **argv)
  			eval = 1;
  			continue;
  		}
@@ -241,11 +234,12 @@
  			(void)printf("%s\n", f);
 -		if (info && rval == 0) {
 -			info = 0;
-+		if (rval == 0) {
- 			(void)printf("%s\n", f);
- 		}
+-			(void)printf("%s\n", f);
+-		}
  	}
-@@ -401,7 +343,9 @@ static int
+ }
+ 
+@@ -401,7 +332,9 @@ static int
  check(const char *path, const char *name, struct stat *sp)
  {
  	int ch, first;
@@ -256,7 +250,7 @@
  
  	/* Check -i first. */
  	if (iflag)
-@@ -413,21 +357,20 @@ check(const char *path, const char *name
+@@ -413,21 +346,20 @@ check(const char *path, const char *name
  		 * because their permissions are meaningless.  Check stdin_ok
  		 * first because we may not have stat'ed the file.
  		 */
@@ -288,7 +282,7 @@
  	}
  	(void)fflush(stderr);
  
-@@ -542,10 +485,3 @@ usage(void)
+@@ -542,10 +474,3 @@ usage(void)
  	    "       unlink [--] file");
  	exit(EX_USAGE);
  }
