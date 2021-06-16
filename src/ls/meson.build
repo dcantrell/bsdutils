@@ -8,7 +8,7 @@ ls_prog = executable(
     c_args : [ '-DCOLORLS' ],
     include_directories : inc,
     link_with : [ libcompat ],
-    dependencies : [ fts, tinfo ],
+    dependencies : [ libfts, libtinfo ],
     install : true,
 )
 

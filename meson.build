@@ -62,12 +62,12 @@ add_global_arguments('-D_GNU_SOURCE', language : [ 'c', 'cpp' ])
 
 # ls(1) needs the terminfo library
 foreach opt : ['tinfo', 'ncursesw', 'ncurses']
-    tinfo = cc.find_library(opt, required : false)
-    if tinfo.found()
+    libtinfo = cc.find_library(opt, required : false)
+    if libtinfo.found()
         break
     endif
 endforeach
-if not tinfo.found()
+if not libtinfo.found()
     error('a terminfo library is needed')
 endif
 
@@ -81,8 +81,8 @@ libcrypto = dependency('libcrypto', required : true)
 libm = cc.find_library('m', required : true)
 
 # needed by a few utils; provided by glibc, but not by e.g. musl
-fts = cc.find_library('fts', required : false)
-rpmatch = cc.find_library('rpmatch', required : false)
+libfts = cc.find_library('fts', required : false)
+librpmatch = cc.find_library('rpmatch', required : false)
 
 # Header files for libcompat
 inc = include_directories('include')

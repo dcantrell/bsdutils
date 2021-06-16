@@ -2,7 +2,7 @@ chmod_prog = executable(
     'chmod',
     [ 'chmod.c' ],
     include_directories : inc,
-    dependencies : [ fts, ],
+    dependencies : [ libfts, ],
     link_with : [ libcompat ],
     install : true,
 )
