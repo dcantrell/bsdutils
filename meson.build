@@ -12,6 +12,9 @@ project('bsdutils',
 cc = meson.get_compiler('c')
 cpp = meson.get_compiler('cpp')
 
+# FreeBSD code sometimes ignores things
+add_global_arguments([ '-Wno-unused-result' ], language : [ 'c', 'cpp' ])
+
 # Find lex
 lex_prog = find_program('flex', 'lex', required : true)
 lex = generator(
