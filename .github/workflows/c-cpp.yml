@@ -1,22 +1,63 @@
 name: C/C++ CI
 
 on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+    push:
+        branches: [ master ]
+        paths:
+            - 'compat/**'
+            - 'include/**'
+            - 'src/**'
+
+    pull_request:
+        branches: [ master ]
+        paths:
+            - 'compat/**'
+            - 'include/**'
+            - 'src/**'
 
 jobs:
-  build:
+    glibc:
+        runs-on: ubuntu-latest
 
-    runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v2
 
-    steps:
-    - uses: actions/checkout@v2
-    - name: build and check
-      run: |
-             sudo apt-get -y install meson ninja-build libedit-dev libacl1-dev
-             mkdir build && cd build
-             meson ..
-             ninja all
-             ninja test
+            - name: build and check
+              run: |
+                  apt-get -y install meson ninja-build libedit-dev libacl1-dev
+                  meson setup build --werror -Db_buildtype=debug -Db_coverage=true
+                  ninja -C build -v
+                  meson test -C build -v
+                  ninja -C build coverage
+                  curl -s https://codecov.io/bash | bash
+
+    musl:
+        runs-on: ubuntu-latest
+
+        container:
+            image: "alpine:latest"
+
+        steps:
+            - name: git clone requirements
+              run: apk add git
+
+            - name: rpmatch for musl
+              run: |
+                  apk add libtool autoconf automake gmake gcc musl-dev
+                  git clone https://github.com/pullmoll/musl-rpmatch
+                  cd musl-rpmatch
+                  ./bootstrap.sh
+                  ./configure --prefix=/usr/local
+                  gmake
+                  gmake install
+
+            - uses: actions/checkout@v2
+
+            - name: build and check
+              run: |
+                  apk add g++ meson flex bison libedit-dev openssl-dev fts-dev acl-dev
+                  meson setup build --werror -Db_buildtype=debug -Db_coverage=true
+                  ninja -C build -v
+                  meson test -C build -v
+                  ninja -C build coverage
+                  curl -s https://codecov.io/bash | bash
