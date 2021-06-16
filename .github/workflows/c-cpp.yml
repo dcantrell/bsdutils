@@ -28,7 +28,7 @@ jobs:
 
             - name: build and check
               run: |
-                  sudo apt-get -y install meson ninja-build libedit-dev libacl1-dev
+                  sudo apt-get -y install meson ninja-build libedit-dev libacl1-dev gcovr
                   meson setup build --werror -Db_buildtype=debug -Db_coverage=true
                   ninja -C build -v
                   meson test -C build -v
@@ -43,7 +43,7 @@ jobs:
 
         steps:
             - name: dependencies
-              run: sudo apk add git libtool autoconf automake gmake gcc musl-dev g++ meson flex bison libedit-dev openssl-dev fts-dev acl-dev
+              run: sudo apk add git libtool autoconf automake gmake gcc musl-dev g++ meson flex bison libedit-dev openssl-dev fts-dev acl-dev gcovr
 
             - name: rpmatch for musl
               run: |
