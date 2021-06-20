@@ -85,7 +85,7 @@ main(int argc, char **argv)
 	pw = NULL;
 	want_clear = 0;
 	term = '\n';
-	while ((ch = getopt(argc, argv, "-0iP:S:u:v")) != -1)
+	while ((ch = getopt(argc, argv, "0iP:S:u:v")) != -1)
 		switch(ch) {
 		case '-':
 		case 'i':
@@ -121,6 +121,10 @@ main(int argc, char **argv)
 		default:
 			usage();
 		}
+	if (optind < argc && !strcmp(argv[optind], "-")) {
+		want_clear = 1;
+		++argv; /* skip the initial - during later scan */
+	}
 	if (want_clear) {
 		environ = cleanenv;
 		cleanenv[0] = NULL;
