@@ -825,11 +825,15 @@ howmany()
 ---------
 This macro is available in <sys/param.h> on Linux.
 
-
-optreset
+getopt()
 --------
-getopt() on OpenBSD uses an optreset variable.  glibc does not have
-this on Linux, so uses of it are removed from this port.
+
+The semantics of a dash at the beginning of optstring differ between
+BSD and GNU variants. On BSD, it simply means to permit the literal
+option -, while GNU style implementations have it result in every
+non-option parameter being treated as an option parameter with the
+value 1. Therefore, this is removed in the ports and reimplemented
+in other ways.
 
 
 MACHINE_ARCH
