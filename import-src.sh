@@ -145,6 +145,9 @@ cp -p usr/src/contrib/libc-vis/vis.h ${CWD}/include
 cp -p usr/src/usr.bin/primes/primes.h ${CWD}/src/factor
 cp -p usr/src/usr.bin/primes/pr_tbl.c ${CWD}/src/factor
 
+# These files are needed for the df command
+cp -p usr/sbin/sbin/mount/vfslist.c ${CWD}/src/df
+
 #####################
 # APPLY ANY PATCHES #
 #####################

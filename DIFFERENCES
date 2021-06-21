@@ -627,6 +627,61 @@ so the special handling of NFS handles in stat(1) via the -H option
 has been removed.
 
 
+getmntinfo()
+------------
+FreeBSD provides a function called getmntinfo() which returns an array
+of mounted filesystems.  This includes the device node name, directory
+mounted on, filesystem stats, and other information.  Linux has no
+equivalent to this.  The combined structure in FreeBSD contains
+information that you would get from getmntent() and statvfs() on
+Linux.  The first thing you have to do on Linux is loop over the
+mounted filesystems using getmntent().  Later you can open the mounted
+filesystem to get a FILE * and then call statvfs() on that to get data
+like free space and size and such.
+
+To make df(1) easier to port, we have implemented a getmntinfo() with
+a combined data type called struct mntinfo.  The new getmntinfo()
+function creates an array of struct mntinfo entries of mounted
+filesystems containing the combined data from both getmntent() and
+statvfs() on Linux.  There is also a corresponding freemntinfo() call
+to free the memory allocated for the array.
+
+This change does make df(1) the most different command in the port,
+but there is no other easy way under Linux to get the mounted
+filesystem information.
+
+
+MNT_WAIT, MNT_NOWAIT, MNT_LOCAL
+-------------------------------
+These flags are not available through the corresponding Linux APIs.
+These have been dropped from function calls trying to use them.
+
+
+MNAMELEN
+--------
+This constant does not exist on Linux, but filesystem names are
+NUL-terminated strings anyway so we can use strcmp().  Where MNAMELEN
+is used, it has been removed.
+
+
+df(1)
+-----
+df(1) has an internal function called makenetvfslist() which reads a
+setting via sysctlbyname(), which Linux does not have.  The df.c
+source has removed this function and defined NETVFSLIST as a static
+string of the information likely to come from makenetvfslist() were it
+to work on Linux.  What this function does is return a list of network
+filesystems with "no" prefixed and the list comma-delimited.  We can
+define this for now in df.c and implement a function later if desired.
+
+Another change in df(1) is how it handles a specific list of
+filesystems to report information for.  In FreeBSD the command
+allocates a mntbuf array large enough for the number of filesystems
+specified, then collects the info via statfs() calls and builds the
+array.  Since we have to implement getmntinfo(), we run that instead
+for all df(1) invocations and then iterate over that list and set
+f_selected to 0 for unselected filesystems.
+
 
 
 
@@ -857,40 +912,3 @@ is non-zero:
 There may be other <sys/time.h> functions we encounter that are
 specific to OpenBSD, in which case we will just adjust them to a
 functionally equivalent glibc alternative.
-
-
-getmntinfo()
-------------
-OpenBSD provides a function called getmntinfo() which returns an array
-of mounted filesystems.  This includes the device node name, directory
-mounted on, filesystem stats, and other information.  Linux has no
-equivalent to this.  The combined structure in OpenBSD contains
-information that you would get from getmntent() and statvfs() on
-Linux.  The first thing you have to do on Linux is loop over the
-mounted filesystems using getmntent().  Later you can open the mounted
-filesystem to get a FILE * and then call statvfs() on that to get data
-like free space and size and such.
-
-To make df(1) easier to port, we have implemented a getmntinfo() with
-a combined data type called struct mntinfo.  The new getmntinfo()
-function creates an array of struct mntinfo entries of mounted
-filesystems containing the combined data from both getmntent() and
-statvfs() on Linux.  There is also a corresponding freemntinfo() call
-to free the memory allocated for the array.
-
-This change does make df(1) the most different command in the port,
-but there is no other easy way under Linux to get the mounted
-filesystem information.
-
-
-MNT_WAIT, MNT_NOWAIT, MNT_LOCAL
--------------------------------
-These flags are not available through the corresponding Linux APIs.
-These have been dropped from function calls trying to use them.
-
-
-MFSNAMELEN
-----------
-This constant does not exist on Linux, but filesystem names are
-NUL-terminated strings anyway so we can use strcmp().  Where
-MFSNAMELEN is used, it has been removed.
