@@ -142,9 +142,6 @@ cp -p usr/src/contrib/libc-vis/vis.h ${CWD}/include
 cp -p usr/src/usr.bin/primes/primes.h ${CWD}/src/factor
 cp -p usr/src/usr.bin/primes/pr_tbl.c ${CWD}/src/factor
 
-# These files are need for the install command
-cp -p usr/src/contrib/mtree/mtree.h ${CWD}/src/xinstall
-
 #####################
 # APPLY ANY PATCHES #
 #####################
