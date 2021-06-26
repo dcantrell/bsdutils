@@ -1,0 +1,11 @@
+--- mkfifo/mkfifo.c.orig	2021-06-26 18:42:06.601838031 +0200
++++ mkfifo/mkfifo.c	2021-06-26 18:42:26.843807995 +0200
+@@ -53,6 +53,8 @@ __FBSDID("$FreeBSD$");
+ #include <string.h>
+ #include <unistd.h>
+ 
++#include "compat.h"
++
+ #define	BASEMODE	S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | \
+ 			S_IROTH | S_IWOTH
+ 
