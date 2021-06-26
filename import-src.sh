@@ -67,6 +67,7 @@ CMDS="bin/test
       bin/mkdir
       sbin/mknod
       usr.bin/mktemp
+      usr.bin/mkfifo
       bin/mv
       usr.bin/nice
       usr.bin/nl
@@ -101,6 +102,7 @@ CMDS="bin/test
       usr.bin/uniq
       usr.bin/users
       usr.bin/wc
+      usr.bin/which
       usr.bin/who
       usr.bin/yes
       usr.sbin/chroot
