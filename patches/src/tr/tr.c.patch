@@ -1,0 +1,59 @@
+--- tr/tr.c.orig	2021-06-27 13:44:32.929977750 +0200
++++ tr/tr.c	2021-06-27 16:42:47.809123684 +0200
+@@ -44,9 +44,7 @@ static const char sccsid[] = "@(#)tr.c	8
+ #endif
+ 
+ #include <sys/types.h>
+-#include <sys/capsicum.h>
+ 
+-#include <capsicum_helpers.h>
+ #include <ctype.h>
+ #include <err.h>
+ #include <limits.h>
+@@ -62,6 +60,7 @@ static const char sccsid[] = "@(#)tr.c	8
+ #include "cmap.h"
+ #include "cset.h"
+ #include "extern.h"
++#include "compat.h"
+ 
+ static STR s1 = { STRING1, NORMAL, 0, OOBCH, 0, { 0, OOBCH }, NULL, NULL };
+ static STR s2 = { STRING2, NORMAL, 0, OOBCH, 0, { 0, OOBCH }, NULL, NULL };
+@@ -78,18 +77,13 @@ main(int argc, char **argv)
+ 	int n, *p;
+ 	int Cflag, cflag, dflag, sflag, isstring2;
+ 	wint_t ch, cnt, lastch;
++	int optc;
+ 
+ 	(void)setlocale(LC_ALL, "");
+ 
+-	if (caph_limit_stdio() == -1)
+-		err(1, "unable to limit stdio");
+-
+-	if (caph_enter() < 0)
+-		err(1, "unable to enter capability mode");
+-
+ 	Cflag = cflag = dflag = sflag = 0;
+-	while ((ch = getopt(argc, argv, "Ccdsu")) != -1)
+-		switch((char)ch) {
++	while ((optc = getopt(argc, argv, "Ccdsu")) != -1)
++		switch(optc) {
+ 		case 'C':
+ 			Cflag = 1;
+ 			cflag = 0;
+@@ -119,6 +113,7 @@ main(int argc, char **argv)
+ 	default:
+ 		usage();
+ 		/* NOTREACHED */
++		return 1;
+ 	case 1:
+ 		isstring2 = 0;
+ 		break;
+@@ -307,7 +302,7 @@ endloop:
+ 
+ 		s2.str = argv[1];
+ 		s2.state = NORMAL;
+-		for (cnt = 0; cnt < n; cnt++) {
++		for (cnt = 0; cnt < (wint_t)n; cnt++) {
+ 			(void)next(&s2);
+ 			cmap_add(map, carray[cnt], s2.lastch);
+ 			/*

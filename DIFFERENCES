@@ -261,6 +261,15 @@ Available in glibc by defining _XOPEN_SOURCE.  Programs requiring this
 have it added to their Makefile.am file.  Note that _GNU_SOURCE also
 implies _XOPEN_SOURCE.
 
+nextwctype()
+------------
+This is not available on Linux or in POSIX, and used in tr. Since it
+cannot be reimplemented (to do it efficiently enough to be useful, one
+needs access to the actual ctype ranges in the current character encoding),
+tr lacks support for non-ASCII character ranges (an emulation is provided
+that only considers a single byte range). This is actually in line with
+the GNU implementation, which does not support Unicode character ranges
+either.
 
 D_MD_ORDER
 ----------

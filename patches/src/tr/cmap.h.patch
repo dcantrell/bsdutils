@@ -1,0 +1,11 @@
+--- tr/cmap.h.orig	2021-06-27 15:09:55.224422014 +0200
++++ tr/cmap.h	2021-06-27 15:09:59.831956469 +0200
+@@ -47,7 +47,7 @@ struct cmap {
+ 	wint_t		cm_cache[CM_CACHE_SIZE];
+ 	bool		cm_havecache;
+ 	struct cmapnode	*cm_root;
+-#define	CM_DEF_SELF	-2
++#define	CM_DEF_SELF	(wint_t)(-2)
+ 	wint_t		cm_def;
+ 	wint_t		cm_min;
+ 	wint_t		cm_max;
