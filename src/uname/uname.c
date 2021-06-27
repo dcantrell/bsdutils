@@ -49,14 +49,13 @@ static const char sccsid[] = "@(#)uname.c	8.2 (Berkeley) 5/4/95";
 #endif
 
 #include <sys/param.h>
-#include <sys/sysctl.h>
+#include <sys/utsname.h>
+#include <sys/types.h>
 
 #include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-
-#include <osreldate.h>
 
 #define	MFLAG	0x01
 #define	NFLAG	0x02
@@ -205,90 +204,38 @@ print_uname(u_int flags)
 	printf("\n");
 }
 
-#define	NATIVE_SYSCTL2_GET(var,mib0,mib1)	\
-static void					\
-native_##var(void)				\
-{						\
-	int mib[] = { (mib0), (mib1) };		\
-	size_t len;				\
-	static char buf[1024];			\
-	char **varp = &(var);			\
-						\
-	len = sizeof buf;			\
-	if (sysctl(mib, sizeof mib / sizeof mib[0],	\
-	   &buf, &len, NULL, 0) == -1)		\
-		err(1, "sysctl");
-
-#define	NATIVE_SYSCTLNAME_GET(var,name)		\
-static void					\
-native_##var(void)				\
-{						\
-	size_t len;				\
-	static char buf[1024];			\
-	char **varp = &(var);			\
-						\
-	len = sizeof buf;			\
-	if (sysctlbyname(name, &buf, &len, NULL,\
-	    0) == -1)				\
-		err(1, "sysctlbyname");
-
-#define	NATIVE_SET				\
-	*varp = buf;				\
-	return;					\
-}	struct __hack
-
-#define	NATIVE_BUFFER	(buf)
-#define	NATIVE_LENGTH	(len)
-
-NATIVE_SYSCTL2_GET(sysname, CTL_KERN, KERN_OSTYPE) {
-} NATIVE_SET;
-
-NATIVE_SYSCTL2_GET(hostname, CTL_KERN, KERN_HOSTNAME) {
-} NATIVE_SET;
-
-NATIVE_SYSCTL2_GET(release, CTL_KERN, KERN_OSRELEASE) {
-} NATIVE_SET;
-
-NATIVE_SYSCTL2_GET(version, CTL_KERN, KERN_VERSION) {
-	size_t n;
-	char *p;
-
-	p = NATIVE_BUFFER;
-	n = NATIVE_LENGTH;
-	for (; n--; ++p)
-		if (*p == '\n' || *p == '\t')
-			*p = ' ';
-} NATIVE_SET;
-
-NATIVE_SYSCTL2_GET(platform, CTL_HW, HW_MACHINE) {
-} NATIVE_SET;
-
-NATIVE_SYSCTL2_GET(arch, CTL_HW, HW_MACHINE_ARCH) {
-} NATIVE_SET;
-
-NATIVE_SYSCTLNAME_GET(ident, "kern.ident") {
-} NATIVE_SET;
-
-NATIVE_SYSCTLNAME_GET(buildid, "kern.build_id") {
-} NATIVE_SET;
-
-static void
-native_uservers(void)
-{
-	static char buf[128];
-
-	snprintf(buf, sizeof(buf), "%d", __FreeBSD_version);
-	uservers = buf;
+#define NATIVE_UNAME_GET(var,field) \
+static void \
+native_##var(void) \
+{ \
+	static char buf[1024]; \
+	struct utsname u; \
+ \
+	if (uname(&u) != 0) \
+		err(1, "uname"); \
+\
+	snprintf(buf, sizeof(buf), "%s", u.field); \
+	var = buf; \
 }
 
-static void
-native_kernvers(void)
-{
-	static char buf[128];
+NATIVE_UNAME_GET(sysname, sysname)
+NATIVE_UNAME_GET(hostname, nodename)
+NATIVE_UNAME_GET(release, release)
+NATIVE_UNAME_GET(version, version)
+NATIVE_UNAME_GET(platform, machine)
 
-	snprintf(buf, sizeof(buf), "%d", getosreldate());
-	kernvers = buf;
+#define UNKNOWN_GET(var) \
+static void \
+native_##var(void) \
+{ \
+	var = "unknown"; \
 }
+
+UNKNOWN_GET(arch)
+UNKNOWN_GET(ident)
+UNKNOWN_GET(buildid)
+UNKNOWN_GET(uservers)
+UNKNOWN_GET(kernvers)
 
 static void
 usage(void)
