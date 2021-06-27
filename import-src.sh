@@ -58,6 +58,7 @@ CMDS="bin/test
       usr.bin/fmt
       usr.bin/fold
       usr.bin/head
+      bin/hostname
       usr.bin/id
       usr.bin/join
       bin/ln
