@@ -32,11 +32,11 @@ jobs:
               run: |
                   VER="$(git ls-remote --tag https://github.com/Juniper/libxo | grep -E "\/[0-9\.]+$" | rev | cut -d '/' -f 1 | rev | sort -n | tail -n 1)"
                   curl -k -f -L -O https://github.com/Juniper/libxo/releases/download/${VER}/libxo-${VER}.tar.gz
-                  tar -xf libxo-${VER}
+                  tar -xf libxo-${VER}.tar.gz
                   cd libxo-${VER}
                   ./configure --prefix=/usr/local
-                  make
-                  make install
+                  make -j4
+                  sudo make install
 
             - uses: actions/checkout@v2
 
@@ -55,7 +55,23 @@ jobs:
         steps:
             - name: dependencies
               run: |
-                  apk add git libtool autoconf automake make gcc musl-dev g++ meson flex bison libedit-dev openssl-dev fts-dev acl-dev libxo-dev
+                  apk add curl git libtool autoconf automake make patch gcc musl-dev g++ meson flex bison libedit-dev openssl-dev fts-dev acl-dev
+
+            - name: libxo
+              run: |
+                  # installed separately
+                  apk add bsd-compat-headers
+                  VER="$(git ls-remote --tag https://github.com/Juniper/libxo | grep -E "\/[0-9\.]+$" | rev | cut -d '/' -f 1 | rev | sort -n | tail -n 1)"
+                  curl -k -f -L -O https://github.com/Juniper/libxo/releases/download/${VER}/libxo-${VER}.tar.gz
+                  tar -xf libxo-${VER}.tar.gz
+                  cd libxo-${VER}
+                  curl -k -f -L -O https://github.com/Juniper/libxo/pull/82.patch
+                  cat 82.patch|patch -p1
+                  ./configure --prefix=/usr/local
+                  make -j4
+                  make install
+                  # make sure it does not interfere with bsdutils
+                  apk del bsd-compat-headers
 
             - name: rpmatch for musl
               run: |
