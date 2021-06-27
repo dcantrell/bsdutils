@@ -31,7 +31,7 @@ jobs:
             - name: libxo
               run: |
                   VER="$(git ls-remote --tag https://github.com/Juniper/libxo | grep -E "\/[0-9\.]+$" | rev | cut -d '/' -f 1 | rev | sort -n | tail -n 1)"
-                  curl -O https://github.com/Juniper/libxo/releases/download/${VER}/libxo-${VER}.tar.gz
+                  curl -k -f -L -O https://github.com/Juniper/libxo/releases/download/${VER}/libxo-${VER}.tar.gz
                   tar -xf libxo-${VER}
                   cd libxo-${VER}
                   ./configure --prefix=/usr/local
