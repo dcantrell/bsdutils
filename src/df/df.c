@@ -245,6 +245,13 @@ main(int argc, char *argv[])
 	xo_open_container("storage-system-information");
 	xo_open_list("filesystem");
 
+	/* unselect all filesystems if an explicit list is given */
+	if (*argv) {
+		for (i = 0; i < mntsize; i++) {
+			mntbuf[i].f_selected = 0;
+		}
+	}
+
 	/* iterate through specified filesystems */
 	for (; *argv; argv++) {
 		if (stat(*argv, &stbuf) < 0) {
@@ -270,35 +277,23 @@ main(int argc, char *argv[])
 		 */
 		for (i = 0; i < mntsize; i++) {
 			/* selected specified filesystems if the mount point or device matches */
-			if (!strcmp(mntbuf[i].f_mntfromname, mntpt) || !strcmp(mntbuf[i].f_mntonname, mntpt)) {
-				/*
-				 * Check to make sure the arguments we've been given are
-				 * satisfied.  Return an error if we have been asked to
-				 * list a mount point that does not match the other args
-				 * we've been given (-l, -t, etc.).
-				 */
-				if (checkvfsname(mntbuf[i].f_fstypename, vfslist)) {
-					rv = 1;
-					mntbuf[i].f_selected = 0;
-				} else {
-					mntbuf[i].f_selected = 1;
-				}
-			} else {
-				mntbuf[i].f_selected = 0;
+			if ((!strcmp(mntbuf[i].f_mntfromname, mntpt) || !strcmp(mntbuf[i].f_mntonname, mntpt)) && !checkvfsname(mntbuf[i].f_fstypename, vfslist)) {
+				mntbuf[i].f_selected = 1;
+				break;
 			}
 		}
 	}
 
 	memset(&maxwidths, 0, sizeof(maxwidths));
 	for (i = 0; i < mntsize; i++) {
-		if (aflag || (*mntbuf[i].f_mntfromname == '/')) {
+		if ((aflag || (*mntbuf[i].f_mntfromname == '/')) && mntbuf[i].f_selected) {
 			update_maxwidths(&maxwidths, &mntbuf[i]);
 			if (cflag)
 				addstat(&totalbuf, &mntbuf[i]);
 		}
 	}
 	for (i = 0; i < mntsize; i++)
-		if (aflag || (*mntbuf[i].f_mntfromname == '/'))
+		if ((aflag || (*mntbuf[i].f_mntfromname == '/')) && mntbuf[i].f_selected)
 			prtstat(&mntbuf[i], &maxwidths);
 
 	xo_close_list("filesystem");
@@ -317,9 +312,12 @@ getmntpt(struct mntinfo **mntbuf, const size_t mntsize, const char *name)
 {
 	size_t i;
 
+	if (mntsize == 0 || mntbuf == NULL || name == NULL)
+		return NULL;
+
 	for (i = 0; i < mntsize; i++) {
-		if (!strcmp(mntbuf[i]->f_mntfromname, name))
-			return (mntbuf[i]->f_mntonname);
+		if (mntbuf[i] == NULL)
+			continue;
 	}
 	return (NULL);
 }

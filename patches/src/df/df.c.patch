@@ -1,5 +1,5 @@
 --- df/df.c.orig	2021-04-27 23:52:35.231551429 -0400
-+++ df/df.c	2021-06-27 16:18:16.143842738 -0400
++++ df/df.c	2021-06-27 16:50:49.582229317 -0400
 @@ -50,11 +50,10 @@ __FBSDID("$FreeBSD$");
  
  #include <sys/param.h>
@@ -126,7 +126,7 @@
  			vfslist = makevfslist(optarg);
  			break;
  		case 'T':
-@@ -211,18 +239,8 @@ main(int argc, char *argv[])
+@@ -211,32 +239,29 @@ main(int argc, char *argv[])
  	argv += optind;
  
  	rv = 0;
@@ -147,7 +147,14 @@
  
  	xo_open_container("storage-system-information");
  	xo_open_list("filesystem");
-@@ -230,13 +248,13 @@ main(int argc, char *argv[])
+ 
++	/* unselect all filesystems if an explicit list is given */
++	if (*argv) {
++		for (i = 0; i < mntsize; i++) {
++			mntbuf[i].f_selected = 0;
++		}
++	}
++
  	/* iterate through specified filesystems */
  	for (; *argv; argv++) {
  		if (stat(*argv, &stbuf) < 0) {
@@ -163,7 +170,7 @@
  			if (mntpt == NULL) {
  				xo_warnx("%s: not mounted", *argv);
  				rv = 1;
-@@ -247,43 +265,40 @@ main(int argc, char *argv[])
+@@ -247,43 +272,28 @@ main(int argc, char *argv[])
  		}
  
  		/*
@@ -188,21 +195,9 @@
 -			continue;
 +		for (i = 0; i < mntsize; i++) {
 +			/* selected specified filesystems if the mount point or device matches */
-+			if (!strcmp(mntbuf[i].f_mntfromname, mntpt) || !strcmp(mntbuf[i].f_mntonname, mntpt)) {
-+				/*
-+				 * Check to make sure the arguments we've been given are
-+				 * satisfied.  Return an error if we have been asked to
-+				 * list a mount point that does not match the other args
-+				 * we've been given (-l, -t, etc.).
-+				 */
-+				if (checkvfsname(mntbuf[i].f_fstypename, vfslist)) {
-+					rv = 1;
-+					mntbuf[i].f_selected = 0;
-+				} else {
-+					mntbuf[i].f_selected = 1;
-+				}
-+			} else {
-+				mntbuf[i].f_selected = 0;
++			if ((!strcmp(mntbuf[i].f_mntfromname, mntpt) || !strcmp(mntbuf[i].f_mntonname, mntpt)) && !checkvfsname(mntbuf[i].f_fstypename, vfslist)) {
++				mntbuf[i].f_selected = 1;
++				break;
 +			}
  		}
 -
@@ -216,7 +211,7 @@
  	memset(&maxwidths, 0, sizeof(maxwidths));
  	for (i = 0; i < mntsize; i++) {
 -		if (aflag || (mntbuf[i].f_flags & MNT_IGNORE) == 0) {
-+		if (aflag || (*mntbuf[i].f_mntfromname == '/')) {
++		if ((aflag || (*mntbuf[i].f_mntfromname == '/')) && mntbuf[i].f_selected) {
  			update_maxwidths(&maxwidths, &mntbuf[i]);
  			if (cflag)
  				addstat(&totalbuf, &mntbuf[i]);
@@ -224,11 +219,11 @@
  	}
  	for (i = 0; i < mntsize; i++)
 -		if (aflag || (mntbuf[i].f_flags & MNT_IGNORE) == 0)
-+		if (aflag || (*mntbuf[i].f_mntfromname == '/'))
++		if ((aflag || (*mntbuf[i].f_mntfromname == '/')) && mntbuf[i].f_selected)
  			prtstat(&mntbuf[i], &maxwidths);
  
  	xo_close_list("filesystem");
-@@ -293,19 +308,18 @@ main(int argc, char *argv[])
+@@ -293,19 +303,21 @@ main(int argc, char *argv[])
  
  	xo_close_container("storage-system-information");
  	xo_finish();
@@ -243,17 +238,20 @@
 -	size_t mntsize, i;
 -	struct statfs *mntbuf;
 +	size_t i;
++
++	if (mntsize == 0 || mntbuf == NULL || name == NULL)
++		return NULL;
  
 -	mntsize = getmntinfo(&mntbuf, MNT_NOWAIT);
  	for (i = 0; i < mntsize; i++) {
 -		if (!strcmp(mntbuf[i].f_mntfromname, name))
 -			return (mntbuf[i].f_mntonname);
-+		if (!strcmp(mntbuf[i]->f_mntfromname, name))
-+			return (mntbuf[i]->f_mntonname);
++		if (mntbuf[i] == NULL)
++			continue;
  	}
  	return (NULL);
  }
-@@ -313,34 +327,51 @@ getmntpt(const char *name)
+@@ -313,34 +325,51 @@ getmntpt(const char *name)
  /*
   * Make a pass over the file system info in ``mntbuf'' filtering out
   * file system types not in vfslist and possibly re-stating to get
@@ -312,7 +310,7 @@
  			}
  		j++;
  	}
-@@ -348,7 +379,7 @@ regetmntinfo(struct statfs **mntbufp, lo
+@@ -348,7 +377,7 @@ regetmntinfo(struct statfs **mntbufp, lo
  }
  
  static void
@@ -321,7 +319,7 @@
  {
  
  	prthumanval("  {:blocks/%6s}", sfsp->f_blocks * sfsp->f_bsize);
-@@ -392,7 +423,7 @@ prthumanvalinode(const char *fmt, int64_
+@@ -392,7 +421,7 @@ prthumanvalinode(const char *fmt, int64_
  }
  
  /*
@@ -330,7 +328,7 @@
   */
  static intmax_t
  fsbtoblk(int64_t num, uint64_t fsbs, u_long bs)
-@@ -404,7 +435,7 @@ fsbtoblk(int64_t num, uint64_t fsbs, u_l
+@@ -404,7 +433,7 @@ fsbtoblk(int64_t num, uint64_t fsbs, u_l
   * Print out status about a file system.
   */
  static void
@@ -339,7 +337,7 @@
  {
  	static long blocksize;
  	static int headerlen, timesthrough = 0;
-@@ -500,23 +531,23 @@ prtstat(struct statfs *sfsp, struct maxw
+@@ -500,23 +529,23 @@ prtstat(struct statfs *sfsp, struct maxw
  			(double)used / (double)inodes * 100.0);
  	} else
  		xo_emit("  ");
@@ -371,7 +369,7 @@
  }
  
  /*
-@@ -524,7 +555,7 @@ addstat(struct statfs *totalfsp, struct
+@@ -524,7 +553,7 @@ addstat(struct statfs *totalfsp, struct
   * the file system specified by `sfsp'.
   */
  static void
@@ -380,7 +378,7 @@
  {
  	static long blocksize = 0;
  	int dummy;
-@@ -576,69 +607,89 @@ usage(void)
+@@ -576,69 +605,89 @@ usage(void)
  	exit(EX_USAGE);
  }
  
