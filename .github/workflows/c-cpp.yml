@@ -26,7 +26,7 @@ jobs:
         steps:
             - name: dependencies
               run: |
-                  sudo env DEBIAN_FRONTEND=noninteractive apt-get -y install meson ninja-build libedit-dev libacl1-dev
+                  sudo env DEBIAN_FRONTEND=noninteractive apt-get -y install meson ninja-build libedit-dev libacl1-dev libxo-dev
 
             - uses: actions/checkout@v2
 
@@ -45,7 +45,7 @@ jobs:
         steps:
             - name: dependencies
               run: |
-                  apk add git libtool autoconf automake make gcc musl-dev g++ meson flex bison libedit-dev openssl-dev fts-dev acl-dev
+                  apk add git libtool autoconf automake make gcc musl-dev g++ meson flex bison libedit-dev openssl-dev fts-dev acl-dev libxo-dev
 
             - name: rpmatch for musl
               run: |
