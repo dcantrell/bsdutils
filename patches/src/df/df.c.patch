@@ -1,5 +1,5 @@
 --- df/df.c.orig	2021-04-27 23:52:35.231551429 -0400
-+++ df/df.c	2021-06-21 12:48:04.506498410 -0400
++++ df/df.c	2021-06-27 16:18:16.143842738 -0400
 @@ -50,11 +50,10 @@ __FBSDID("$FreeBSD$");
  
  #include <sys/param.h>
@@ -380,7 +380,7 @@
  {
  	static long blocksize = 0;
  	int dummy;
-@@ -576,69 +607,79 @@ usage(void)
+@@ -576,69 +607,89 @@ usage(void)
  	exit(EX_USAGE);
  }
  
@@ -435,7 +435,17 @@
 +	FILE *fp = NULL;
 +	struct statvfs svfsbuf;
 +
++#ifdef _PATH_MOUNTED
 +	fp = setmntent(_PATH_MOUNTED, "r");
++#else
++	if (access("/proc/self/mounts", R_OK) == 0) {
++	    fp = setmntent("/proc/self/mounts", "r");
++	} else if (access("/proc/mounts", R_OK) == 0) {
++	    fp = setmntent("/proc/mounts", "r");
++	} else if (access("/etc/mtab", R_OK) == 0) {
++	    fp = setmntent("/etc/mtab", "r");
++	}
++#endif
 +
 +	if (fp == NULL) {
 +	    err(1, "setmntent");

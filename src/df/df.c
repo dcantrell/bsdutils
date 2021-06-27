@@ -617,7 +617,17 @@ getmntinfo(struct mntinfo **mntbuf)
 	FILE *fp = NULL;
 	struct statvfs svfsbuf;
 
+#ifdef _PATH_MOUNTED
 	fp = setmntent(_PATH_MOUNTED, "r");
+#else
+	if (access("/proc/self/mounts", R_OK) == 0) {
+	    fp = setmntent("/proc/self/mounts", "r");
+	} else if (access("/proc/mounts", R_OK) == 0) {
+	    fp = setmntent("/proc/mounts", "r");
+	} else if (access("/etc/mtab", R_OK) == 0) {
+	    fp = setmntent("/etc/mtab", "r");
+	}
+#endif
 
 	if (fp == NULL) {
 	    err(1, "setmntent");
