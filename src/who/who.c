@@ -45,7 +45,6 @@ __FBSDID("$FreeBSD$");
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <timeconv.h>
 #include <unistd.h>
 #include <utmpx.h>
 
@@ -118,7 +117,7 @@ main(int argc, char *argv[])
 		usage();
 
 	if (*argv != NULL) {
-		if (setutxdb(UTXDB_ACTIVE, *argv) != 0)
+		if (utmpxname(*argv) == 0)
 			err(1, "%s", *argv);
 	}
 
@@ -171,8 +170,10 @@ row(const struct utmpx *ut)
 	struct tm *tm;
 	char state;
 
-	if (d_first < 0)
-		d_first = (*nl_langinfo(D_MD_ORDER) == 'd');
+	if (d_first < 0) {
+		char *s = nl_langinfo(D_FMT);
+		d_first = (strchr(s, 'd') < strchr(s, 'm'));
+	}
 
 	state = '?';
 	idle = 0;
@@ -273,7 +274,9 @@ whoami(void)
 		tty = "tty??";
 	else if (strncmp(tty, _PATH_DEV, sizeof _PATH_DEV - 1) == 0)
 		tty += sizeof _PATH_DEV - 1;
-	strlcpy(ut.ut_line, tty, sizeof ut.ut_line);
+	strncpy(ut.ut_line, tty, sizeof ut.ut_line - 1);
+	if (strlen(tty) >= sizeof ut.ut_line)
+		ut.ut_line[sizeof ut.ut_line - 1] = '\0';
 
 	/* Search utmp for our tty, dump first matching record. */
 	if ((utx = getutxline(&ut)) != NULL && utx->ut_type == USER_PROCESS) {
@@ -287,8 +290,10 @@ whoami(void)
 		name = pwd->pw_name;
 	else
 		name = "?";
-	strlcpy(ut.ut_user, name, sizeof ut.ut_user);
-	gettimeofday(&ut.ut_tv, NULL);
+	strncpy(ut.ut_user, name, sizeof ut.ut_user - 1);
+	if (strlen(name) >= sizeof ut.ut_user)
+		ut.ut_user[sizeof ut.ut_user - 1] = '\0';
+	gettimeofday((struct timeval *)&ut.ut_tv, NULL);
 	row(&ut);
 }
 
