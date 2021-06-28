@@ -39,7 +39,8 @@
 #include <wchar.h>
 
 #include <sys/types.h>
-#include <md5.h>
+
+#include <openssl/evp.h>
 
 #define	VERSION	"2.3-FreeBSD"
 
@@ -59,6 +60,18 @@ extern const char *nlsstr[];
 extern unsigned int ncpu;
 extern size_t nthreads;
 #endif
+
+/* bsdutils additions */
+
+#define MD5_DIGEST_LENGTH 16
+
+typedef struct {
+	EVP_MD_CTX *mdctx;
+} MD5_CTX;
+
+void MD5Init(MD5_CTX *context);
+void MD5Update(MD5_CTX *context, const void *data, unsigned int len);
+void MD5Final(unsigned char digest[MD5_DIGEST_LENGTH], MD5_CTX *context);
 
 /*
  * If true, we output some debug information.
