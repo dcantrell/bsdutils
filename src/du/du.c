@@ -47,15 +47,14 @@ static const char sccsid[] = "@(#)du.c	8.5 (Berkeley) 5/4/95";
 __FBSDID("$FreeBSD$");
 
 #include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/stat.h>
 #include <err.h>
 #include <errno.h>
 #include <fnmatch.h>
 #include <fts.h>
 #include <getopt.h>
-#include <libutil.h>
 #include <locale.h>
+#include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -63,15 +62,17 @@ __FBSDID("$FreeBSD$");
 #include <sysexits.h>
 #include <unistd.h>
 
+#include "compat.h"
+
 #define SI_OPT	(CHAR_MAX + 1)
 
 #define UNITS_2		1
 #define UNITS_SI	2
 
-static SLIST_HEAD(ignhead, ignentry) ignores;
+static struct ignentry *ignores;
 struct ignentry {
 	char			*mask;
-	SLIST_ENTRY(ignentry)	next;
+	struct ignentry *next;
 };
 
 static int	linkchk(FTSENT *);
@@ -80,9 +81,7 @@ static void	prthumanval(int64_t);
 static void	ignoreadd(const char *);
 static void	ignoreclean(void);
 static int	ignorep(FTSENT *);
-static void	siginfo(int __attribute__((unused)));
 
-static int	nodumpflag = 0;
 static int	Aflag, hflag;
 static long	blocksize, cblocksize;
 static volatile sig_atomic_t info;
@@ -119,9 +118,9 @@ main(int argc, char *argv[])
 	cblocksize = DEV_BSIZE;
 	blocksize = 0;
 	depth = INT_MAX;
-	SLIST_INIT(&ignores);
+	ignores = NULL;
 
-	while ((ch = getopt_long(argc, argv, "+AB:HI:LPasd:cghklmnrt:x",
+	while ((ch = getopt_long(argc, argv, "+AB:HI:LPasd:cghklmrt:x",
 	    long_options, NULL)) != -1)
 		switch (ch) {
 		case 'A':
@@ -187,19 +186,23 @@ main(int argc, char *argv[])
 			hflag = 0;
 			blocksize = 1048576;
 			break;
-		case 'n':
-			nodumpflag = 1;
-			break;
 		case 'r':		 /* Compatibility. */
 			break;
-		case 't' :
-			if (expand_number(optarg, &threshold) != 0 ||
-			    threshold == 0) {
+		case 't' : {
+			uint64_t thresh;
+			/* expand_number takes an unsigned pointer but will happily store
+			 * negative values (represented as values beyond signed maximum)
+			 * store in unsigned and then copy to avoid UB
+			 */
+			int ret = expand_number(optarg, &thresh);
+			memcpy(&threshold, &thresh, sizeof(threshold));
+			if (ret != 0 || threshold == 0) {
 				warnx("invalid threshold: %s", optarg);
 				usage();
 			} else if (threshold < 0)
 				threshold_sign = -1;
 			break;
+		}
 		case 'x':
 			ftsoptions |= FTS_XDEV;
 			break;
@@ -263,8 +266,6 @@ main(int argc, char *argv[])
 
 	rval = 0;
 
-	(void)signal(SIGINFO, siginfo);
-
 	if ((fts = fts_open(argv, ftsoptions, NULL)) == NULL)
 		err(1, "fts_open");
 
@@ -281,18 +282,18 @@ main(int argc, char *argv[])
 			curblocks = Aflag ?
 			    howmany(p->fts_statp->st_size, cblocksize) :
 			    howmany(p->fts_statp->st_blocks, cblocksize);
-			p->fts_parent->fts_bignum += p->fts_bignum +=
+			p->fts_parent->fts_number += p->fts_number +=
 			    curblocks;
 
 			if (p->fts_level <= depth && threshold <=
-			    threshold_sign * howmany(p->fts_bignum *
+			    threshold_sign * howmany(p->fts_number *
 			    cblocksize, blocksize)) {
 				if (hflag > 0) {
-					prthumanval(p->fts_bignum);
+					prthumanval(p->fts_number);
 					(void)printf("\t%s\n", p->fts_path);
 				} else {
 					(void)printf("%jd\t%s\n",
-					    (intmax_t)howmany(p->fts_bignum *
+					    (intmax_t)howmany(p->fts_number *
 					    cblocksize, blocksize),
 					    p->fts_path);
 				}
@@ -334,9 +335,9 @@ main(int argc, char *argv[])
 				}
 			}
 
-			p->fts_parent->fts_bignum += curblocks;
+			p->fts_parent->fts_number += curblocks;
 		}
-		savednumber = p->fts_parent->fts_bignum;
+		savednumber = p->fts_parent->fts_number;
 	}
 
 	if (errno)
@@ -526,7 +527,8 @@ ignoreadd(const char *mask)
 	ign->mask = strdup(mask);
 	if (ign->mask == NULL)
 		errx(1, "cannot allocate memory");
-	SLIST_INSERT_HEAD(&ignores, ign, next);
+	ign->next = ignores;
+	ignores = ign;
 }
 
 static void
@@ -534,9 +536,9 @@ ignoreclean(void)
 {
 	struct ignentry *ign;
 
-	while (!SLIST_EMPTY(&ignores)) {
-		ign = SLIST_FIRST(&ignores);
-		SLIST_REMOVE_HEAD(&ignores, next);
+	while (ignores != NULL) {
+		ign = ignores;
+		ignores = ignores->next;
 		free(ign->mask);
 		free(ign);
 	}
@@ -547,17 +549,8 @@ ignorep(FTSENT *ent)
 {
 	struct ignentry *ign;
 
-	if (nodumpflag && (ent->fts_statp->st_flags & UF_NODUMP))
-		return 1;
-	SLIST_FOREACH(ign, &ignores, next)
+	for (ign = ignores; ign != NULL; ign = ign->next)
 		if (fnmatch(ign->mask, ent->fts_name, 0) != FNM_NOMATCH)
 			return 1;
 	return 0;
-}
-
-static void
-siginfo(int sig __attribute__((unused)))
-{
-
-	info = 1;
 }

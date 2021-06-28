@@ -63,6 +63,9 @@ endif
 # Build everything with _GNU_SOURCE enabled
 add_global_arguments('-D_GNU_SOURCE', language : [ 'c', 'cpp' ])
 
+# Always use 64-bit file offsets on glibc
+add_global_arguments('-D_FILE_OFFSET_BITS=64', language : [ 'c', 'cpp' ])
+
 # ls(1) needs the terminfo library
 foreach opt : ['tinfo', 'ncursesw', 'ncurses']
     libtinfo = cc.find_library(opt, required : false)

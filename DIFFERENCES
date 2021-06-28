@@ -402,7 +402,8 @@ been removed from commands that try to use it.
 
 The stat(1) command has the st_flags handling code removed as well.
 The ls(1) command has the -U and -o options removed from the code and
-from the man page.
+from the man page. The du(1) command has the -n option removed from
+the code and from the man page.
 
 
 'ls -o'
