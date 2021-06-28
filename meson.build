@@ -90,6 +90,9 @@ libxo = dependency('libxo', required : true)
 libfts = cc.find_library('fts', required : false)
 librpmatch = cc.find_library('rpmatch', required : false)
 
+# sort needs pthreads
+libpthread = dependency('threads')
+
 # Header files for libcompat
 inc = include_directories('include')
 

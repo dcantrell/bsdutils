@@ -1,0 +1,24 @@
+--- sort/sort.1.orig	2021-06-28 23:58:53.796310447 +0200
++++ sort/sort.1	2021-06-28 23:59:15.758094841 +0200
+@@ -328,9 +328,9 @@ is used.
+ .It Fl Fl debug
+ Print some extra information about the sorting process to the
+ standard output.
+-%%THREADS%%.It Fl Fl parallel
+-%%THREADS%%Set the maximum number of execution threads.
+-%%THREADS%%Default number equals to the number of CPUs.
++.It Fl Fl parallel
++Set the maximum number of execution threads.
++Default number equals to the number of CPUs.
+ .It Fl Fl files0-from Ns = Ns Ar filename
+ Take the input file list from the file
+ .Ar filename .
+@@ -527,8 +527,6 @@ Used as a last resort to determine diffe
+ behavior if neither the respective environment variable, nor
+ .Ev LC_ALL
+ are set.
+-%%NLS%%.It Ev NLSPATH
+-%%NLS%%Path to NLS catalogs.
+ .It Ev TMPDIR
+ Path to the directory in which temporary files will be stored.
+ Note that

@@ -56,8 +56,7 @@ void
 sort_free(const void *ptr)
 {
 
-	if (ptr)
-		free(__DECONST(void *, ptr));
+	free((void *)ptr);
 }
 
 /*

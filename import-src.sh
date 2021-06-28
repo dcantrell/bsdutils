@@ -148,6 +148,12 @@ cp -p usr/src/usr.bin/primes/pr_tbl.c ${CWD}/src/factor
 # These files are needed for the df command
 cp -p usr/sbin/sbin/mount/vfslist.c ${CWD}/src/df
 
+# These are not used
+rm -rf ${CWD}/src/sort/nls
+
+# sort manpage
+mv ${CWD}/src/sort/sort.1.in ${CWD}/src/sort/sort.1
+
 #####################
 # APPLY ANY PATCHES #
 #####################

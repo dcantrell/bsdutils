@@ -31,7 +31,6 @@
 __FBSDID("$FreeBSD$");
 
 #include <sys/stat.h>
-#include <sys/sysctl.h>
 #include <sys/types.h>
 
 #include <err.h>
@@ -40,7 +39,6 @@ __FBSDID("$FreeBSD$");
 #include <getopt.h>
 #include <limits.h>
 #include <locale.h>
-#include <md5.h>
 #include <regex.h>
 #include <signal.h>
 #include <stdbool.h>
@@ -55,10 +53,34 @@ __FBSDID("$FreeBSD$");
 #include "file.h"
 #include "sort.h"
 
+void MD5Init(MD5_CTX *context)
+{
+	context->mdctx = EVP_MD_CTX_new();
+	if (!context)
+		errx(1, "could not init MD5 context");
+
+	if (!EVP_DigestInit_ex(context->mdctx, EVP_md5(), NULL))
+		errx(1, "could not init MD5 digest");
+}
+
+void MD5Update(MD5_CTX *context, const void *data, unsigned int len)
+{
+	if (!EVP_DigestUpdate(context->mdctx, data, len))
+		errx(1, "could not update MD5 digest");
+}
+
+void MD5Final(unsigned char digest[MD5_DIGEST_LENGTH], MD5_CTX *context)
+{
+	if (!EVP_DigestFinal(context->mdctx, digest, NULL))
+		errx(1, "could not finalize MD5 digest");
+}
+
 #ifndef WITHOUT_NLS
 #include <nl_types.h>
 nl_catd catalog;
 #endif
+
+extern const char *__progname;
 
 #define	OPTIONS	"bcCdfghik:Mmno:RrsS:t:T:uVz"
 
@@ -210,7 +232,7 @@ usage(bool opt_err)
 
 	out = opt_err ? stderr : stdout;
 
-	fprintf(out, getstr(12), getprogname());
+	fprintf(out, getstr(12), __progname);
 	if (opt_err)
 		exit(2);
 	exit(0);
@@ -325,16 +347,24 @@ set_locale(void)
 	lc = localeconv();
 
 	if (lc) {
+		wchar_t sym_decimal_point;
+		wchar_t sym_thousands_sep;
+		wchar_t sym_positive_sign;
+		wchar_t sym_negative_sign;
 		/* obtain LC_NUMERIC info */
 		/* Convert to wide char form */
-		conv_mbtowc(&symbol_decimal_point, lc->decimal_point,
+		conv_mbtowc(&sym_decimal_point, lc->decimal_point,
 		    symbol_decimal_point);
-		conv_mbtowc(&symbol_thousands_sep, lc->thousands_sep,
+		conv_mbtowc(&sym_thousands_sep, lc->thousands_sep,
 		    symbol_thousands_sep);
-		conv_mbtowc(&symbol_positive_sign, lc->positive_sign,
+		conv_mbtowc(&sym_positive_sign, lc->positive_sign,
 		    symbol_positive_sign);
-		conv_mbtowc(&symbol_negative_sign, lc->negative_sign,
+		conv_mbtowc(&sym_negative_sign, lc->negative_sign,
 		    symbol_negative_sign);
+		symbol_decimal_point = sym_decimal_point;
+		symbol_thousands_sep = sym_thousands_sep;
+		symbol_positive_sign = sym_positive_sign;
+		symbol_negative_sign = sym_negative_sign;
 	}
 
 	if (getenv("GNUSORT_NUMERIC_COMPATIBILITY"))
@@ -429,7 +459,8 @@ parse_memory_buffer_value(const char *value)
 				    100;
 				break;
 			default:
-				warnc(EINVAL, "%s", optarg);
+				errno = EINVAL;
+				warn("%s", optarg);
 				membuf = available_free_memory;
 			}
 		}
@@ -851,7 +882,7 @@ end:
 void
 fix_obsolete_keys(int *argc, char **argv)
 {
-	char sopt[129];
+	char sopt[304];
 
 	for (int i = 1; i < *argc; i++) {
 		char *arg1;
@@ -1041,7 +1072,8 @@ main(int argc, char **argv)
 
 				if (parse_k(optarg, &(keys[keys_num - 1]))
 				    < 0) {
-					errc(2, EINVAL, "-k %s", optarg);
+					errno = EINVAL;
+					err(2, "-k %s", optarg);
 				}
 
 				break;
@@ -1066,7 +1098,8 @@ main(int argc, char **argv)
 			case 't':
 				while (strlen(optarg) > 1) {
 					if (optarg[0] != '\\') {
-						errc(2, EINVAL, "%s", optarg);
+						errno = EINVAL;
+						err(2, "%s", optarg);
 					}
 					optarg += 1;
 					if (*optarg == '0') {
