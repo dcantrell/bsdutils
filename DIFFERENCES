@@ -860,13 +860,14 @@ most closely handled on Linux with the getauxval() function and
 passing it AT_SECURE.
 
 
-kqueue vs. epoll
+kqueue
 ----------------
-The tail(1) command on OpenBSD uses kqueue to monitor for events on
+The tail(1) command on FreeBSD uses kqueue to monitor for events on
 files and then take action.  This is a BSD-specific API and not
-available on Linux.  But Linux does have epoll which is similar.
-tail(1) has been modified to use the epoll API on Linux and roughly
-work in the same manner as the OpenBSD one.
+available on Linux.  When it comes to monitoring files, the equivalent
+Linux API is inotify, which can be used together with event handling
+mechanisms such as poll/epoll (the actual Linux alternative to kqueue
+is epoll, but it doesn't work on regular files, while kqueue does).
 
 
 sys_signame[]
