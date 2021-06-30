@@ -69,7 +69,7 @@ gprint(struct termios *tp, struct winsize *wp __attribute__((unused)), int ldisc
 	for (cp = cchars1; cp->name; ++cp)
 		(void)printf("%s=%x:", cp->name, tp->c_cc[cp->sub]);
 	(void)printf("ispeed=%lu:ospeed=%lu\n",
-	    (u_long)cfgetispeed(tp), (u_long)cfgetospeed(tp));
+	    (u_long)get_baud(cfgetispeed(tp)), (u_long)get_baud(cfgetospeed(tp)));
 }
 
 void

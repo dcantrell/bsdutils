@@ -131,10 +131,13 @@ args:	argc -= optind;
 
 		if (isdigit(**argv)) {
 			speed_t speed;
-			speed = strtoul(*argv, NULL, 10);
-			if (errno == ERANGE || errno == EINVAL) {
+			unsigned long baud;
+			char *errstr;
+			baud = strtoul(*argv, &errstr, 10);
+			if (*errstr) {
 				err(1, "speed");
 			}
+			speed = get_speed(baud);
 			cfsetospeed(&i.t, speed);
 			cfsetispeed(&i.t, speed);
 			i.set = 1;

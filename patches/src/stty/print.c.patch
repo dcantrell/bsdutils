@@ -1,5 +1,5 @@
---- stty/print.c.orig	2021-04-27 23:52:35.000000000 -0400
-+++ stty/print.c	2021-06-29 14:08:13.530039012 -0400
+--- stty/print.c.orig	2021-06-30 21:11:23.806749931 +0200
++++ stty/print.c	2021-06-30 21:58:23.795214134 +0200
 @@ -40,6 +40,8 @@ __FBSDID("$FreeBSD$");
  #include <stddef.h>
  #include <stdio.h>
@@ -25,6 +25,18 @@
  			cnt += printf("ppp disc; ");
  			break;
  		default:
+@@ -79,9 +81,9 @@ print(struct termios *tp, struct winsize
+ 	ospeed = cfgetospeed(tp);
+ 	if (ispeed != ospeed)
+ 		cnt +=
+-		    printf("ispeed %d baud; ospeed %d baud;", ispeed, ospeed);
++		    printf("ispeed %d baud; ospeed %d baud;", get_baud(ispeed), get_baud(ospeed));
+ 	else
+-		cnt += printf("speed %d baud;", ispeed);
++		cnt += printf("speed %d baud;", get_baud(ispeed));
+ 	if (fmt >= BSD)
+ 		cnt += printf(" %d rows; %d columns;", wp->ws_row, wp->ws_col);
+ 	if (cnt)
 @@ -105,12 +107,11 @@ print(struct termios *tp, struct winsize
  	put("-echonl", ECHONL, 0);
  	put("-echoctl", ECHOCTL, 0);

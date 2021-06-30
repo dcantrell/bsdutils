@@ -81,9 +81,9 @@ print(struct termios *tp, struct winsize *wp, int ldisc, enum FMT fmt)
 	ospeed = cfgetospeed(tp);
 	if (ispeed != ospeed)
 		cnt +=
-		    printf("ispeed %d baud; ospeed %d baud;", ispeed, ospeed);
+		    printf("ispeed %d baud; ospeed %d baud;", get_baud(ispeed), get_baud(ospeed));
 	else
-		cnt += printf("speed %d baud;", ispeed);
+		cnt += printf("speed %d baud;", get_baud(ispeed));
 	if (fmt >= BSD)
 		cnt += printf(" %d rows; %d columns;", wp->ws_row, wp->ws_col);
 	if (cnt)

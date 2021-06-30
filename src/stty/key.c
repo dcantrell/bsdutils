@@ -298,7 +298,7 @@ void
 f_speed(struct info *ip)
 {
 
-	(void)printf("%lu\n", (u_long)cfgetospeed(&ip->t));
+	(void)printf("%lu\n", (u_long)get_baud(cfgetospeed(&ip->t)));
 }
 
 void
