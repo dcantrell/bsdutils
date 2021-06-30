@@ -1,14 +1,17 @@
---- find/function.c.orig	2021-04-09 02:24:12.000000000 +0200
-+++ find/function.c	2021-06-12 06:47:02.271086318 +0200
-@@ -40,7 +40,6 @@ static const char sccsid[] = "@(#)functi
+--- find/function.c.orig	2021-04-08 20:24:12.000000000 -0400
++++ find/function.c	2021-06-29 12:56:37.858711054 -0400
+@@ -40,10 +40,8 @@ static const char sccsid[] = "@(#)functi
  __FBSDID("$FreeBSD$");
  
  #include <sys/param.h>
 -#include <sys/ucred.h>
  #include <sys/stat.h>
  #include <sys/types.h>
- #include <sys/acl.h>
-@@ -64,6 +63,8 @@ __FBSDID("$FreeBSD$");
+-#include <sys/acl.h>
+ #include <sys/wait.h>
+ #include <sys/mount.h>
+ 
+@@ -64,6 +62,8 @@ __FBSDID("$FreeBSD$");
  
  #include "find.h"
  
@@ -17,7 +20,7 @@
  static PLAN *palloc(OPTION *);
  static long long find_parsenum(PLAN *, const char *, char *, char *);
  static long long find_parsetime(PLAN *, const char *, char *);
-@@ -371,7 +372,7 @@ c_mXXdepth(OPTION *option, char ***argvp
+@@ -371,7 +371,7 @@ c_mXXdepth(OPTION *option, char ***argvp
   *	Show files with EXTENDED ACL attributes.
   */
  int
@@ -26,7 +29,7 @@
  {
  	acl_t facl;
  	acl_type_t acl_type;
-@@ -418,7 +419,7 @@ f_acl(PLAN *plan __unused, FTSENT *entry
+@@ -418,7 +418,7 @@ f_acl(PLAN *plan __unused, FTSENT *entry
  #endif
  
  PLAN *
@@ -35,7 +38,7 @@
  {
  	ftsoptions &= ~FTS_NOSTAT;
  	return (palloc(option));
-@@ -430,7 +431,7 @@ c_acl(OPTION *option, char ***argvp __un
+@@ -430,7 +430,7 @@ c_acl(OPTION *option, char ***argvp __un
   *	True always.  Makes its best shot and continues on regardless.
   */
  int
@@ -44,7 +47,7 @@
  {
  	/* ignore these from fts */
  	if (strcmp(entry->fts_accpath, ".") == 0 ||
-@@ -475,7 +476,7 @@ f_delete(PLAN *plan __unused, FTSENT *en
+@@ -475,7 +475,7 @@ f_delete(PLAN *plan __unused, FTSENT *en
  }
  
  PLAN *
@@ -53,7 +56,7 @@
  {
  
  	ftsoptions &= ~FTS_NOSTAT;	/* no optimise */
-@@ -500,7 +501,7 @@ c_delete(OPTION *option, char ***argvp _
+@@ -500,7 +500,7 @@ c_delete(OPTION *option, char ***argvp _
   *	Always true, used for -maxdepth, -mindepth, -xdev, -follow, and -true
   */
  int
@@ -62,7 +65,7 @@
  {
  	return 1;
  }
-@@ -560,7 +561,7 @@ c_depth(OPTION *option, char ***argvp)
+@@ -560,7 +560,7 @@ c_depth(OPTION *option, char ***argvp)
   *	True if the file or directory is empty
   */
  int
@@ -71,7 +74,7 @@
  {
  	if (S_ISREG(entry->fts_statp->st_mode) &&
  	    entry->fts_statp->st_size == 0)
-@@ -588,7 +589,7 @@ f_empty(PLAN *plan __unused, FTSENT *ent
+@@ -588,7 +588,7 @@ f_empty(PLAN *plan __unused, FTSENT *ent
  }
  
  PLAN *
@@ -80,7 +83,7 @@
  {
  	ftsoptions &= ~FTS_NOSTAT;
  
-@@ -865,7 +866,7 @@ c_flags(OPTION *option, char ***argvp)
+@@ -865,7 +865,7 @@ c_flags(OPTION *option, char ***argvp)
   *	basis.
   */
  PLAN *
@@ -89,7 +92,7 @@
  {
  	ftsoptions &= ~FTS_PHYSICAL;
  	ftsoptions |= FTS_LOGICAL;
-@@ -1028,7 +1029,7 @@ c_group(OPTION *option, char ***argvp)
+@@ -1028,7 +1028,7 @@ c_group(OPTION *option, char ***argvp)
   */
  
  PLAN *
@@ -98,7 +101,7 @@
  {
  	if (strcmp(option->name, "-ignore_readdir_race") == 0)
  		ignore_readdir_race = 1;
-@@ -1123,14 +1124,14 @@ c_links(OPTION *option, char ***argvp)
+@@ -1123,14 +1123,14 @@ c_links(OPTION *option, char ***argvp)
   *	Always true - prints the current entry to stdout in "ls" format.
   */
  int
@@ -115,7 +118,7 @@
  {
  	ftsoptions &= ~FTS_NOSTAT;
  	isoutput = 1;
-@@ -1259,13 +1260,15 @@ c_newer(OPTION *option, char ***argvp)
+@@ -1259,13 +1259,15 @@ c_newer(OPTION *option, char ***argvp)
   *	of the getgrnam() 9.2.1 [POSIX.1] function returns NULL.
   */
  int
@@ -134,7 +137,7 @@
  {
  	ftsoptions &= ~FTS_NOSTAT;
  
-@@ -1279,13 +1282,15 @@ c_nogroup(OPTION *option, char ***argvp
+@@ -1279,13 +1281,15 @@ c_nogroup(OPTION *option, char ***argvp
   *	of the getpwuid() 9.2.2 [POSIX.1] function returns NULL.
   */
  int
@@ -153,7 +156,7 @@
  {
  	ftsoptions &= ~FTS_NOSTAT;
  
-@@ -1320,7 +1325,7 @@ f_perm(PLAN *plan, FTSENT *entry)
+@@ -1320,7 +1324,7 @@ f_perm(PLAN *plan, FTSENT *entry)
  	mode_t mode;
  
  	mode = entry->fts_statp->st_mode &
@@ -162,7 +165,7 @@
  	if (plan->flags & F_ATLEAST)
  		return (plan->m_data | mode) == mode;
  	else if (plan->flags & F_ANY)
-@@ -1365,14 +1370,14 @@ c_perm(OPTION *option, char ***argvp)
+@@ -1365,14 +1369,14 @@ c_perm(OPTION *option, char ***argvp)
   *	standard output.
   */
  int
@@ -179,7 +182,7 @@
  {
  	isoutput = 1;
  
-@@ -1386,7 +1391,7 @@ c_print(OPTION *option, char ***argvp __
+@@ -1386,7 +1390,7 @@ c_print(OPTION *option, char ***argvp __
   *	standard output followed by a NUL character
   */
  int
@@ -188,7 +191,7 @@
  {
  	fputs(entry->fts_path, stdout);
  	fputc('\0', stdout);
-@@ -1401,7 +1406,7 @@ f_print0(PLAN *plan __unused, FTSENT *en
+@@ -1401,7 +1405,7 @@ f_print0(PLAN *plan __unused, FTSENT *en
   *	Prune a portion of the hierarchy.
   */
  int
@@ -197,7 +200,7 @@
  {
  	if (fts_set(tree, entry, FTS_SKIP))
  		err(1, "%s", entry->fts_path);
-@@ -1480,7 +1485,7 @@ c_regex(OPTION *option, char ***argvp)
+@@ -1480,7 +1484,7 @@ c_regex(OPTION *option, char ***argvp)
  /* c_simple covers c_prune, c_openparen, c_closeparen, c_not, c_or, c_true, c_false */
  
  PLAN *
@@ -206,7 +209,7 @@
  {
  	return palloc(option);
  }
-@@ -1562,7 +1567,7 @@ c_size(OPTION *option, char ***argvp)
+@@ -1562,7 +1566,7 @@ c_size(OPTION *option, char ***argvp)
   *      than we expect based on its size.
   */
  int
@@ -215,7 +218,7 @@
  {
  	off_t expected_blocks;
  
-@@ -1571,7 +1576,7 @@ f_sparse(PLAN *plan __unused, FTSENT *en
+@@ -1571,7 +1575,7 @@ f_sparse(PLAN *plan __unused, FTSENT *en
  }
  
  PLAN *
@@ -224,7 +227,7 @@
  {
  	ftsoptions &= ~FTS_NOSTAT;
  
-@@ -1692,7 +1697,7 @@ c_user(OPTION *option, char ***argvp)
+@@ -1692,7 +1696,7 @@ c_user(OPTION *option, char ***argvp)
   *	different device ID (st_dev, see stat() S5.6.2 [POSIX.1])
   */
  PLAN *
@@ -233,7 +236,7 @@
  {
  	ftsoptions |= FTS_XDEV;
  
-@@ -1723,13 +1728,13 @@ f_expr(PLAN *plan, FTSENT *entry)
+@@ -1723,13 +1727,13 @@ f_expr(PLAN *plan, FTSENT *entry)
   */
  
  int
@@ -249,7 +252,7 @@
  {
  	abort();
  }
-@@ -1741,7 +1746,7 @@ f_closeparen(PLAN *plan __unused, FTSENT
+@@ -1741,7 +1745,7 @@ f_closeparen(PLAN *plan __unused, FTSENT
   * AND operator. Since AND is implicit, no node is allocated.
   */
  PLAN *
@@ -258,7 +261,7 @@
  {
  	return NULL;
  }
-@@ -1795,7 +1800,7 @@ f_or(PLAN *plan, FTSENT *entry)
+@@ -1795,7 +1799,7 @@ f_or(PLAN *plan, FTSENT *entry)
   *	Always false.
   */
  int
@@ -267,7 +270,7 @@
  {
  	return 0;
  }
-@@ -1808,7 +1813,7 @@ f_false(PLAN *plan __unused, FTSENT *ent
+@@ -1808,7 +1812,7 @@ f_false(PLAN *plan __unused, FTSENT *ent
   *	Exits the program
   */
  int

@@ -1,6 +1,12 @@
---- ls/print.c.orig	2021-04-09 02:24:01.000000000 +0200
-+++ ls/print.c	2021-06-12 06:22:35.112177174 +0200
-@@ -48,7 +48,6 @@ __FBSDID("$FreeBSD$");
+--- ls/print.c.orig	2021-04-08 20:24:01.000000000 -0400
++++ ls/print.c	2021-06-29 12:56:55.466673778 -0400
+@@ -42,13 +42,11 @@ __FBSDID("$FreeBSD$");
+ 
+ #include <sys/param.h>
+ #include <sys/stat.h>
+-#include <sys/acl.h>
+ 
+ #include <err.h>
  #include <errno.h>
  #include <fts.h>
  #include <langinfo.h>
@@ -8,7 +14,7 @@
  #include <limits.h>
  #include <stdio.h>
  #include <stdint.h>
-@@ -66,6 +65,8 @@ __FBSDID("$FreeBSD$");
+@@ -66,6 +64,8 @@ __FBSDID("$FreeBSD$");
  #include "ls.h"
  #include "extern.h"
  
@@ -17,7 +23,7 @@
  static int	printaname(const FTSENT *, u_long, u_long);
  static void	printdev(size_t, dev_t);
  static void	printlink(const FTSENT *);
-@@ -78,7 +79,6 @@ static void	endcolor_ansi(void);
+@@ -78,7 +78,6 @@ static void	endcolor_ansi(void);
  static void	endcolor(int);
  static int	colortype(mode_t);
  #endif
@@ -25,7 +31,7 @@
  
  #define	IS_NOPRINT(p)	((p)->fts_number == NO_PRINT)
  
-@@ -231,23 +231,16 @@ printlong(const DISPLAY *dp)
+@@ -231,23 +230,16 @@ printlong(const DISPLAY *dp)
  			(void)printf("%*jd ",
  			    dp->s_block, howmany(sp->st_blocks, blocksize));
  		strmode(sp->st_mode, buf);
@@ -49,7 +55,7 @@
  		else if (f_statustime)
  			printtime(sp->st_ctime);
  		else
-@@ -464,8 +457,11 @@ printtime(time_t ftime)
+@@ -464,8 +456,11 @@ printtime(time_t ftime)
  	const char *format;
  	static int d_first = -1;
  
@@ -63,7 +69,7 @@
  	if (now == 0)
  		now = time(NULL);
  
-@@ -511,9 +507,6 @@ printtype(u_int mode)
+@@ -511,9 +506,6 @@ printtype(u_int mode)
  	case S_IFSOCK:
  		(void)putchar('=');
  		return (1);
@@ -73,7 +79,7 @@
  	default:
  		break;
  	}
-@@ -617,7 +610,7 @@ colortype(mode_t mode)
+@@ -617,7 +609,7 @@ colortype(mode_t mode)
  	switch (mode & S_IFMT) {
  	case S_IFDIR:
  		if (mode & S_IWOTH)
@@ -82,7 +88,7 @@
  				printcolor(C_WSDIR);
  			else
  				printcolor(C_WDIR);
-@@ -754,74 +747,3 @@ printsize(size_t width, off_t bytes)
+@@ -754,74 +746,3 @@ printsize(size_t width, off_t bytes)
  	} else
  		(void)printf("%*jd ", (u_int)width, bytes);
  }
