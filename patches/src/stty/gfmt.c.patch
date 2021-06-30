@@ -1,5 +1,5 @@
 --- stty/gfmt.c.orig	2021-06-30 17:30:57.488135019 +0200
-+++ stty/gfmt.c	2021-06-30 17:00:32.011330012 +0200
++++ stty/gfmt.c	2021-06-30 22:01:19.333564627 +0200
 @@ -40,7 +40,9 @@ __FBSDID("$FreeBSD$");
  #include <err.h>
  #include <stdio.h>
@@ -19,6 +19,15 @@
  {
  	struct cchar *cp;
  
+@@ -67,7 +69,7 @@ gprint(struct termios *tp, struct winsiz
+ 	for (cp = cchars1; cp->name; ++cp)
+ 		(void)printf("%s=%x:", cp->name, tp->c_cc[cp->sub]);
+ 	(void)printf("ispeed=%lu:ospeed=%lu\n",
+-	    (u_long)cfgetispeed(tp), (u_long)cfgetospeed(tp));
++	    (u_long)get_baud(cfgetispeed(tp)), (u_long)get_baud(cfgetospeed(tp)));
+ }
+ 
+ void
 @@ -99,7 +101,7 @@ gread(struct termios *tp, char *s)
  		}
  		if (CHK("ispeed")) {

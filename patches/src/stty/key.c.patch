@@ -1,5 +1,5 @@
 --- stty/key.c.orig	2021-06-30 17:31:23.717502782 +0200
-+++ stty/key.c	2021-06-30 17:28:43.509580383 +0200
++++ stty/key.c	2021-06-30 22:00:27.838742175 +0200
 @@ -36,11 +36,15 @@ static char sccsid[] = "@(#)key.c	8.3 (B
  __FBSDID("$FreeBSD$");
  
@@ -63,6 +63,15 @@
  	ip->t.c_lflag = def.c_lflag | (ip->t.c_lflag & LKEEP);
  	ip->t.c_oflag = def.c_oflag;
  	ip->set = 1;
+@@ -279,7 +298,7 @@ void
+ f_speed(struct info *ip)
+ {
+ 
+-	(void)printf("%lu\n", (u_long)cfgetospeed(&ip->t));
++	(void)printf("%lu\n", (u_long)get_baud(cfgetospeed(&ip->t)));
+ }
+ 
+ void
 @@ -287,7 +306,7 @@ f_tty(struct info *ip)
  {
  	int tmp;

@@ -1,5 +1,5 @@
---- stty/util.c.orig	2021-04-27 23:52:35.000000000 -0400
-+++ stty/util.c	2021-06-30 09:48:02.992125484 -0400
+--- stty/util.c.orig	2021-06-30 21:41:46.867450256 +0200
++++ stty/util.c	2021-06-30 21:44:59.864045409 +0200
 @@ -40,6 +40,7 @@ __FBSDID("$FreeBSD$");
  
  #include <err.h>
@@ -8,3 +8,28 @@
  
  #include "stty.h"
  #include "extern.h"
+@@ -60,3 +61,24 @@ checkredirect(void)
+ 	    (sb1.st_rdev != sb2.st_rdev))
+ warnx("stdout appears redirected, but stdin is the control descriptor");
+ }
++
++static const int baudlist[] = {
++	0, 50, 75, 110, 134, 150, 200, 300, 600, 1200, 1800, 2400, 4800, 9600,
++	19200, 38400, 57600, 115200, 230400, 460800, 500000, 576000, 921600,
++	1000000, 1152000, 1500000, 2000000, 2500000, 3000000, 3500000, 4000000,
++};
++
++int get_baud(speed_t s) {
++	if (s & CBAUDEX)
++		s = (s & ~CBAUDEX) + 16;
++	return baudlist[s];
++}
++
++speed_t get_speed(unsigned long b) {
++	for (size_t i = 0; i < (sizeof(baudlist) / sizeof(int)); ++i) {
++		if ((unsigned long)baudlist[i] != b)
++			continue;
++		return i;
++	}
++	errx(1, "unknown speed for baud %lu", b);
++}

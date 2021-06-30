@@ -42,4 +42,7 @@ void	optlist(void);
 void	print(struct termios *, struct winsize *, int, enum FMT);
 void	usage(void) __dead2;
 
+int get_baud(speed_t s);
+speed_t get_speed(unsigned long b);
+
 extern struct cchar cchars1[], cchars2[];
