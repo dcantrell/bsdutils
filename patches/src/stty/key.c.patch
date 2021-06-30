@@ -1,17 +1,10 @@
---- stty/key.c.orig	2021-04-27 23:52:35.000000000 -0400
-+++ stty/key.c	2021-06-30 09:50:00.446889340 -0400
-@@ -27,6 +27,9 @@
-  * SUCH DAMAGE.
-  */
+--- stty/key.c.orig	2021-06-30 17:31:23.717502782 +0200
++++ stty/key.c	2021-06-30 17:28:43.509580383 +0200
+@@ -36,11 +36,15 @@ static char sccsid[] = "@(#)key.c	8.3 (B
+ __FBSDID("$FreeBSD$");
  
-+/* necessary to get 'ttydefchars' */
-+#define TTYDEFCHARS
-+
- #ifndef lint
- #if 0
- static char sccsid[] = "@(#)key.c	8.3 (Berkeley) 4/2/94";
-@@ -38,9 +41,12 @@ __FBSDID("$FreeBSD$");
  #include <sys/types.h>
++#include <sys/ttydefaults.h>
  
  #include <err.h>
 +#include <errno.h>
@@ -23,7 +16,7 @@
  
  #include "stty.h"
  #include "extern.h"
-@@ -191,13 +197,23 @@ f_everything(struct info *ip)
+@@ -191,13 +195,23 @@ f_everything(struct info *ip)
  void
  f_extproc(struct info *ip)
  {
@@ -51,7 +44,7 @@
  	}
  }
  
-@@ -258,11 +274,17 @@ f_sane(struct info *ip)
+@@ -258,11 +272,16 @@ f_sane(struct info *ip)
  {
  	struct termios def;
  
@@ -60,9 +53,8 @@
 +	def.c_iflag = TTYDEF_IFLAG;
 +	def.c_lflag = TTYDEF_LFLAG;
 +	def.c_oflag = TTYDEF_OFLAG;
-+	def.c_ispeed = TTYDEF_SPEED;
-+	def.c_ospeed = TTYDEF_SPEED;
-+	memcpy(def.c_cc, ttydefchars, sizeof ttydefchars);
++	cfsetispeed(&def, TTYDEF_SPEED);
++	cfsetospeed(&def, TTYDEF_SPEED);
  	ip->t.c_cflag = def.c_cflag | (ip->t.c_cflag & CLOCAL);
  	ip->t.c_iflag = def.c_iflag;
  	/* preserve user-preference flags in lflag */
@@ -71,7 +63,7 @@
  	ip->t.c_lflag = def.c_lflag | (ip->t.c_lflag & LKEEP);
  	ip->t.c_oflag = def.c_oflag;
  	ip->set = 1;
-@@ -287,7 +309,7 @@ f_tty(struct info *ip)
+@@ -287,7 +306,7 @@ f_tty(struct info *ip)
  {
  	int tmp;
  
