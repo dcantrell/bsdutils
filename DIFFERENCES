@@ -261,6 +261,7 @@ Available in glibc by defining _XOPEN_SOURCE.  Programs requiring this
 have it added to their Makefile.am file.  Note that _GNU_SOURCE also
 implies _XOPEN_SOURCE.
 
+
 nextwctype()
 ------------
 This is not available on Linux or in POSIX, and used in tr. Since it
@@ -270,6 +271,7 @@ tr lacks support for non-ASCII character ranges (an emulation is provided
 that only considers a single byte range). This is actually in line with
 the GNU implementation, which does not support Unicode character ranges
 either.
+
 
 D_MD_ORDER
 ----------
@@ -693,6 +695,85 @@ for all df(1) invocations and then iterate over that list and set
 f_selected to 0 for unselected filesystems.
 
 
+ALTWERASE
+---------
+Alternate word erase is a BSD thing.  glibc offers WERASE and VWERASE
+and has inconsistent documentation alluding to VWERASE being ALTWERASE
+as you expect on FreeBSD.  Our patches use VWERASE where ALTWERASE was
+used.
+
+
+TTYDISC and other *DISC macros
+------------------------------
+tty line discipline macro names are entirely different between Linux
+and FreeBSD.  TTYDISC is '0' and that maps to N_TTY on Linux.  The
+Linux names tend to be N_*, so PPPDISC is N_PPP.  FreeBSD has some
+that Linux doesn't have, like NMEADISC, and in those cases the
+FreeBSD-specific code is removed.
+
+
+Missing stty(1) Control Modes
+-----------------------------
+Some modes for stty(1) just don't exist on Linux.  These are mdmbuf,
+kerninfo, onoeot, ctsflow, and rtsflow.  In those cases, the support
+for them is removed from stty(1).
+
+
+VDSUSP
+------
+This is called CDSUSP on Linux.  In fact, on FreeBSD the VDSUSP name
+appears to be legacy.  Linux doesn't carry the old name, only the new
+name.
+
+
+VSTATUS
+-------
+This is called CSTATUS on Linux, similar to the VDSUSP vs. CDSUSP
+difference.
+
+
+TIOCEXT
+-------
+This is handled via tcgetattr() and tcsetattr() on Linux, whereas it's
+an ioctl on BSD.  The f_extproc function in stty.c has been altered to
+do things the Linux way.
+
+
+tty headers
+-----------
+Fortunately Linux and FreeBSD systems do things very differently here.
+On Linux, you generally want to include termios.h and pty.h.  BSD
+doesn't have the latter.  Avoid directly including sys or linux
+headers because those are pulled in by the glibc headers.  In stty,
+these headers are included in stty.h.
+
+
+getopt()
+--------
+The semantics of a dash at the beginning of optstring differ between
+BSD and GNU variants. On BSD, it simply means to permit the literal
+option -, while GNU style implementations have it result in every
+non-option parameter being treated as an option parameter with the
+value 1. Therefore, this is removed in the ports and reimplemented in
+other ways.
+
+
+howmany()
+---------
+This macro is available in <sys/param.h> on Linux.
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -768,69 +849,6 @@ stands for "a replacement for random" referring to the original
 random() library call.
 
 
-VDSUSP
-------
-This is called CDSUSP on Linux.  In fact, on OpenBSD the VDSUSP name
-appears to be legacy.  Linux doesn't carry the old name, only the new
-name.
-
-
-VSTATUS
--------
-This is called CSTATUS on Linux, similar to the VDSUSP vs. CDSUSP
-difference.
-
-
-tty headers
------------
-Fortunately Linux and BSD systems do things very differently here.  On
-Linux, you generally want to include termios.h and pty.h.  BSD doesn't
-have the latter.  Avoid directly including sys or linux headers
-because those are pulled in by the glibc headers.
-
-
-TIOCSTART and TIOCSTOP
-----------------------
-These are not implemented on Linux, so they have been removed from
-stty(1).
-
-
-TIOCEXT
--------
-This is handled via tcgetattr() and tcsetattr() on Linux, whereas it's
-an ioctl on BSD.  The f_extproc function in stty.c has been altered to
-do things the Linux way.
-
-
-ALTWERASE
----------
-Alternate word erase is a BSD thing.  glibc offers WERASE and VWERASE
-and has inconsistent documentation alluding to VWERASE being ALTWERASE
-as you expect on BSD.  Our patches use VWERASE where ALTWERASE was
-used.
-
-
-TTYDISC and other *DISC macros
-------------------------------
-tty line discipline macro names are entirely different between Linux
-and BSD.  TTYDISC is '0' and that maps to N_TTY on Linux.  The Linux
-names tend to be N_*, so PPPDISC is N_PPP.  OpenBSD has some that
-Linux doesn't have, like NMEADISC, and in those cases the
-OpenBSD-specific code is removed.
-
-
-OXTABS
-------
-This is another stty thing, which does exist on Linux under the name
-XTABS.  It's actually under several macro names, but XTABS is the
-closest to what BSD calls it, so we'll go with that.
-
-
-Missing Control Modes
----------------------
-Some modes for stty(1) just don't exist on Linux.  These are mdmbuf,
-kerninfo, and onoeot.  In those cases, the support for them is removed
-from stty(1).
 
 
 sysctl()
@@ -839,17 +857,6 @@ Linux frowns on using sysctl() to gather information about the system.
 There is an alternative function called sysconf() which supports a
 limited subset of things.  We use this where sysctl() was used, such
 as computing the amount of physical memory in the system.
-
-
-MD5 routines
-------------
-glibc does not expose any public MD5 data types or functions.  The
-OpenSSL and LibreSSL libraries do.  Since LibreSSL is from OpenBSD,
-this is the MD5 code that is used in sort(1).  Under GNU coreutils,
-sort(1) uses the MD5 code from the md5sum(1) program.  Rather than
-embed MD5 code in bsdutils, we are choosing to link with OpenSSL or
-LibreSSL on your system.  If you lack these libraries, you can build
-bsdutils with sort disabled.
 
 
 issetugid()
@@ -886,19 +893,7 @@ This functionality is not really in scope for the id(1) command, so it
 has been removed.
 
 
-howmany()
----------
-This macro is available in <sys/param.h> on Linux.
 
-getopt()
---------
-
-The semantics of a dash at the beginning of optstring differ between
-BSD and GNU variants. On BSD, it simply means to permit the literal
-option -, while GNU style implementations have it result in every
-non-option parameter being treated as an option parameter with the
-value 1. Therefore, this is removed in the ports and reimplemented
-in other ways.
 
 
 MACHINE_ARCH

@@ -1,0 +1,10 @@
+--- stty/util.c.orig	2021-04-27 23:52:35.000000000 -0400
++++ stty/util.c	2021-06-30 09:48:02.992125484 -0400
+@@ -40,6 +40,7 @@ __FBSDID("$FreeBSD$");
+ 
+ #include <err.h>
+ #include <unistd.h>
++#include <termios.h>
+ 
+ #include "stty.h"
+ #include "extern.h"

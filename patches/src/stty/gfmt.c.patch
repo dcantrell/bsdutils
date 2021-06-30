@@ -1,11 +1,12 @@
---- stty/gfmt.c.orig	2021-04-09 02:24:01.000000000 +0200
-+++ stty/gfmt.c	2021-06-12 06:22:35.168171637 +0200
-@@ -57,7 +57,7 @@ gerr(const char *s)
- }
+--- stty/gfmt.c.orig	2021-06-12 09:32:06.000000000 -0400
++++ stty/gfmt.c	2021-06-30 09:47:26.551198749 -0400
+@@ -40,7 +40,9 @@ __FBSDID("$FreeBSD$");
+ #include <err.h>
+ #include <stdio.h>
+ #include <stdlib.h>
++#include <unistd.h>
+ #include <string.h>
++#include <termios.h>
  
- void
--gprint(struct termios *tp, struct winsize *wp __unused, int ldisc __unused)
-+gprint(struct termios *tp, struct winsize *wp __attribute__((unused)), int ldisc __attribute__((unused)))
- {
- 	struct cchar *cp;
- 
+ #include "stty.h"
+ #include "extern.h"
