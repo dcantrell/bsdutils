@@ -27,9 +27,6 @@
  * SUCH DAMAGE.
  */
 
-/* necessary to get 'ttydefchars' */
-#define TTYDEFCHARS
-
 #ifndef lint
 #if 0
 static char sccsid[] = "@(#)key.c	8.3 (Berkeley) 4/2/94";
@@ -39,6 +36,7 @@ static char sccsid[] = "@(#)key.c	8.3 (Berkeley) 4/2/94";
 __FBSDID("$FreeBSD$");
 
 #include <sys/types.h>
+#include <sys/ttydefaults.h>
 
 #include <err.h>
 #include <errno.h>
@@ -278,9 +276,8 @@ f_sane(struct info *ip)
 	def.c_iflag = TTYDEF_IFLAG;
 	def.c_lflag = TTYDEF_LFLAG;
 	def.c_oflag = TTYDEF_OFLAG;
-	def.c_ispeed = TTYDEF_SPEED;
-	def.c_ospeed = TTYDEF_SPEED;
-	memcpy(def.c_cc, ttydefchars, sizeof ttydefchars);
+	cfsetispeed(&def, TTYDEF_SPEED);
+	cfsetospeed(&def, TTYDEF_SPEED);
 	ip->t.c_cflag = def.c_cflag | (ip->t.c_cflag & CLOCAL);
 	ip->t.c_iflag = def.c_iflag;
 	/* preserve user-preference flags in lflag */

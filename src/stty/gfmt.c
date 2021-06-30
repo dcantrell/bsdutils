@@ -101,7 +101,7 @@ gread(struct termios *tp, char *s)
 		}
 		if (CHK("ispeed")) {
 			tmp = strtoul(ep, NULL, 10);
-			tp->c_ispeed = tmp;
+			cfsetispeed(tp, tmp);
 			continue;
 		}
 		if (CHK("lflag")) {
@@ -114,7 +114,7 @@ gread(struct termios *tp, char *s)
 		}
 		if (CHK("ospeed")) {
 			tmp = strtoul(ep, NULL, 10);
-			tp->c_ospeed = tmp;
+			cfsetospeed(tp, tmp);
 			continue;
 		}
 		for (cp = cchars1; cp->name != NULL; ++cp)

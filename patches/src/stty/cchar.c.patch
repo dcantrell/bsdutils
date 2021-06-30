@@ -1,6 +1,12 @@
---- stty/cchar.c.orig	2021-04-27 23:52:35.000000000 -0400
-+++ stty/cchar.c	2021-06-29 14:08:25.546012223 -0400
-@@ -41,6 +41,8 @@ __FBSDID("$FreeBSD$");
+--- stty/cchar.c.orig	2021-06-30 17:30:31.690723908 +0200
++++ stty/cchar.c	2021-06-30 17:07:18.070580099 +0200
+@@ -36,11 +36,14 @@ static char sccsid[] = "@(#)cchar.c	8.5
+ __FBSDID("$FreeBSD$");
+ 
+ #include <sys/types.h>
++#include <sys/ttydefaults.h>
+ 
+ #include <err.h>
  #include <limits.h>
  #include <stdlib.h>
  #include <string.h>
@@ -9,7 +15,7 @@
  
  #include "stty.h"
  #include "extern.h"
-@@ -56,12 +58,11 @@ static int c_cchar(const void *, const v
+@@ -56,12 +59,11 @@ static int c_cchar(const void *, const v
   */
  struct cchar cchars1[] = {
  	{ "discard",	VDISCARD, 	CDISCARD },
@@ -23,7 +29,7 @@
  	{ "intr",	VINTR,		CINTR },
  	{ "kill",	VKILL,		CKILL },
  	{ "lnext",	VLNEXT,		CLNEXT },
-@@ -69,7 +70,7 @@ struct cchar cchars1[] = {
+@@ -69,7 +71,7 @@ struct cchar cchars1[] = {
  	{ "quit",	VQUIT,		CQUIT },
  	{ "reprint",	VREPRINT, 	CREPRINT },
  	{ "start",	VSTART,		CSTART },
