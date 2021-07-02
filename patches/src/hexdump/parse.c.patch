@@ -1,0 +1,56 @@
+--- hexdump/parse.c.orig	2021-07-02 01:55:39.887054656 +0200
++++ hexdump/parse.c	2021-07-02 02:08:17.173697600 +0200
+@@ -52,7 +52,7 @@ FU *endfu;					/* format at end-of-data
+ void
+ addfile(const char *name)
+ {
+-	unsigned char *p;
++	char *p;
+ 	FILE *fp;
+ 	int ch;
+ 	char buf[2048 + 1];
+@@ -77,7 +77,7 @@ addfile(const char *name)
+ void
+ add(const char *fmt)
+ {
+-	unsigned const char *p, *savep;
++	const char *p, *savep;
+ 	static FS **nextfs;
+ 	FS *tfs;
+ 	FU *tfu, **nextfu;
+@@ -140,7 +140,8 @@ add(const char *fmt)
+ 				badfmt(fmt);
+ 		if (!(tfu->fmt = malloc(p - savep + 1)))
+ 			err(1, NULL);
+-		(void) strlcpy(tfu->fmt, savep, p - savep + 1);
++		strncpy(tfu->fmt, savep, p - savep);
++		tfu->fmt[p - savep] = '\0';
+ 		escape(tfu->fmt);
+ 		p++;
+ 	}
+@@ -153,7 +154,7 @@ size(FS *fs)
+ {
+ 	FU *fu;
+ 	int bcnt, cursize;
+-	unsigned char *fmt;
++	char *fmt;
+ 	int prec;
+ 
+ 	/* figure out the data block size needed for each format unit */
+@@ -210,7 +211,7 @@ rewrite(FS *fs)
+ 	enum { NOTOKAY, USEBCNT, USEPREC } sokay;
+ 	PR *pr, **nextpr;
+ 	FU *fu;
+-	unsigned char *p1, *p2, *fmtp;
++	char *p1, *p2, *fmtp;
+ 	char savech, cs[3];
+ 	int nconv, prec;
+ 
+@@ -334,6 +335,7 @@ isint:				cs[2] = '\0';
+ 				switch(sokay) {
+ 				case NOTOKAY:
+ 					badsfmt();
++					return;
+ 				case USEBCNT:
+ 					pr->bcnt = fu->bcnt;
+ 					break;

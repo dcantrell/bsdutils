@@ -1,0 +1,62 @@
+--- hexdump/display.c.orig	2021-07-02 01:42:54.491313094 +0200
++++ hexdump/display.c	2021-07-02 01:54:12.999774093 +0200
+@@ -38,12 +38,10 @@ static char sccsid[] = "@(#)display.c	8.
+ __FBSDID("$FreeBSD$");
+ 
+ #include <sys/param.h>
+-#include <sys/capsicum.h>
+-#include <sys/conf.h>
+ #include <sys/ioctl.h>
+ #include <sys/stat.h>
++#include <sys/types.h>
+ 
+-#include <capsicum_helpers.h>
+ #include <ctype.h>
+ #include <err.h>
+ #include <errno.h>
+@@ -364,18 +362,6 @@ next(char **argv)
+ 			statok = 0;
+ 		}
+ 
+-		if (caph_limit_stream(fileno(stdin), CAPH_READ) < 0)
+-			err(1, "unable to restrict %s",
+-			    statok ? *_argv : "stdin");
+-
+-		/*
+-		 * We've opened our last input file; enter capsicum sandbox.
+-		 */
+-		if (statok == 0 || *(_argv + 1) == NULL) {
+-			if (caph_enter() < 0)
+-				err(1, "unable to enter capability mode");
+-		}
+-
+ 		if (skip)
+ 			doskip(statok ? *_argv : "stdin", statok);
+ 		if (*_argv)
+@@ -389,7 +375,6 @@ next(char **argv)
+ void
+ doskip(const char *fname, int statok)
+ {
+-	int type;
+ 	struct stat sb;
+ 
+ 	if (statok) {
+@@ -406,16 +391,8 @@ doskip(const char *fname, int statok)
+ 		return;
+ 	}
+ 	if (S_ISCHR(sb.st_mode) || S_ISBLK(sb.st_mode)) {
+-		if (ioctl(fileno(stdin), FIODTYPE, &type))
+-			err(1, "%s", fname);
+-		/*
+-		 * Most tape drives don't support seeking,
+-		 * yet fseek() would succeed.
+-		 */
+-		if (type & D_TAPE) {
+-			noseek();
+-			return;
+-		}
++		noseek();
++		return;
+ 	}
+ 	if (fseeko(stdin, skip, SEEK_SET)) {
+ 		noseek();

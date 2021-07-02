@@ -58,6 +58,7 @@ CMDS="bin/test
       usr.bin/fmt
       usr.bin/fold
       usr.bin/head
+      usr.bin/hexdump
       bin/hostname
       usr.bin/id
       usr.bin/join
