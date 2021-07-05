@@ -3,11 +3,19 @@ on Linux.  Please see the COPYRIGHT file for the original license and
 copyright terms of the FreeBSD code.
 
 Unless otherwise noted in the source file, the following license and
-copyright statement applies to the code I have created as part of this
+copyright statement applies to the code created as part of this
 porting effort.  All existing licenses and copyrights apply.
 
+This is the BSD-3-Clause license as defined on spdx.org.  Individual
+authors will replace NAME with their name and EMAIL with their email
+address.  The year may change as well depending on when their
+contribution originated.
+
+For the purposes of code originating in this port, it is under a
+BSD-3-Clause license from a number of different authors.
+
 /*
- * Copyright (c) 2021 David Cantrell <david.l.cantrell@gmail.com>
+ * Copyright 2021 NAME <EMAIL>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions

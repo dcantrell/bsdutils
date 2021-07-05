@@ -1,49 +1,45 @@
-Using bsdutils in place of GNU coreutils does come with some tradeoffs.  The
-list below highlights some of these that you should consider before making the
-switch:
+Using bsdutils in place of GNU coreutils does come with some
+tradeoffs.  The list below highlights some of these that you should
+consider before making the switch:
 
 
 Some commands do not exist
 --------------------------
 
-The following commands are specific to GNU coreutils and are not part of a BSD
-base system but have alternatives:
+The following commands are specific to GNU coreutils and are not part
+of a BSD base system but have alternatives:
 
     COMMAND    DESCRIPTION                    ALTERNATIVE
     dir        list directory contents        ls
-    dircolors  color setup for ls             N/A - color ls not supported
+    dircolors  color setup for ls             ls supports color (-G)
     vdir       vertical 'dir' command         ls
     hostid     print numeric host identifier  none - dropped in 4.4BSD
 
-The following commands are specific to GNU coreutils and have no alternative
-provided by a BSD system:
+The following commands are specific to GNU coreutils and have no
+alternative provided by a BSD system:
 
     COMMAND    DESCRIPTION
     nproc      print number of processing units available
     pinky      lightweight finger
 
-Some of these commands can be implemented with simple scripts.  The ones we
-have done that for are available in the scripts/ subdirectory.  Note that these
-deviate from the standard BSD offering, but are an attempt to bridge the
-BSD-GNU command set gap.
-
-
 
 Lack of long options
 --------------------
 
-This is a usability thing, but if you have a lot of scripts that use the long
-options for GNU coreutils commands, you will have to change those to short
-options with bsdutils.
+This is a usability thing, but if you have a lot of scripts that use
+the long options for GNU coreutils commands, you will have to change
+those to short options with bsdutils.  Keep in mind the short options
+often vary between GNU and BSD commands.  See each command's man page
+for more details.
 
 
 No support for SELinux
 ----------------------
 
-The ls(1) command from GNU coreutils can display SELinux information in file
-listings.  Since this is Linux-specific, the bsdutils do not have support for
-it.  If you don't need this or don't care about SELinux, then the bsdutils
-should be functionally equivalent for you.
+The ls(1) command from GNU coreutils can display SELinux information
+in file listings.  Since this is Linux-specific, the bsdutils do not
+have support for it.  If you don't need this or don't care about
+SELinux, then the bsdutils should be functionally equivalent for you.
 
 Some commands have FreeBSD mac.h functionality which is sort of like
 SELinux on Linux.  Those commands have had the mac.h functionality
@@ -54,8 +50,9 @@ over to SELinux on Linux systems.
 No translations
 ---------------
 
-The bsdutils commands come with very simple untranslated help output and an
-English language man page.  There may be translated man pages in the FreeBSD
-source tree (we should look for those), but the commands themselves don't
-output text in other languages.  However, text manipulation commands and things
-like ls(1) do work with UTF-8 encodings and wide characters.
+The bsdutils commands come with very simple untranslated help output
+and an English language man page.  There may be translated man pages
+in the FreeBSD source tree (we should look for those), but the
+commands themselves don't output text in other languages.  However,
+text manipulation commands and things like ls(1) do work with UTF-8
+encodings and wide characters.

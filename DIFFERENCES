@@ -763,120 +763,6 @@ howmany()
 This macro is available in <sys/param.h> on Linux.
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-XXXXXXXXXXXXXXXXX ---> below here is former OpenBSD notes, I will
-                       clear this as I proceed with porting from
-                       FreeBSD.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-arc4random() and related things
--------------------------------
-Linux has the standard C library random functions and does not include
-anything named arc4random from the BSD world.  There is a getrandom()
-call that appeared starting with the 3.17 kernel.  This is more useful
-than the pseudo random number generator functions provided by the C
-library so whenever we can, we'll replace arc4random stuff with
-getrandom() calls.
-
-arc4random() in the BSD world uses the RC4 algorithm for generating
-random numbers.  RC4 is short for Rivest Cipher 4 and is also known as
-ARC4 or ARCFOUR or Alleged RC4.  Later versions of arc4random() have
-changed to other algorithms leading the man pages to say arc4random
-stands for "a replacement for random" referring to the original
-random() library call.
-
-
-
-
-sysctl()
---------
-Linux frowns on using sysctl() to gather information about the system.
-There is an alternative function called sysconf() which supports a
-limited subset of things.  We use this where sysctl() was used, such
-as computing the amount of physical memory in the system.
-
-
-issetugid()
------------
-This is an OpenBSD system call that returns non-zero if the executing
-process is using escalated privileges via the setgid bit.  This is
-most closely handled on Linux with the getauxval() function and
-passing it AT_SECURE.
-
-
-kqueue
-----------------
-The tail(1) command on FreeBSD uses kqueue to monitor for events on
-files and then take action.  This is a BSD-specific API and not
-available on Linux.  When it comes to monitoring files, the equivalent
-Linux API is inotify, which can be used together with event handling
-mechanisms such as poll/epoll (the actual Linux alternative to kqueue
-is epoll, but it doesn't work on regular files, while kqueue does).
-
-
 sys_signame[]
 -------------
 This array contains strings describing the signal number.  The array
@@ -885,36 +771,22 @@ name if you have the signal number is strsignal(), which is available
 on glibc and is what we will use.
 
 
-'id -R' and getrtable()
------------------------
-The id(1) command from OpenBSD has a non-standard extension that shows
-the routing table of the current process when run as 'id -R'.  The
-option calls getrtable(), which is not a function that Linux provides.
-This functionality is not really in scope for the id(1) command, so it
-has been removed.
+sysctl()
+--------
+Linux frowns on using sysctl() to gather information about the system.
+There is an alternative function called sysconf() which supports a
+limited subset of things.  We use this where sysctl() was used and
+there is no other way to obtain the required information, such as
+computing the amount of physical memory in the system.  In some cases
+it's just not possible on Linux so we have to open and read data from
+files in /proc.
 
 
-
-
-
-MACHINE_ARCH
-------------
-This is not defined on Linux.  Where it is used, the 'machine' member
-of struct utsname is used instead.
-
-
-timespecclear() and timespecisset()
------------------------------------
-glibc does not provide these functions.  Where timespecclear() is
-used, we will use memset().  For example:
-
-    timespecclear(&t) -> memset(&t, 0, sizeof(t))
-
-Where timespecisset() is used, we will just test to see if the value
-is non-zero:
-
-    if (timespecisset(&t)) -> if (t.tv_sec || t.tv_nsec)
-
-There may be other <sys/time.h> functions we encounter that are
-specific to OpenBSD, in which case we will just adjust them to a
-functionally equivalent glibc alternative.
+kqueue
+------
+The tail(1) command on FreeBSD uses kqueue to monitor for events on
+files and then take action.  This is a BSD-specific API and not
+available on Linux.  When it comes to monitoring files, the equivalent
+Linux API is inotify, which can be used together with event handling
+mechanisms such as poll/epoll (the actual Linux alternative to kqueue
+is epoll, but it doesn't work on regular files, while kqueue does).
