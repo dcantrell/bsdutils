@@ -482,13 +482,13 @@ digest_update(DIGEST_CTX *c, const char *data, size_t len)
 static char *
 digest_end(DIGEST_CTX *c, char *buf)
 {
-	unsigned char digest[EVP_MAX_MD_SIZE + 1];
+	unsigned char digbuf[EVP_MAX_MD_SIZE + 1];
 
 	if ((digesttype == DIGEST_NONE) || !*c)
 		return NULL;
 
 	unsigned int mdlen = 0;
-	if (!EVP_DigestFinal(*c, digest, &mdlen))
+	if (!EVP_DigestFinal(*c, digbuf, &mdlen))
 		errx(1, "failed to finalize digest");
 
 	if (!buf) {
@@ -498,7 +498,7 @@ digest_end(DIGEST_CTX *c, char *buf)
 	}
 
 	for (unsigned int i = 0; i < mdlen; ++i) {
-	    sprintf(buf + (i * 2), "%02x", digest[i]);
+	    sprintf(buf + (i * 2), "%02x", digbuf[i]);
 	}
 
 	return buf;
