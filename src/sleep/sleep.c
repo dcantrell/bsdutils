@@ -67,6 +67,7 @@ main(int argc, char *argv[])
 		usage();
 	if (d <= 0)
 		return (0);
+	time_to_sleep.tv_sec = (time_t)d;
 	time_to_sleep.tv_nsec = 1e9 * (d - time_to_sleep.tv_sec);
 
 	/*

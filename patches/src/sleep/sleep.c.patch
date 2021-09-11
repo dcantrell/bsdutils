@@ -1,5 +1,5 @@
 --- sleep/sleep.c.orig	2021-04-09 02:24:01.000000000 +0200
-+++ sleep/sleep.c	2021-06-12 06:47:02.275085923 +0200
++++ sleep/sleep.c	2021-09-11 14:58:40.770388400 +0200
 @@ -41,7 +41,6 @@ static char sccsid[] = "@(#)sleep.c	8.3
  #include <sys/cdefs.h>
  __FBSDID("$FreeBSD$");
@@ -34,11 +34,12 @@
  	if (argc != 2)
  		usage();
  
-@@ -80,23 +67,15 @@ main(int argc, char *argv[])
+@@ -80,23 +67,16 @@ main(int argc, char *argv[])
  		usage();
  	if (d <= 0)
  		return (0);
 -	original = time_to_sleep.tv_sec = (time_t)d;
++	time_to_sleep.tv_sec = (time_t)d;
  	time_to_sleep.tv_nsec = 1e9 * (d - time_to_sleep.tv_sec);
  
 -	signal(SIGINFO, report_request);
