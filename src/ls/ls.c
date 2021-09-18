@@ -811,22 +811,25 @@ display(const FTSENT *p, FTSENT *list, int options __attribute__((unused)))
 				} else {
 					pwentry = getpwuid(sp->st_uid);
 					/*
-					 * user_from_uid(..., 0) only returns
-					 * NULL in OOM conditions.  We could
-					 * format the uid here, but (1) in
-					 * general ls(1) exits on OOM, and (2)
-					 * there is another allocation/exit
-					 * path directly below, which will
-					 * likely exit anyway.
+					 * getpwuid and getgrgid are allowed to
+					 * return NULL when the information is
+					 * not known (i.e. not in /etc/passwd)
+					 * so fall back to numeric IDs if needed
 					 */
-					if (pwentry == NULL)
-						err(1, "getpwuid");
-					user = pwentry->pw_name;
+					if (pwentry == NULL) {
+						(void)snprintf(nuser, sizeof(nuser),
+						    "%u", sp->st_uid);
+						user = nuser;
+					} else
+						user = pwentry->pw_name;
 					grentry = getgrgid(sp->st_gid);
 					/* Ditto. */
-					if (grentry == NULL)
-						err(1, "getgrgid");
-					group = grentry->gr_name;
+					if (grentry == NULL) {
+						(void)snprintf(ngroup, sizeof(ngroup),
+						    "%u", sp->st_gid);
+						group = ngroup;
+					} else
+						group = grentry->gr_name;
 				}
 				if ((ulen = strlen(user)) > maxuser)
 					maxuser = ulen;
