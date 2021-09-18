@@ -1,5 +1,5 @@
 --- ls/ls.c.orig	2021-04-09 02:24:01.000000000 +0200
-+++ ls/ls.c	2021-06-12 06:22:35.108177570 +0200
++++ ls/ls.c	2021-09-18 19:44:01.722262160 +0200
 @@ -49,7 +49,7 @@ __FBSDID("$FreeBSD$");
  #include <sys/param.h>
  #include <sys/stat.h>
@@ -208,32 +208,44 @@
  	for (cur = list, entries = 0; cur; cur = cur->fts_link) {
  		if (cur->fts_info == FTS_ERR || cur->fts_info == FTS_NS) {
  			warnx("%s: %s",
-@@ -825,7 +809,7 @@ display(const FTSENT *p, FTSENT *list, i
+@@ -825,96 +809,34 @@ display(const FTSENT *p, FTSENT *list, i
  					user = nuser;
  					group = ngroup;
  				} else {
 -					user = user_from_uid(sp->st_uid, 0);
 +					pwentry = getpwuid(sp->st_uid);
  					/*
- 					 * user_from_uid(..., 0) only returns
- 					 * NULL in OOM conditions.  We could
-@@ -835,86 +819,21 @@ display(const FTSENT *p, FTSENT *list, i
- 					 * path directly below, which will
- 					 * likely exit anyway.
+-					 * user_from_uid(..., 0) only returns
+-					 * NULL in OOM conditions.  We could
+-					 * format the uid here, but (1) in
+-					 * general ls(1) exits on OOM, and (2)
+-					 * there is another allocation/exit
+-					 * path directly below, which will
+-					 * likely exit anyway.
++					 * getpwuid and getgrgid are allowed to
++					 * return NULL when the information is
++					 * not known (i.e. not in /etc/passwd)
++					 * so fall back to numeric IDs if needed
  					 */
 -					if (user == NULL)
 -						err(1, "user_from_uid");
 -					group = group_from_gid(sp->st_gid, 0);
-+					if (pwentry == NULL)
-+						err(1, "getpwuid");
-+					user = pwentry->pw_name;
++					if (pwentry == NULL) {
++						(void)snprintf(nuser, sizeof(nuser),
++						    "%u", sp->st_uid);
++						user = nuser;
++					} else
++						user = pwentry->pw_name;
 +					grentry = getgrgid(sp->st_gid);
  					/* Ditto. */
 -					if (group == NULL)
 -						err(1, "group_from_gid");
-+					if (grentry == NULL)
-+						err(1, "getgrgid");
-+					group = grentry->gr_name;
++					if (grentry == NULL) {
++						(void)snprintf(ngroup, sizeof(ngroup),
++						    "%u", sp->st_gid);
++						group = ngroup;
++					} else
++						group = grentry->gr_name;
  				}
  				if ((ulen = strlen(user)) > maxuser)
  					maxuser = ulen;
@@ -312,7 +324,7 @@
  				    ulen + glen + flen + 4)) == NULL)
  					err(1, "malloc");
  
-@@ -931,17 +850,6 @@ label_out:
+@@ -931,17 +853,6 @@ label_out:
  						d.s_size = sizelen;
  				}
  
@@ -330,7 +342,7 @@
  				cur->fts_pointer = np;
  			}
  		}
-@@ -964,7 +872,6 @@ label_out:
+@@ -964,7 +875,6 @@ label_out:
  		d.btotal = btotal;
  		d.s_block = snprintf(NULL, 0, "%lu", howmany(maxblock, blocksize));
  		d.s_flags = maxflags;
@@ -338,7 +350,7 @@
  		d.s_group = maxgroup;
  		d.s_inode = snprintf(NULL, 0, "%ju", maxinode);
  		d.s_nlink = snprintf(NULL, 0, "%lu", maxnlink);
-@@ -991,7 +898,7 @@ label_out:
+@@ -991,7 +901,7 @@ label_out:
   * All other levels use the sort function.  Error entries remain unsorted.
   */
  static int
