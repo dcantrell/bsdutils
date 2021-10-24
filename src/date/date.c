@@ -59,6 +59,7 @@ __FBSDID("$FreeBSD$");
 #include <unistd.h>
 #include <utmpx.h>
 #include <time.h>
+#include <langinfo.h>
 
 #include "vary.h"
 
@@ -167,7 +168,14 @@ main(int argc, char *argv[])
 	if (!rflag && time(&tval) == -1)
 		err(1, "time");
 
-	format = "%+";
+	/* Linux libc's do not support %+ */
+#ifdef _DATE_FMT
+	/* glibc extension */
+	format = nl_langinfo(_DATE_FMT);
+#else
+	/* fallback, e.g. musl */
+	format = "%a %b %e %H:%M:%S %Z %Y";
+#endif
 
 	if (Rflag)
 		format = rfc2822_format;
