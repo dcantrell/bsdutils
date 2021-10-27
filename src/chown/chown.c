@@ -62,6 +62,8 @@ __FBSDID("$FreeBSD$");
 #include <string.h>
 #include <unistd.h>
 
+#include "compat.h"
+
 static void	a_gid(const char *);
 static void	a_uid(const char *);
 static void	chownerr(const char *);
@@ -73,6 +75,14 @@ static uid_t uid;
 static gid_t gid;
 static int ischown;
 static const char *gname;
+static volatile sig_atomic_t siginfo;
+
+static void
+siginfo_handler(int sig __attribute__((unused)))
+{
+
+	siginfo = 1;
+}
 
 int
 main(int argc, char **argv)
@@ -123,6 +133,8 @@ main(int argc, char **argv)
 
 	if (argc < 2)
 		usage();
+
+	(void)signal(SIGINFO, siginfo_handler);
 
 	if (Rflag) {
 		if (hflag && (Hflag || Lflag))
@@ -193,6 +205,10 @@ main(int argc, char **argv)
 			continue;
 		default:
 			break;
+		}
+		if (siginfo) {
+			print_info(p, 2);
+			siginfo = 0;
 		}
 		if ((uid == (uid_t)-1 || uid == p->fts_statp->st_uid) &&
 		    (gid == (gid_t)-1 || gid == p->fts_statp->st_gid))

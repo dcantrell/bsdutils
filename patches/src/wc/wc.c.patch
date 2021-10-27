@@ -1,5 +1,5 @@
 --- wc/wc.c.orig	2021-04-09 02:24:13.000000000 +0200
-+++ wc/wc.c	2021-06-27 19:59:32.817675066 +0200
++++ wc/wc.c	2021-10-27 16:23:46.370963125 +0200
 @@ -44,16 +44,16 @@ static char sccsid[] = "@(#)wc.c	8.1 (Be
  #include <sys/cdefs.h>
  __FBSDID("$FreeBSD$");
@@ -31,25 +31,16 @@
  static uintmax_t tlinect, twordct, tcharct, tlongline;
  static int doline, doword, dochar, domulti, dolongline;
  static volatile sig_atomic_t siginfo;
-@@ -78,17 +76,9 @@ static int	cnt(const char *);
+@@ -78,7 +76,7 @@ static int	cnt(const char *);
  static void	usage(void);
  
  static void
 -siginfo_handler(int sig __unused)
--{
--
--	siginfo = 1;
--}
--
--static void
- reset_siginfo(void)
++siginfo_handler(int sig __attribute__((unused)))
  {
  
--	signal(SIGINFO, SIG_DFL);
- 	siginfo = 0;
- }
- 
-@@ -96,7 +86,6 @@ int
+ 	siginfo = 1;
+@@ -96,7 +94,6 @@ int
  main(int argc, char *argv[])
  {
  	int ch, errors, total;
@@ -57,12 +48,10 @@
  
  	(void) setlocale(LC_CTYPE, "");
  
-@@ -130,28 +119,6 @@ main(int argc, char *argv[])
- 	argv += optind;
- 	argc -= optind;
+@@ -132,26 +129,6 @@ main(int argc, char *argv[])
  
--	(void)signal(SIGINFO, siginfo_handler);
--
+ 	(void)signal(SIGINFO, siginfo_handler);
+ 
 -	fa = fileargs_init(argc, argv, O_RDONLY, 0,
 -	    cap_rights_init(&rights, CAP_READ, CAP_FSTAT), FA_OPEN);
 -	if (fa == NULL) {
@@ -86,7 +75,7 @@
  	/* Wc's flags are on by default. */
  	if (doline + doword + dochar + domulti + dolongline == 0)
  		doline = doword = dochar = 1;
-@@ -185,7 +152,6 @@ main(int argc, char *argv[])
+@@ -185,7 +162,6 @@ main(int argc, char *argv[])
  		xo_close_container("total");
  	}
  
@@ -94,7 +83,7 @@
  	xo_close_container("wc");
  	xo_finish();
  	exit(errors == 0 ? 0 : 1);
-@@ -234,7 +200,7 @@ cnt(const char *file)
+@@ -234,7 +210,7 @@ cnt(const char *file)
  	linect = wordct = charct = llct = tmpll = 0;
  	if (file == NULL)
  		fd = STDIN_FILENO;
@@ -103,7 +92,7 @@
  		xo_warn("%s: open", file);
  		return (1);
  	}
-@@ -313,7 +279,7 @@ word:	gotsp = 1;
+@@ -313,7 +289,7 @@ word:	gotsp = 1;
  			if (!domulti || MB_CUR_MAX == 1) {
  				clen = 1;
  				wch = (unsigned char)*p;

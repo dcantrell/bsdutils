@@ -67,6 +67,7 @@ __FBSDID("$FreeBSD$");
 
 #include "dd.h"
 #include "extern.h"
+#include "compat.h"
 
 static void dd_close(void);
 static void dd_in(void);
@@ -96,6 +97,7 @@ main(int argc __attribute__((unused)), char *argv[])
 	jcl(argv);
 	setup();
 
+	(void)signal(SIGINFO, siginfo_handler);
 	if (ddflags & C_PROGRESS) {
 		(void)signal(SIGALRM, sigalarm_handler);
 		setitimer(ITIMER_REAL, &itv, NULL);

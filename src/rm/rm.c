@@ -54,6 +54,7 @@ __FBSDID("$FreeBSD$");
 #include <grp.h>
 #include <locale.h>
 #include <pwd.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -65,6 +66,7 @@ __FBSDID("$FreeBSD$");
 static int dflag, eval, fflag, iflag, vflag, stdin_ok;
 static int rflag, Iflag, xflag;
 static uid_t uid;
+static volatile sig_atomic_t info;
 
 static int	check(const char *, const char *, struct stat *);
 static int	check2(char **);
@@ -72,6 +74,7 @@ static void	checkdot(char **);
 static void	checkslash(char **);
 static void	rm_file(char **);
 static void	rm_tree(char **);
+static void siginfo(int __attribute__((unused)));
 static void	usage(void);
 
 /*
@@ -154,6 +157,7 @@ main(int argc, char *argv[])
 	checkslash(argv);
 	uid = geteuid();
 
+	(void)signal(SIGINFO, siginfo);
 	if (*argv) {
 		stdin_ok = isatty(STDIN_FILENO);
 
@@ -257,6 +261,11 @@ rm_tree(char **argv)
 				if (rval == 0 && vflag)
 					(void)printf("%s\n",
 					    p->fts_path);
+				if (rval == 0 && info) {
+					info = 0;
+					(void)printf("%s\n",
+					    p->fts_path);
+				}
 				continue;
 			}
 			break;
@@ -276,6 +285,11 @@ rm_tree(char **argv)
 				if (rval == 0 && vflag)
 					(void)printf("%s\n",
 					    p->fts_path);
+				if (rval == 0 && info) {
+					info = 0;
+					(void)printf("%s\n",
+					    p->fts_path);
+				}
 				continue;
 			}
 		}
@@ -325,6 +339,10 @@ rm_file(char **argv)
 		}
 		if (vflag && rval == 0)
 			(void)printf("%s\n", f);
+		if (info && rval == 0) {
+			info = 0;
+			(void)printf("%s\n", f);
+		}
 	}
 }
 
@@ -473,4 +491,11 @@ usage(void)
 	    "usage: rm [-f | -i] [-dIPRrvWx] file ...",
 	    "       unlink [--] file");
 	exit(EX_USAGE);
+}
+
+static void
+siginfo(int sig __attribute__((unused)))
+{
+
+	info = 1;
 }

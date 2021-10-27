@@ -1,5 +1,5 @@
 --- sleep/sleep.c.orig	2021-04-09 02:24:01.000000000 +0200
-+++ sleep/sleep.c	2021-09-11 14:58:40.770388400 +0200
++++ sleep/sleep.c	2021-10-27 16:43:22.493384654 +0200
 @@ -41,7 +41,6 @@ static char sccsid[] = "@(#)sleep.c	8.3
  #include <sys/cdefs.h>
  __FBSDID("$FreeBSD$");
@@ -8,20 +8,22 @@
  #include <err.h>
  #include <errno.h>
  #include <limits.h>
-@@ -52,25 +51,13 @@ __FBSDID("$FreeBSD$");
+@@ -50,11 +49,13 @@ __FBSDID("$FreeBSD$");
+ #include <stdlib.h>
+ #include <time.h>
  
++#include "compat.h"
++
  static void usage(void);
  
--static volatile sig_atomic_t report_requested;
--static void
+ static volatile sig_atomic_t report_requested;
+ static void
 -report_request(int signo __unused)
--{
--
--	report_requested = 1;
--}
--
- int
- main(int argc, char *argv[])
++report_request(int signo __attribute__((unused)))
+ {
+ 
+ 	report_requested = 1;
+@@ -65,12 +66,8 @@ main(int argc, char *argv[])
  {
  	struct timespec time_to_sleep;
  	double d;
@@ -34,7 +36,7 @@
  	if (argc != 2)
  		usage();
  
-@@ -80,23 +67,16 @@ main(int argc, char *argv[])
+@@ -80,7 +77,7 @@ main(int argc, char *argv[])
  		usage();
  	if (d <= 0)
  		return (0);
@@ -42,11 +44,8 @@
 +	time_to_sleep.tv_sec = (time_t)d;
  	time_to_sleep.tv_nsec = 1e9 * (d - time_to_sleep.tv_sec);
  
--	signal(SIGINFO, report_request);
--
- 	/*
- 	 * Note: [EINTR] is supposed to happen only when a signal was handled
- 	 * but the kernel also returns it when a ptrace-based debugger
+ 	signal(SIGINFO, report_request);
+@@ -91,12 +88,7 @@ main(int argc, char *argv[])
  	 * attaches. This is a bug but it is hard to fix.
  	 */
  	while (nanosleep(&time_to_sleep, &time_to_sleep) != 0) {

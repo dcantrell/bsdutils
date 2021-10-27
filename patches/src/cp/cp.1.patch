@@ -1,5 +1,5 @@
 --- cp/cp.1.orig	2021-04-09 02:24:01.000000000 +0200
-+++ cp/cp.1	2021-06-12 06:22:35.000188249 +0200
++++ cp/cp.1	2021-10-27 16:27:09.998977891 +0200
 @@ -164,7 +164,7 @@ Cause
  .Nm
  to preserve the following attributes of each source
@@ -9,21 +9,12 @@
  .Pp
  If the user ID and group ID cannot be preserved, no error message
  is displayed and the exit value is not altered.
-@@ -240,17 +240,6 @@ options are ignored unless the
- option is specified.
- In addition, these options override each other and the
- command's actions are determined by the last one specified.
--.Pp
--If
--.Nm
--receives a
+@@ -244,7 +244,7 @@ command's actions are determined by the
+ If
+ .Nm
+ receives a
 -.Dv SIGINFO
--(see the
--.Cm status
--argument for
--.Xr stty 1 )
--signal, the current input and output file and the percentage complete
--will be written to the standard output.
- .Sh EXIT STATUS
- .Ex -std
- .Sh EXAMPLES
++.Dv SIGUSR1
+ (see the
+ .Cm status
+ argument for

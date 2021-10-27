@@ -1,0 +1,11 @@
+--- dd/dd.1.orig	2021-10-27 16:36:45.616865979 +0200
++++ dd/dd.1	2021-10-27 16:36:52.976145251 +0200
+@@ -417,7 +417,7 @@ block size.
+ If
+ .Nm
+ receives a
+-.Dv SIGINFO
++.Dv SIGUSR1
+ (see the
+ .Cm status
+ argument for

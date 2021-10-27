@@ -76,9 +76,17 @@ static int	cnt(const char *);
 static void	usage(void);
 
 static void
+siginfo_handler(int sig __attribute__((unused)))
+{
+
+	siginfo = 1;
+}
+
+static void
 reset_siginfo(void)
 {
 
+	signal(SIGINFO, SIG_DFL);
 	siginfo = 0;
 }
 
@@ -118,6 +126,8 @@ main(int argc, char *argv[])
 		}
 	argv += optind;
 	argc -= optind;
+
+	(void)signal(SIGINFO, siginfo_handler);
 
 	/* Wc's flags are on by default. */
 	if (doline + doword + dochar + domulti + dolongline == 0)

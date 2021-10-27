@@ -1,0 +1,11 @@
+--- wc/wc.1.orig	2021-10-27 16:36:03.605304535 +0200
++++ wc/wc.1	2021-10-27 16:36:17.655928493 +0200
+@@ -130,7 +130,7 @@ in most environments.
+ If
+ .Nm
+ receives a
+-.Dv SIGINFO
++.Dv SIGUSR1
+ (see the
+ .Cm status
+ argument for
