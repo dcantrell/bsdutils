@@ -1,5 +1,5 @@
 --- dd/dd.c.orig	2021-04-09 02:24:01.000000000 +0200
-+++ dd/dd.c	2021-06-12 06:47:02.271086318 +0200
++++ dd/dd.c	2021-10-27 16:17:23.793789487 +0200
 @@ -49,15 +49,10 @@ __FBSDID("$FreeBSD$");
  
  #include <sys/param.h>
@@ -16,7 +16,15 @@
  #include <ctype.h>
  #include <err.h>
  #include <errno.h>
-@@ -93,7 +88,7 @@ volatile sig_atomic_t need_summary;
+@@ -72,6 +67,7 @@ __FBSDID("$FreeBSD$");
+ 
+ #include "dd.h"
+ #include "extern.h"
++#include "compat.h"
+ 
+ static void dd_close(void);
+ static void dd_in(void);
+@@ -93,7 +89,7 @@ volatile sig_atomic_t need_summary;
  volatile sig_atomic_t need_progress;
  
  int
@@ -25,7 +33,7 @@
  {
  	struct itimerval itv = { { 1, 0 }, { 1, 0 } }; /* SIGALARM every second, if needed */
  
-@@ -101,11 +96,6 @@ main(int argc __unused, char *argv[])
+@@ -101,10 +97,6 @@ main(int argc __unused, char *argv[])
  	jcl(argv);
  	setup();
  
@@ -33,11 +41,10 @@
 -	if (caph_enter() < 0)
 -		err(1, "unable to enter capability mode");
 -
--	(void)signal(SIGINFO, siginfo_handler);
+ 	(void)signal(SIGINFO, siginfo_handler);
  	if (ddflags & C_PROGRESS) {
  		(void)signal(SIGALRM, sigalarm_handler);
- 		setitimer(ITIMER_REAL, &itv, NULL);
-@@ -144,8 +134,6 @@ setup(void)
+@@ -144,8 +136,6 @@ setup(void)
  {
  	u_int cnt;
  	int iflags, oflags;
@@ -46,7 +53,7 @@
  
  	if (in.name == NULL) {
  		in.name = "stdin";
-@@ -161,16 +149,9 @@ setup(void)
+@@ -161,16 +151,9 @@ setup(void)
  
  	getfdtype(&in);
  
@@ -63,7 +70,7 @@
  	if (out.name == NULL) {
  		/* No way to check for read access here. */
  		out.fd = STDOUT_FILENO;
-@@ -200,7 +181,6 @@ setup(void)
+@@ -200,7 +183,6 @@ setup(void)
  		if (out.fd == -1) {
  			out.fd = open(out.name, O_WRONLY | oflags, DEFFILEMODE);
  			out.flags |= NOREAD;
@@ -71,7 +78,7 @@
  		}
  		if (out.fd == -1)
  			err(1, "%s", out.name);
-@@ -208,26 +188,6 @@ setup(void)
+@@ -208,26 +190,6 @@ setup(void)
  
  	getfdtype(&out);
  
@@ -98,7 +105,7 @@
  	/*
  	 * Allocate space for the input and output buffers.  If not doing
  	 * record oriented I/O, only need a single buffer.
-@@ -316,23 +276,16 @@ static void
+@@ -316,23 +278,16 @@ static void
  getfdtype(IO *io)
  {
  	struct stat sb;

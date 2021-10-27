@@ -81,6 +81,7 @@ static void	prthumanval(int64_t);
 static void	ignoreadd(const char *);
 static void	ignoreclean(void);
 static int	ignorep(FTSENT *);
+static void	siginfo(int __attribute__((unused)));
 
 static int	Aflag, hflag;
 static long	blocksize, cblocksize;
@@ -265,6 +266,8 @@ main(int argc, char *argv[])
 		    blocksize);
 
 	rval = 0;
+
+	(void)signal(SIGINFO, siginfo);
 
 	if ((fts = fts_open(argv, ftsoptions, NULL)) == NULL)
 		err(1, "fts_open");
@@ -553,4 +556,11 @@ ignorep(FTSENT *ent)
 		if (fnmatch(ign->mask, ent->fts_name, 0) != FNM_NOMATCH)
 			return 1;
 	return 0;
+}
+
+static void
+siginfo(int sig __attribute__((unused)))
+{
+
+	info = 1;
 }

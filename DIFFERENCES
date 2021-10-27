@@ -152,16 +152,11 @@ glibc has this if you define _GNU_SOURCE.
 
 SIGINFO
 -------
-If you look at the 'kill -l' output on your Linux system, you will see
-a lot of signal types but SIGINFO (INFO in the kill output) is
-missing.  Linux has never had a SIGINFO signal that functions in the
-same way as FreeBSD systems.  The idea is that you can send SIGINFO to
-a long running process like cp on a large file or dd on a large device
-and the signal handler will print stats on the process.  The
-statistics come from the kernel, so any implementation on Linux would
-require a kernel patch and that doesn't seem likely or really
-necessary.  All signal handlers for SIGINFO and their accompanying
-functions have been removed from the bsdutils source code.
+The SIGINFO signal is custom to the BSDs, and not present on Linux in
+any form. However, there are the user signals SIGUSR1 and SIGUSR2,
+which can serve the same purpose in our case. All instances of SIGINFO
+have been replaced with SIGUSR1, so to e.g. get the current status from
+'dd', you can use 'kill -USR1 PID_OF_DD'.
 
 
 login_cap.h and related functions

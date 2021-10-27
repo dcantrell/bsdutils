@@ -1,0 +1,11 @@
+--- chown/chown.8.orig	2021-10-27 16:38:08.936706086 +0200
++++ chown/chown.8	2021-10-27 16:38:17.403876857 +0200
+@@ -139,7 +139,7 @@ obvious security reasons.
+ If
+ .Nm
+ receives a
+-.Dv SIGINFO
++.Dv SIGUSR1
+ signal (see the
+ .Cm status
+ argument for

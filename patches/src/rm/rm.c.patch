@@ -1,6 +1,13 @@
 --- rm/rm.c.orig	2021-04-09 02:24:01.000000000 +0200
-+++ rm/rm.c	2021-06-12 06:47:02.275085923 +0200
-@@ -60,10 +60,11 @@ __FBSDID("$FreeBSD$");
++++ rm/rm.c	2021-10-27 16:44:26.799086902 +0200
+@@ -54,13 +54,16 @@ __FBSDID("$FreeBSD$");
+ #include <grp.h>
+ #include <locale.h>
+ #include <pwd.h>
++#include <signal.h>
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
  #include <sysexits.h>
  #include <unistd.h>
  
@@ -10,19 +17,17 @@
 +static int dflag, eval, fflag, iflag, vflag, stdin_ok;
  static int rflag, Iflag, xflag;
  static uid_t uid;
--static volatile sig_atomic_t info;
- 
- static int	check(const char *, const char *, struct stat *);
- static int	check2(char **);
-@@ -71,7 +72,6 @@ static void	checkdot(char **);
+ static volatile sig_atomic_t info;
+@@ -71,7 +74,7 @@ static void	checkdot(char **);
  static void	checkslash(char **);
  static void	rm_file(char **);
  static void	rm_tree(char **);
 -static void siginfo(int __unused);
++static void siginfo(int __attribute__((unused)));
  static void	usage(void);
  
  /*
-@@ -109,7 +109,7 @@ main(int argc, char *argv[])
+@@ -109,7 +112,7 @@ main(int argc, char *argv[])
  	}
  
  	rflag = xflag = 0;
@@ -31,7 +36,7 @@
  		switch(ch) {
  		case 'd':
  			dflag = 1;
-@@ -135,9 +135,6 @@ main(int argc, char *argv[])
+@@ -135,9 +138,6 @@ main(int argc, char *argv[])
  		case 'v':
  			vflag = 1;
  			break;
@@ -41,15 +46,7 @@
  		case 'x':
  			xflag = 1;
  			break;
-@@ -157,7 +154,6 @@ main(int argc, char *argv[])
- 	checkslash(argv);
- 	uid = geteuid();
- 
--	(void)signal(SIGINFO, siginfo);
- 	if (*argv) {
- 		stdin_ok = isatty(STDIN_FILENO);
- 
-@@ -198,8 +194,6 @@ rm_tree(char **argv)
+@@ -198,8 +198,6 @@ rm_tree(char **argv)
  	flags = FTS_PHYSICAL;
  	if (!needstat)
  		flags |= FTS_NOSTAT;
@@ -58,7 +55,7 @@
  	if (xflag)
  		flags |= FTS_XDEV;
  	if (!(fts = fts_open(argv, flags, NULL))) {
-@@ -238,12 +232,6 @@ rm_tree(char **argv)
+@@ -238,12 +236,6 @@ rm_tree(char **argv)
  				(void)fts_set(fts, p, FTS_SKIP);
  				p->fts_number = SKIPPED;
  			}
@@ -71,7 +68,7 @@
  			continue;
  		case FTS_DP:
  			/* Post-order: see if user skipped. */
-@@ -256,77 +244,41 @@ rm_tree(char **argv)
+@@ -256,77 +248,51 @@ rm_tree(char **argv)
  				continue;
  		}
  
@@ -95,6 +92,11 @@
 +				if (rval == 0 && vflag)
 +					(void)printf("%s\n",
 +					    p->fts_path);
++				if (rval == 0 && info) {
++					info = 0;
++					(void)printf("%s\n",
++					    p->fts_path);
++				}
 +				continue;
 +			}
 +			break;
@@ -161,7 +163,6 @@
 -						    p->fts_path);
 -					}
 -					continue;
--				}
 +			if (fflag)
 +				continue;
 +			/* FALLTHROUGH */
@@ -173,6 +174,11 @@
 +				if (rval == 0 && vflag)
 +					(void)printf("%s\n",
 +					    p->fts_path);
++				if (rval == 0 && info) {
++					info = 0;
++					(void)printf("%s\n",
++					    p->fts_path);
+ 				}
 +				continue;
  			}
  		}
@@ -180,7 +186,7 @@
  		warn("%s", p->fts_path);
  		eval = 1;
  	}
-@@ -349,18 +301,10 @@ rm_file(char **argv)
+@@ -349,18 +315,10 @@ rm_file(char **argv)
  	while ((f = *argv++) != NULL) {
  		/* Assume if can't stat the file, can't unlink it. */
  		if (lstat(f, &sb)) {
@@ -202,7 +208,7 @@
  			continue;
  		}
  
-@@ -369,31 +313,18 @@ rm_file(char **argv)
+@@ -369,21 +327,12 @@ rm_file(char **argv)
  			eval = 1;
  			continue;
  		}
@@ -229,17 +235,7 @@
  		if (rval && (!fflag || errno != ENOENT)) {
  			warn("%s", f);
  			eval = 1;
- 		}
- 		if (vflag && rval == 0)
- 			(void)printf("%s\n", f);
--		if (info && rval == 0) {
--			info = 0;
--			(void)printf("%s\n", f);
--		}
- 	}
- }
- 
-@@ -401,7 +332,9 @@ static int
+@@ -401,7 +350,9 @@ static int
  check(const char *path, const char *name, struct stat *sp)
  {
  	int ch, first;
@@ -250,7 +246,7 @@
  
  	/* Check -i first. */
  	if (iflag)
-@@ -413,21 +346,20 @@ check(const char *path, const char *name
+@@ -413,21 +364,20 @@ check(const char *path, const char *name
  		 * because their permissions are meaningless.  Check stdin_ok
  		 * first because we may not have stat'ed the file.
  		 */
@@ -282,14 +278,12 @@
  	}
  	(void)fflush(stderr);
  
-@@ -542,10 +474,3 @@ usage(void)
- 	    "       unlink [--] file");
- 	exit(EX_USAGE);
+@@ -544,7 +494,7 @@ usage(void)
  }
--
--static void
+ 
+ static void
 -siginfo(int sig __unused)
--{
--
--	info = 1;
--}
++siginfo(int sig __attribute__((unused)))
+ {
+ 
+ 	info = 1;

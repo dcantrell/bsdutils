@@ -1,0 +1,11 @@
+--- chown/chgrp.1.orig	2021-10-27 16:37:32.144309334 +0200
++++ chown/chgrp.1	2021-10-27 16:37:42.947251352 +0200
+@@ -124,7 +124,7 @@ or be the super-user.
+ If
+ .Nm
+ receives a
+-.Dv SIGINFO
++.Dv SIGUSR1
+ signal (see the
+ .Cm status
+ argument for

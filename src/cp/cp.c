@@ -75,6 +75,7 @@ __FBSDID("$FreeBSD$");
 #include <unistd.h>
 
 #include "extern.h"
+#include "compat.h"
 
 #define	STRIP_TRAILING_SLASH(p) {					\
 	while ((p).p_end > (p).p_path + 1 && (p).p_end[-1] == '/')	\
@@ -87,10 +88,12 @@ PATH_T to = { to.p_path, emptystring, "" };
 
 int fflag, iflag, lflag, nflag, pflag, sflag, vflag;
 static int Rflag, rflag;
+volatile sig_atomic_t info;
 
 enum op { FILE_TO_FILE, FILE_TO_DIR, DIR_TO_DNE };
 
 static int copy(char *[], enum op, int);
+static void siginfo(int __attribute__((unused)));
 
 int
 main(int argc, char *argv[])
@@ -181,6 +184,7 @@ main(int argc, char *argv[])
 		fts_options &= ~FTS_PHYSICAL;
 		fts_options |= FTS_LOGICAL | FTS_COMFOLLOW;
 	}
+	(void)signal(SIGINFO, siginfo);
 
 	/* Save the target base in "to". */
 	target = argv[--argc];
@@ -488,4 +492,11 @@ copy(char *argv[], enum op type, int fts_options)
 		err(1, "fts_read");
 	fts_close(ftsp);
 	return (rval);
+}
+
+static void
+siginfo(int sig __attribute__((unused)))
+{
+
+	info = 1;
 }

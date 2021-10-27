@@ -96,4 +96,7 @@ char *getbsize(int *, long *);
 int humanize_number(char *, size_t, int64_t, const char *, int, int);
 int expand_number(const char *, uint64_t *);
 
+/* we use SIGUSR1 in place of SIGINFO */
+#define SIGINFO SIGUSR1
+
 #endif /* _COMPAT_H */

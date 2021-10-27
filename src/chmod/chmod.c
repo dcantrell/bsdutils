@@ -58,7 +58,16 @@ static char sccsid[] = "@(#)chmod.c	8.8 (Berkeley) 4/1/94";
 
 #include "compat.h"
 
+static volatile sig_atomic_t siginfo;
+
 static void usage(void);
+
+static void
+siginfo_handler(int sig __attribute__((unused)))
+{
+
+	siginfo = 1;
+}
 
 int
 main(int argc, char *argv[])
@@ -118,6 +127,8 @@ done:	argv += optind;
 	if (argc < 2)
 		usage();
 
+	(void)signal(SIGINFO, siginfo_handler);
+
 	if (Rflag) {
 		if (Lflag) {
 			fts_options = FTS_LOGICAL;
@@ -172,10 +183,10 @@ done:	argv += optind;
 		    && !fflag) {
 			warn("%s", p->fts_path);
 			rval = 1;
-		} else if (vflag) {
+		} else if (vflag || siginfo) {
 			(void)printf("%s", p->fts_path);
 
-			if (vflag > 1) {
+			if (vflag > 1 || siginfo) {
 				char m1[12], m2[12];
 
 				strmode(p->fts_statp->st_mode, m1);
@@ -187,6 +198,7 @@ done:	argv += optind;
 				    newmode, m2);
 			}
 			(void)printf("\n");
+			siginfo = 0;
 		}
 	}
 	if (errno)

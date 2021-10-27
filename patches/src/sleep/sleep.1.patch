@@ -1,0 +1,11 @@
+--- sleep/sleep.1.orig	2021-10-27 16:37:05.970872618 +0200
++++ sleep/sleep.1	2021-10-27 16:37:13.982088043 +0200
+@@ -52,7 +52,7 @@ If the
+ .Nm
+ command receives a signal, it takes the standard action.
+ When the
+-.Dv SIGINFO
++.Dv SIGUSR1
+ signal is received, the estimate of the amount of seconds left to
+ sleep is printed on the standard output.
+ .Sh IMPLEMENTATION NOTES
