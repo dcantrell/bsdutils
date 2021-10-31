@@ -507,7 +507,7 @@ prtstat(struct mntinfo *sfsp, struct maxwidths *mwp)
 		    mwp->avail, fsbtoblk(sfsp->f_bavail,
 		    sfsp->f_bsize, blocksize));
 	}
-	xo_emit(" {:used-percent/%5.0f}{U:%%}",
+	xo_emit("   {:used-percent/%5.0f}{U:%%}",
 	    availblks == 0 ? 100.0 : (double)used / (double)availblks * 100.0);
 	if (iflag) {
 		inodes = sfsp->f_files;
@@ -530,7 +530,7 @@ prtstat(struct mntinfo *sfsp, struct maxwidths *mwp)
 	} else
 		xo_emit("  ");
 	if (strcmp(sfsp->f_mntfromname, "total") != 0)
-		xo_emit("  {:mounted-on}", sfsp->f_mntonname);
+		xo_emit("{:mounted-on}", sfsp->f_mntonname);
 	xo_emit("\n");
 	xo_close_instance("filesystem");
 }
@@ -633,12 +633,7 @@ getmntinfo(struct mntinfo **mntbuf)
 
 	while ((ent = getmntent(fp)) != NULL) {
 	    /* skip if necessary */
-	    if (!strcmp(ent->mnt_opts, MNTTYPE_IGNORE)) {
-	        continue;
-	    }
-
-	    /* skip any mount points that are not a device node or a tmpfs */
-	    if (strncmp(ent->mnt_fsname, "/dev/", 5) && strcmp(ent->mnt_fsname, "tmpfs")) {
+	    if (hasmntopt(ent, MNTTYPE_IGNORE) != NULL) {
 	        continue;
 	    }
 

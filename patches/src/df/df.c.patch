@@ -1,6 +1,6 @@
---- df/df.c.orig	2021-04-27 23:52:35.231551429 -0400
-+++ df/df.c	2021-06-27 16:50:49.582229317 -0400
-@@ -50,11 +50,10 @@ __FBSDID("$FreeBSD$");
+--- df/df.c.orig	2021-04-08 20:24:01.000000000 -0400
++++ df/df.c	2021-10-30 13:02:56.917774049 -0400
+@@ -50,11 +50,10 @@
  
  #include <sys/param.h>
  #include <sys/stat.h>
@@ -13,7 +13,7 @@
  #include <locale.h>
  #include <stdint.h>
  #include <stdio.h>
-@@ -63,12 +62,43 @@ __FBSDID("$FreeBSD$");
+@@ -63,12 +62,43 @@
  #include <sysexits.h>
  #include <unistd.h>
  #include <libxo/xo.h>
@@ -58,7 +58,7 @@
  /* Maximum widths of various fields. */
  struct maxwidths {
  	int	mntfrom;
-@@ -80,17 +110,19 @@ struct maxwidths {
+@@ -80,17 +110,19 @@
  	int	ifree;
  };
  
@@ -85,7 +85,7 @@
  
  static __inline int
  imax(int a, int b)
-@@ -111,21 +143,18 @@ int
+@@ -111,21 +143,18 @@
  main(int argc, char *argv[])
  {
  	struct stat stbuf;
@@ -109,7 +109,7 @@
  	vfslist = NULL;
  
  	argc = xo_parse_args(argc, argv);
-@@ -179,7 +208,7 @@ main(int argc, char *argv[])
+@@ -179,7 +208,7 @@
  				break;
  			if (vfslist != NULL)
  				xo_errx(1, "-l and -t are mutually exclusive.");
@@ -118,7 +118,7 @@
  			lflag = 1;
  			break;
  		case 'm':
-@@ -194,7 +223,6 @@ main(int argc, char *argv[])
+@@ -194,7 +223,6 @@
  				xo_errx(1, "-l and -t are mutually exclusive.");
  			if (vfslist != NULL)
  				xo_errx(1, "only one -t option may be specified");
@@ -126,7 +126,7 @@
  			vfslist = makevfslist(optarg);
  			break;
  		case 'T':
-@@ -211,32 +239,29 @@ main(int argc, char *argv[])
+@@ -211,32 +239,29 @@
  	argv += optind;
  
  	rv = 0;
@@ -170,7 +170,7 @@
  			if (mntpt == NULL) {
  				xo_warnx("%s: not mounted", *argv);
  				rv = 1;
-@@ -247,43 +272,28 @@ main(int argc, char *argv[])
+@@ -247,43 +272,28 @@
  		}
  
  		/*
@@ -223,7 +223,7 @@
  			prtstat(&mntbuf[i], &maxwidths);
  
  	xo_close_list("filesystem");
-@@ -293,19 +303,21 @@ main(int argc, char *argv[])
+@@ -293,19 +303,21 @@
  
  	xo_close_container("storage-system-information");
  	xo_finish();
@@ -251,7 +251,7 @@
  	}
  	return (NULL);
  }
-@@ -313,34 +325,51 @@ getmntpt(const char *name)
+@@ -313,34 +325,51 @@
  /*
   * Make a pass over the file system info in ``mntbuf'' filtering out
   * file system types not in vfslist and possibly re-stating to get
@@ -310,7 +310,7 @@
  			}
  		j++;
  	}
-@@ -348,7 +377,7 @@ regetmntinfo(struct statfs **mntbufp, lo
+@@ -348,7 +377,7 @@
  }
  
  static void
@@ -319,7 +319,7 @@
  {
  
  	prthumanval("  {:blocks/%6s}", sfsp->f_blocks * sfsp->f_bsize);
-@@ -392,7 +421,7 @@ prthumanvalinode(const char *fmt, int64_
+@@ -392,7 +421,7 @@
  }
  
  /*
@@ -328,7 +328,7 @@
   */
  static intmax_t
  fsbtoblk(int64_t num, uint64_t fsbs, u_long bs)
-@@ -404,7 +433,7 @@ fsbtoblk(int64_t num, uint64_t fsbs, u_l
+@@ -404,7 +433,7 @@
   * Print out status about a file system.
   */
  static void
@@ -337,13 +337,23 @@
  {
  	static long blocksize;
  	static int headerlen, timesthrough = 0;
-@@ -500,23 +529,23 @@ prtstat(struct statfs *sfsp, struct maxw
+@@ -478,7 +507,7 @@
+ 		    mwp->avail, fsbtoblk(sfsp->f_bavail,
+ 		    sfsp->f_bsize, blocksize));
+ 	}
+-	xo_emit(" {:used-percent/%5.0f}{U:%%}",
++	xo_emit("   {:used-percent/%5.0f}{U:%%}",
+ 	    availblks == 0 ? 100.0 : (double)used / (double)availblks * 100.0);
+ 	if (iflag) {
+ 		inodes = sfsp->f_files;
+@@ -500,23 +529,23 @@
  			(double)used / (double)inodes * 100.0);
  	} else
  		xo_emit("  ");
 -	if (strncmp(sfsp->f_mntfromname, "total", MNAMELEN) != 0)
+-		xo_emit("  {:mounted-on}", sfsp->f_mntonname);
 +	if (strcmp(sfsp->f_mntfromname, "total") != 0)
- 		xo_emit("  {:mounted-on}", sfsp->f_mntonname);
++		xo_emit("{:mounted-on}", sfsp->f_mntonname);
  	xo_emit("\n");
  	xo_close_instance("filesystem");
  }
@@ -369,7 +379,7 @@
  }
  
  /*
-@@ -524,7 +553,7 @@ addstat(struct statfs *totalfsp, struct
+@@ -524,7 +553,7 @@
   * the file system specified by `sfsp'.
   */
  static void
@@ -378,7 +388,7 @@
  {
  	static long blocksize = 0;
  	int dummy;
-@@ -576,69 +605,89 @@ usage(void)
+@@ -576,69 +605,84 @@
  	exit(EX_USAGE);
  }
  
@@ -451,12 +461,7 @@
 +
 +	while ((ent = getmntent(fp)) != NULL) {
 +	    /* skip if necessary */
-+	    if (!strcmp(ent->mnt_opts, MNTTYPE_IGNORE)) {
-+	        continue;
-+	    }
-+
-+	    /* skip any mount points that are not a device node or a tmpfs */
-+	    if (strncmp(ent->mnt_fsname, "/dev/", 5) && strcmp(ent->mnt_fsname, "tmpfs")) {
++	    if (hasmntopt(ent, MNTTYPE_IGNORE) != NULL) {
 +	        continue;
 +	    }
 +
