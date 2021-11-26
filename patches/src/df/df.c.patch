@@ -1,5 +1,5 @@
 --- df/df.c.orig	2021-04-08 20:24:01.000000000 -0400
-+++ df/df.c	2021-10-30 13:02:56.917774049 -0400
++++ df/df.c	2021-11-26 18:08:02.373145055 -0500
 @@ -50,11 +50,10 @@
  
  #include <sys/param.h>
@@ -211,7 +211,7 @@
  	memset(&maxwidths, 0, sizeof(maxwidths));
  	for (i = 0; i < mntsize; i++) {
 -		if (aflag || (mntbuf[i].f_flags & MNT_IGNORE) == 0) {
-+		if ((aflag || (*mntbuf[i].f_mntfromname == '/')) && mntbuf[i].f_selected) {
++		if ((aflag || (mntbuf[i].f_blocks > 0)) && mntbuf[i].f_selected) {
  			update_maxwidths(&maxwidths, &mntbuf[i]);
  			if (cflag)
  				addstat(&totalbuf, &mntbuf[i]);
@@ -219,7 +219,7 @@
  	}
  	for (i = 0; i < mntsize; i++)
 -		if (aflag || (mntbuf[i].f_flags & MNT_IGNORE) == 0)
-+		if ((aflag || (*mntbuf[i].f_mntfromname == '/')) && mntbuf[i].f_selected)
++		if ((aflag || (mntbuf[i].f_blocks > 0)) && mntbuf[i].f_selected)
  			prtstat(&mntbuf[i], &maxwidths);
  
  	xo_close_list("filesystem");

@@ -286,14 +286,14 @@ main(int argc, char *argv[])
 
 	memset(&maxwidths, 0, sizeof(maxwidths));
 	for (i = 0; i < mntsize; i++) {
-		if ((aflag || (*mntbuf[i].f_mntfromname == '/')) && mntbuf[i].f_selected) {
+		if ((aflag || (mntbuf[i].f_blocks > 0)) && mntbuf[i].f_selected) {
 			update_maxwidths(&maxwidths, &mntbuf[i]);
 			if (cflag)
 				addstat(&totalbuf, &mntbuf[i]);
 		}
 	}
 	for (i = 0; i < mntsize; i++)
-		if ((aflag || (*mntbuf[i].f_mntfromname == '/')) && mntbuf[i].f_selected)
+		if ((aflag || (mntbuf[i].f_blocks > 0)) && mntbuf[i].f_selected)
 			prtstat(&mntbuf[i], &maxwidths);
 
 	xo_close_list("filesystem");
