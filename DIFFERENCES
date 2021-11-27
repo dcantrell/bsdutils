@@ -766,6 +766,12 @@ name if you have the signal number is strsignal(), which is available
 on glibc and is what we will use.
 
 
+sys_nsig
+--------
+This is the maximum number of signals defined.  On a glibc-based
+system, this is spelld NSIG.
+
+
 sysctl()
 --------
 Linux frowns on using sysctl() to gather information about the system.
@@ -785,3 +791,9 @@ available on Linux.  When it comes to monitoring files, the equivalent
 Linux API is inotify, which can be used together with event handling
 mechanisms such as poll/epoll (the actual Linux alternative to kqueue
 is epoll, but it doesn't work on regular files, while kqueue does).
+
+
+procctl()
+---------
+The FreeBSD procctl() function has a different API than the prctl()
+function on Linux.  We replace procctl() calls with prctl().
