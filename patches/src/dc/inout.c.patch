@@ -1,5 +1,5 @@
 --- dc/inout.c.orig	2021-04-09 02:24:12.000000000 +0200
-+++ dc/inout.c	2021-06-12 06:22:35.020186271 +0200
++++ dc/inout.c	2022-01-05 03:25:41.711498447 +0100
 @@ -177,7 +177,8 @@ printwrap(FILE *f, const char *p)
  	char buf[12];
  
@@ -10,3 +10,23 @@
  	while (*q)
  		putcharwrap(f, *q++);
  }
+@@ -192,7 +193,7 @@ readnumber(struct source *src, u_int bas
+ 	bool dot = false, sign = false;
+ 
+ 	n = new_number();
+-	bn_check(BN_zero(n->number));
++	BN_zero(n->number);
+ 
+ 	while ((ch = (*src->vtable->readchar)(src)) != EOF) {
+ 
+@@ -230,8 +231,8 @@ readnumber(struct source *src, u_int bas
+ 		base_n = BN_new();
+ 		exponent = BN_new();
+ 		divisor = new_number();
+-		bn_check(BN_zero(base_n));
+-		bn_check(BN_zero(exponent));
++		BN_zero(base_n);
++		BN_zero(exponent);
+ 
+ 		bn_check(BN_add_word(base_n, base));
+ 		bn_check(BN_add_word(exponent, iscale));
