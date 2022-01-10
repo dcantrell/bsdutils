@@ -212,7 +212,7 @@ rewrite(FS *fs)
 	PR *pr, **nextpr;
 	FU *fu;
 	char *p1, *p2, *fmtp;
-	char savech, cs[3];
+	char savech, cs[4];
 	int nconv, prec;
 
 	prec = 0;
@@ -291,9 +291,10 @@ rewrite(FS *fs)
 				goto isint;
 			case 'o': case 'u': case 'x': case 'X':
 				pr->flags = F_UINT;
-isint:				cs[2] = '\0';
-				cs[1] = cs[0];
-				cs[0] = 'q';
+isint:				cs[3] = '\0';
+				cs[2] = cs[0];
+				cs[1] = 'l';
+				cs[0] = 'l';
 				switch(fu->bcnt) {
 				case 0: case 4:
 					pr->bcnt = 4;
@@ -356,9 +357,10 @@ isint:				cs[2] = '\0';
 					++p2;
 					switch(p1[2]) {
 					case 'd': case 'o': case'x':
-						cs[0] = 'q';
-						cs[1] = p1[2];
-						cs[2] = '\0';
+						cs[0] = 'l';
+						cs[1] = 'l';
+						cs[2] = p1[2];
+						cs[3] = '\0';
 						break;
 					default:
 						p1[3] = '\0';

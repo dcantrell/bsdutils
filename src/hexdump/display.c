@@ -105,7 +105,7 @@ display(void)
 		for (pr = endfu->nextpr; pr; pr = pr->nextpr)
 			switch(pr->flags) {
 			case F_ADDRESS:
-				(void)printf(pr->fmt, (quad_t)eaddress);
+				(void)printf(pr->fmt, (long long)eaddress);
 				break;
 			case F_TEXT:
 				(void)printf("%s", pr->fmt);
@@ -129,7 +129,7 @@ print(PR *pr, u_char *bp)
 
 	switch(pr->flags) {
 	case F_ADDRESS:
-		(void)printf(pr->fmt, (quad_t)address);
+		(void)printf(pr->fmt, (long long)address);
 		break;
 	case F_BPAD:
 		(void)printf(pr->fmt, "");
@@ -162,15 +162,15 @@ print(PR *pr, u_char *bp)
 	case F_INT:
 		switch(pr->bcnt) {
 		case 1:
-			(void)printf(pr->fmt, (quad_t)(signed char)*bp);
+			(void)printf(pr->fmt, (long long)(signed char)*bp);
 			break;
 		case 2:
 			bcopy(bp, &s2, sizeof(s2));
-			(void)printf(pr->fmt, (quad_t)s2);
+			(void)printf(pr->fmt, (long long)s2);
 			break;
 		case 4:
 			bcopy(bp, &s4, sizeof(s4));
-			(void)printf(pr->fmt, (quad_t)s4);
+			(void)printf(pr->fmt, (long long)s4);
 			break;
 		case 8:
 			bcopy(bp, &s8, sizeof(s8));
@@ -193,15 +193,15 @@ print(PR *pr, u_char *bp)
 	case F_UINT:
 		switch(pr->bcnt) {
 		case 1:
-			(void)printf(pr->fmt, (u_quad_t)*bp);
+			(void)printf(pr->fmt, (unsigned long long)*bp);
 			break;
 		case 2:
 			bcopy(bp, &u2, sizeof(u2));
-			(void)printf(pr->fmt, (u_quad_t)u2);
+			(void)printf(pr->fmt, (unsigned long long)u2);
 			break;
 		case 4:
 			bcopy(bp, &u4, sizeof(u4));
-			(void)printf(pr->fmt, (u_quad_t)u4);
+			(void)printf(pr->fmt, (unsigned long long)u4);
 			break;
 		case 8:
 			bcopy(bp, &u8, sizeof(u8));

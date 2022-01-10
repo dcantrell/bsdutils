@@ -1,5 +1,5 @@
 --- hexdump/parse.c.orig	2021-07-02 01:55:39.887054656 +0200
-+++ hexdump/parse.c	2021-07-02 02:08:17.173697600 +0200
++++ hexdump/parse.c	2022-01-10 04:28:28.585413869 +0100
 @@ -52,7 +52,7 @@ FU *endfu;					/* format at end-of-data
  void
  addfile(const char *name)
@@ -37,16 +37,32 @@
  	int prec;
  
  	/* figure out the data block size needed for each format unit */
-@@ -210,7 +211,7 @@ rewrite(FS *fs)
+@@ -210,8 +211,8 @@ rewrite(FS *fs)
  	enum { NOTOKAY, USEBCNT, USEPREC } sokay;
  	PR *pr, **nextpr;
  	FU *fu;
 -	unsigned char *p1, *p2, *fmtp;
+-	char savech, cs[3];
 +	char *p1, *p2, *fmtp;
- 	char savech, cs[3];
++	char savech, cs[4];
  	int nconv, prec;
  
-@@ -334,6 +335,7 @@ isint:				cs[2] = '\0';
+ 	prec = 0;
+@@ -290,9 +291,10 @@ rewrite(FS *fs)
+ 				goto isint;
+ 			case 'o': case 'u': case 'x': case 'X':
+ 				pr->flags = F_UINT;
+-isint:				cs[2] = '\0';
+-				cs[1] = cs[0];
+-				cs[0] = 'q';
++isint:				cs[3] = '\0';
++				cs[2] = cs[0];
++				cs[1] = 'l';
++				cs[0] = 'l';
+ 				switch(fu->bcnt) {
+ 				case 0: case 4:
+ 					pr->bcnt = 4;
+@@ -334,6 +336,7 @@ isint:				cs[2] = '\0';
  				switch(sokay) {
  				case NOTOKAY:
  					badsfmt();
@@ -54,3 +70,17 @@
  				case USEBCNT:
  					pr->bcnt = fu->bcnt;
  					break;
+@@ -354,9 +357,10 @@ isint:				cs[2] = '\0';
+ 					++p2;
+ 					switch(p1[2]) {
+ 					case 'd': case 'o': case'x':
+-						cs[0] = 'q';
+-						cs[1] = p1[2];
+-						cs[2] = '\0';
++						cs[0] = 'l';
++						cs[1] = 'l';
++						cs[2] = p1[2];
++						cs[3] = '\0';
+ 						break;
+ 					default:
+ 						p1[3] = '\0';
