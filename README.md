@@ -43,24 +43,20 @@ and the FreeBSD source directly.
 Build Requirements
 ------------------
 
-Development work is done using gcc and g++, but clang and clang++
-probably works.  You need GNU make, meson, and ninja installed as
-well.  Technically GNU make is not required unless you want to use the
-top level Makefile that drives the build in a more traditional "make /
-make install / make clean" manner.  You can just use meson and ninja
-directly.  Most Linux distributions offer all of these tools in ready
-to install package form.
+You will need GNU-compatible C and C++ compilers, typically gcc/g++
+or clang/clang++. You will also need flex (or some other lex as long
+as it is compatible with flex), byacc or bison, meson and ninja/samurai.
+If you wish to use the top-level Makefile (which is just a simple
+wrapper around meson), you will need GNU make. Most distributions
+have all these tools already available in their repositories.
 
-    gcc and g++    https://gcc.gnu.org/
+    gcc/g++        https://gcc.gnu.org/
+    clang/clang++  https://llvm.org/
     GNU make       https://www.gnu.org/software/make/
     meson          https://mesonbuild.com/
     ninja          https://ninja-build.org/
     flex           https://github.com/westes/flex
     byacc          https://invisible-island.net/byacc/byacc.html
-
-GNU bison will work in place of byacc.  Other lex implementations may
-work so long as they are compatible with flex.  We are doing the
-porting work using flex.
 
 Additionally you will need the following shared libraries to build all
 of the programs in this project:
@@ -70,12 +66,12 @@ of the programs in this project:
     openssl        https://www.openssl.org/
     libxo          https://github.com/Juniper/libxo
 
-The terminfo library is usually called 'libtinfo' on most Linux
-systems and comes from the ncurses project.  The ls(1) command needs
+The terminfo library may be either standalone (libtinfo) or a part
+of the curses library, dependending on build. The ls(1) command needs
 this.  bc(1) needs libedit, which is the BSD alternative to GNU
 readline.  dc(1) uses libcrypto which comes from OpenSSL.  seq(1)
-needs libm, but that comes from your C library.  df(1) uses libxo for
-outputting to multiple formats.
+needs libm, but that comes from your C library.  df(1) and wc(1) use
+libxo for outputting to multiple formats.
 
 Users of musl-based Linux systems also need libfts and librpmatch
 installed.
