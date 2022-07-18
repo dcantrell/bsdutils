@@ -493,8 +493,6 @@ main(int argc, char *argv[])
 			f_color = 1;
 			explicitansi = true;
 		}
-#else
-		warnx("color support not compiled in");
 #endif /*COLORLS*/
 	}
 

@@ -78,7 +78,7 @@ foreach opt : ['tinfo', 'ncursesw', 'ncurses']
         break
     endif
 endforeach
-if not libtinfo.found()
+if not libtinfo.found() and get_option('color_ls')
     error('a terminfo library is needed')
 endif
 

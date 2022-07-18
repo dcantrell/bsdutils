@@ -7,3 +7,8 @@ option('static_rpmatch',
     type: 'boolean', value: false,
     description: 'Prefer static librpmatch'
 )
+
+option('color_ls',
+    type: 'boolean', value: true,
+    description: 'Enable color ls(1) (needs terminfo)'
+)

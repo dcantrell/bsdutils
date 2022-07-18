@@ -1,5 +1,5 @@
 --- ls/ls.c.orig	2021-04-09 02:24:01.000000000 +0200
-+++ ls/ls.c	2021-09-18 19:44:01.722262160 +0200
++++ ls/ls.c	2022-07-18 21:23:58.313576108 +0200
 @@ -49,7 +49,7 @@ __FBSDID("$FreeBSD$");
  #include <sys/param.h>
  #include <sys/stat.h>
@@ -135,7 +135,16 @@
  		case 'p':
  			f_slash = 1;
  			f_type = 1;
-@@ -572,8 +562,6 @@ main(int argc, char *argv[])
+@@ -503,8 +493,6 @@ main(int argc, char *argv[])
+ 			f_color = 1;
+ 			explicitansi = true;
+ 		}
+-#else
+-		warnx("color support not compiled in");
+ #endif /*COLORLS*/
+ 	}
+ 
+@@ -572,8 +560,6 @@ main(int argc, char *argv[])
  			sortfcn = revsizecmp;
  		else if (f_accesstime)
  			sortfcn = revacccmp;
@@ -144,7 +153,7 @@
  		else if (f_statustime)
  			sortfcn = revstatcmp;
  		else		/* Use modification time. */
-@@ -585,8 +573,6 @@ main(int argc, char *argv[])
+@@ -585,8 +571,6 @@ main(int argc, char *argv[])
  			sortfcn = sizecmp;
  		else if (f_accesstime)
  			sortfcn = acccmp;
@@ -153,7 +162,7 @@
  		else if (f_statustime)
  			sortfcn = statcmp;
  		else		/* Use modification time. */
-@@ -643,7 +629,7 @@ traverse(int argc, char *argv[], int opt
+@@ -643,7 +627,7 @@ traverse(int argc, char *argv[], int opt
  	 * If not recursing down this tree and don't need stat info, just get
  	 * the names.
  	 */
@@ -162,7 +171,7 @@
  	    options & FTS_NOSTAT ? FTS_NAMEONLY : 0;
  
  	while (errno = 0, (p = fts_read(ftsp)) != NULL)
-@@ -694,7 +680,7 @@ traverse(int argc, char *argv[], int opt
+@@ -694,7 +678,7 @@ traverse(int argc, char *argv[], int opt
   * points to the parent directory of the display list.
   */
  static void
@@ -171,7 +180,7 @@
  {
  	struct stat *sp;
  	DISPLAY d;
-@@ -703,8 +689,7 @@ display(const FTSENT *p, FTSENT *list, i
+@@ -703,8 +687,7 @@ display(const FTSENT *p, FTSENT *list, i
  	off_t maxsize;
  	long maxblock;
  	uintmax_t maxinode;
@@ -181,7 +190,7 @@
  	u_int sizelen;
  	int maxflags;
  	gid_t maxgroup;
-@@ -712,8 +697,9 @@ display(const FTSENT *p, FTSENT *list, i
+@@ -712,8 +695,9 @@ display(const FTSENT *p, FTSENT *list, i
  	size_t flen, ulen, glen;
  	char *initmax;
  	int entries, needstats;
@@ -192,7 +201,7 @@
  	char ngroup[STRBUF_SIZEOF(uid_t) + 1];
  	char nuser[STRBUF_SIZEOF(gid_t) + 1];
  	u_long width[9];
-@@ -761,7 +747,6 @@ display(const FTSENT *p, FTSENT *list, i
+@@ -761,7 +745,6 @@ display(const FTSENT *p, FTSENT *list, i
  	maxflags = width[5];
  	maxsize = width[6];
  	maxlen = width[7];
@@ -200,7 +209,7 @@
  
  	MAKENINES(maxinode);
  	MAKENINES(maxblock);
-@@ -770,7 +755,6 @@ display(const FTSENT *p, FTSENT *list, i
+@@ -770,7 +753,6 @@ display(const FTSENT *p, FTSENT *list, i
  
  	d.s_size = 0;
  	sizelen = 0;
@@ -208,7 +217,7 @@
  	for (cur = list, entries = 0; cur; cur = cur->fts_link) {
  		if (cur->fts_info == FTS_ERR || cur->fts_info == FTS_NS) {
  			warnx("%s: %s",
-@@ -825,96 +809,34 @@ display(const FTSENT *p, FTSENT *list, i
+@@ -825,96 +807,34 @@ display(const FTSENT *p, FTSENT *list, i
  					user = nuser;
  					group = ngroup;
  				} else {
@@ -324,7 +333,7 @@
  				    ulen + glen + flen + 4)) == NULL)
  					err(1, "malloc");
  
-@@ -931,17 +853,6 @@ label_out:
+@@ -931,17 +851,6 @@ label_out:
  						d.s_size = sizelen;
  				}
  
@@ -342,7 +351,7 @@
  				cur->fts_pointer = np;
  			}
  		}
-@@ -964,7 +875,6 @@ label_out:
+@@ -964,7 +873,6 @@ label_out:
  		d.btotal = btotal;
  		d.s_block = snprintf(NULL, 0, "%lu", howmany(maxblock, blocksize));
  		d.s_flags = maxflags;
@@ -350,7 +359,7 @@
  		d.s_group = maxgroup;
  		d.s_inode = snprintf(NULL, 0, "%ju", maxinode);
  		d.s_nlink = snprintf(NULL, 0, "%lu", maxnlink);
-@@ -991,7 +901,7 @@ label_out:
+@@ -991,7 +899,7 @@ label_out:
   * All other levels use the sort function.  Error entries remain unsorted.
   */
  static int
