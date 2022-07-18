@@ -12,3 +12,8 @@ option('color_ls',
     type: 'boolean', value: true,
     description: 'Enable color ls(1) (needs terminfo)'
 )
+
+option('libcrypto',
+    type: 'feature', value: 'enabled',
+    description: 'Use libcrypto (for dc(1) and minor features elsewhere)'
+)
