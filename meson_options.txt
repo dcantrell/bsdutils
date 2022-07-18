@@ -1,0 +1,9 @@
+option('static_fts',
+    type: 'boolean', value: false,
+    description: 'Prefer static libfts'
+)
+
+option('static_rpmatch',
+    type: 'boolean', value: false,
+    description: 'Prefer static librpmatch'
+)
