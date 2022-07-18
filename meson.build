@@ -95,8 +95,12 @@ libm = cc.find_library('m', required : true)
 libxo = dependency('libxo', required : true)
 
 # needed by a few utils; provided by glibc, but not by e.g. musl
-libfts = cc.find_library('fts', required : false)
-librpmatch = cc.find_library('rpmatch', required : false)
+libfts = cc.find_library('fts',
+    required : false, static : get_option('static_fts')
+)
+librpmatch = cc.find_library('rpmatch',
+    required : false, static : get_option('static_rpmatch')
+)
 
 # sort needs pthreads
 libpthread = dependency('threads')
