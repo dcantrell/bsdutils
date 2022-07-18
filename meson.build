@@ -83,7 +83,7 @@ if not libtinfo.found() and get_option('color_ls')
 endif
 
 # bc(1) needs libedit
-libedit = dependency('libedit', required : true)
+libedit = dependency('libedit', required : get_option('libedit'))
 
 # dc(1), install(1) and sort(1) need libcrypto
 libcrypto = dependency('libcrypto', required : get_option('libcrypto'))

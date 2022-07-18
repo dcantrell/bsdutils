@@ -17,3 +17,8 @@ option('libcrypto',
     type: 'feature', value: 'enabled',
     description: 'Use libcrypto (for dc(1) and minor features elsewhere)'
 )
+
+option('libedit',
+    type: 'feature', value: 'enabled',
+    description: 'Use libedit (needed by bc(1))'
+)

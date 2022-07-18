@@ -1,5 +1,4 @@
 subdir('basename')
-subdir('bc')
 subdir('cat')
 subdir('chmod')
 subdir('chown')
@@ -75,6 +74,10 @@ subdir('which')
 subdir('who')
 subdir('xargs')
 subdir('yes')
+
+if libedit.found()
+    subdir('bc')
+endif
 
 if libcrypto.found()
     subdir('dc')
