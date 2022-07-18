@@ -1,5 +1,5 @@
 --- tail/tail.c.orig	2021-06-28 22:43:14.736015942 +0200
-+++ tail/tail.c	2021-06-28 23:04:48.569488093 +0200
++++ tail/tail.c	2022-07-18 21:13:24.272336011 +0200
 @@ -46,11 +46,9 @@ static const char copyright[] =
  static const char sccsid[] = "@(#)tail.c	8.1 (Berkeley) 6/6/93";
  #endif
@@ -34,6 +34,15 @@
  
  	/*
  	 * Tail's options are weird.  First, -n10 is the same as -n-10, not
+@@ -115,7 +108,7 @@ main(int argc, char *argv[])
+ 	case '+':							\
+ 		if (off)						\
+ 			off -= (units);					\
+-			style = (forward);				\
++		style = (forward);				\
+ 		break;							\
+ 	case '-':							\
+ 		off = -off;						\
 @@ -162,22 +155,6 @@ main(int argc, char *argv[])
  
  	no_files = argc ? argc : 1;
