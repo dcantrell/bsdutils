@@ -108,7 +108,7 @@ main(int argc, char *argv[])
 	case '+':							\
 		if (off)						\
 			off -= (units);					\
-			style = (forward);				\
+		style = (forward);				\
 		break;							\
 	case '-':							\
 		off = -off;						\
