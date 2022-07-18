@@ -1,3 +1,9 @@
+sort_cargs = [ '-DWITHOUT_NLS', '-DSORT_THREADS', ]
+
+if not libcrypto.found()
+    sort_cargs += [ '-DWITHOUT_LIBCRYPTO' ]
+endif
+
 sort_prog = executable(
     'sort',
     [
@@ -7,7 +13,7 @@ sort_prog = executable(
     include_directories : [ inc, ],
     dependencies : [ libcrypto, libpthread, ],
     link_with : [ libcompat, ],
-    c_args : [ '-DWITHOUT_NLS', '-DSORT_THREADS' ],
+    c_args : sort_cargs,
     install : true,
 )
 

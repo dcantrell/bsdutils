@@ -53,6 +53,7 @@ __FBSDID("$FreeBSD$");
 #include "file.h"
 #include "sort.h"
 
+#ifndef WITHOUT_LIBCRYPTO
 void MD5Init(MD5_CTX *context)
 {
 	context->mdctx = EVP_MD_CTX_new();
@@ -74,6 +75,7 @@ void MD5Final(unsigned char digest[MD5_DIGEST_LENGTH], MD5_CTX *context)
 	if (!EVP_DigestFinal(context->mdctx, digest, NULL))
 		errx(1, "could not finalize MD5 digest");
 }
+#endif /* WITHOUT_LIBCRYPTO */
 
 #ifndef WITHOUT_NLS
 #include <nl_types.h>
@@ -84,9 +86,11 @@ extern const char *__progname;
 
 #define	OPTIONS	"bcCdfghik:Mmno:RrsS:t:T:uVz"
 
+#ifndef WITHOUT_LIBCRYPTO
 static bool need_random;
 
 MD5_CTX md5_ctx;
+#endif
 
 /*
  * Default messages to use when NLS is disabled or no catalogue
@@ -113,7 +117,11 @@ const char *nlsstr[] = { "",
       "[--parallel thread_no] "
 #endif
       "[--human-numeric-sort] "
+#ifndef WITHOUT_LIBCRYPTO
+      "[--version-sort]] "
+#else
       "[--version-sort] [--random-sort [--random-source file]] "
+#endif
       "[--compress-program program] [file ...]\n" };
 
 struct sort_opts sort_opts_vals;
@@ -153,7 +161,9 @@ enum
 #if defined(SORT_THREADS)
 	PARALLEL_OPT,
 #endif
+#ifndef WITHOUT_LIBCRYPTO
 	RANDOMSOURCE_OPT,
+#endif
 	COMPRESSPROGRAM_OPT,
 	QSORT_OPT,
 	MERGESORT_OPT,
@@ -194,8 +204,10 @@ static struct option long_options[] = {
 #endif
 				{ "qsort", no_argument, NULL, QSORT_OPT },
 				{ "radixsort", no_argument, NULL, RADIXSORT_OPT },
+#ifndef WITHOUT_LIBCRYPTO
 				{ "random-sort", no_argument, NULL, 'R' },
 				{ "random-source", required_argument, NULL, RANDOMSOURCE_OPT },
+#endif
 				{ "reverse", no_argument, NULL, 'r' },
 				{ "sort", required_argument, NULL, SORT_OPT },
 				{ "stable", no_argument, NULL, 's' },
@@ -612,11 +624,13 @@ set_sort_modifier(struct sort_mods *sm, int c)
 	case 'i':
 		sm->iflag = true;
 		break;
+#ifndef WITHOUT_LIBCRYPTO
 	case 'R':
 		sm->Rflag = true;
 		need_hint = true;
 		need_random = true;
 		break;
+#endif
 	case 'M':
 		initialise_months();
 		sm->Mflag = true;
@@ -933,6 +947,7 @@ fix_obsolete_keys(int *argc, char **argv)
 	}
 }
 
+#ifndef WITHOUT_LIBCRYPTO
 /*
  * Seed random sort
  */
@@ -1005,6 +1020,7 @@ out:
 	MD5Init(&md5_ctx);
 	MD5Update(&md5_ctx, randseed, rd);
 }
+#endif /* WITHOUT_LIBCRYPTO */
 
 /*
  * Main function.
@@ -1013,7 +1029,9 @@ int
 main(int argc, char **argv)
 {
 	char *outfile, *real_outfile;
+#ifndef WITHOUT_LIBCRYPTO
 	char *random_source = NULL;
+#endif
 	int c, result;
 	bool mef_flags[NUMBER_OF_MUTUALLY_EXCLUSIVE_FLAGS] =
 	    { false, false, false, false, false, false };
@@ -1142,8 +1160,10 @@ main(int argc, char **argv)
 						set_sort_modifier(sm, 'n');
 					else if (!strcmp(optarg, "month"))
 						set_sort_modifier(sm, 'M');
+#ifndef WITHOUT_LIBCRYPTO
 					else if (!strcmp(optarg, "random"))
 						set_sort_modifier(sm, 'R');
+#endif
 					else
 						unknown(optarg);
 				}
@@ -1172,9 +1192,11 @@ main(int argc, char **argv)
 			case RADIXSORT_OPT:
 				sort_opts_vals.sort_method = SORT_RADIXSORT;
 				break;
+#ifndef WITHOUT_LIBCRYPTO
 			case RANDOMSOURCE_OPT:
 				random_source = strdup(optarg);
 				break;
+#endif
 			case COMPRESSPROGRAM_OPT:
 				compress_program = strdup(optarg);
 				break;
@@ -1275,8 +1297,10 @@ main(int argc, char **argv)
 		}
 	}
 
+#ifndef WITHOUT_LIBCRYPTO
 	if (need_random)
 		get_random_seed(random_source);
+#endif
 
 	/* Case when the outfile equals one of the input files: */
 	if (strcmp(outfile, "-")) {

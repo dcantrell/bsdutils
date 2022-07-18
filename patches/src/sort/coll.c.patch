@@ -1,5 +1,5 @@
 --- sort/coll.c.orig	2021-04-09 02:24:12.000000000 +0200
-+++ sort/coll.c	2021-06-28 22:13:45.038551130 +0200
++++ sort/coll.c	2022-07-18 21:58:13.514047694 +0200
 @@ -37,7 +37,6 @@ __FBSDID("$FreeBSD$");
  #include <langinfo.h>
  #include <limits.h>
@@ -8,7 +8,28 @@
  #include <stdlib.h>
  #include <string.h>
  #include <wchar.h>
-@@ -811,7 +810,7 @@ cmpsuffix(unsigned char si1, unsigned ch
+@@ -60,7 +59,9 @@ static int gnumcoll(struct key_value*, s
+ static int monthcoll(struct key_value*, struct key_value *, size_t offset);
+ static int numcoll(struct key_value*, struct key_value *, size_t offset);
+ static int hnumcoll(struct key_value*, struct key_value *, size_t offset);
++#ifndef WITHOUT_LIBCRYPTO
+ static int randomcoll(struct key_value*, struct key_value *, size_t offset);
++#endif
+ static int versioncoll(struct key_value*, struct key_value *, size_t offset);
+ 
+ /*
+@@ -473,8 +474,10 @@ get_sort_func(struct sort_mods *sm)
+ 		return (gnumcoll);
+ 	else if (sm->Mflag)
+ 		return (monthcoll);
++#ifndef WITHOUT_LIBCRYPTO
+ 	else if (sm->Rflag)
+ 		return (randomcoll);
++#endif
+ 	else if (sm->Vflag)
+ 		return (versioncoll);
+ 	else
+@@ -811,7 +814,7 @@ cmpsuffix(unsigned char si1, unsigned ch
   */
  static int
  numcoll_impl(struct key_value *kv1, struct key_value *kv2,
@@ -17,7 +38,15 @@
  {
  	struct bwstring *s1, *s2;
  	wchar_t sfrac1[MAX_NUM_SIZE + 1], sfrac2[MAX_NUM_SIZE + 1];
-@@ -995,7 +994,7 @@ randomcoll_init_hint(struct key_value *k
+@@ -981,6 +984,7 @@ hnumcoll(struct key_value *kv1, struct k
+ 	return (numcoll_impl(kv1, kv2, offset, true));
+ }
+ 
++#ifndef WITHOUT_LIBCRYPTO
+ /* Use hint space to memoize md5 computations, at least. */
+ static void
+ randomcoll_init_hint(struct key_value *kv, void *hash)
+@@ -995,7 +999,7 @@ randomcoll_init_hint(struct key_value *k
   */
  static int
  randomcoll(struct key_value *kv1, struct key_value *kv2,
@@ -26,7 +55,14 @@
  {
  	struct bwstring *s1, *s2;
  	MD5_CTX ctx1, ctx2;
-@@ -1043,7 +1042,7 @@ randomcoll(struct key_value *kv1, struct
+@@ -1037,13 +1041,14 @@ randomcoll(struct key_value *kv1, struct
+ 
+ 	return (memcmp(hash1, hash2, sizeof(hash1)));
+ }
++#endif /* WITHOUT_LIBCRYPTO */
+ 
+ /*
+  * Implements version sort (-V).
   */
  static int
  versioncoll(struct key_value *kv1, struct key_value *kv2,
@@ -35,7 +71,7 @@
  {
  	struct bwstring *s1, *s2;
  
-@@ -1118,7 +1117,7 @@ cmp_nans(double d1, double d2)
+@@ -1118,7 +1123,7 @@ cmp_nans(double d1, double d2)
   */
  static int
  gnumcoll(struct key_value *kv1, struct key_value *kv2,
@@ -44,7 +80,7 @@
  {
  	double d1, d2;
  	int err1, err2;
-@@ -1274,7 +1273,7 @@ gnumcoll(struct key_value *kv1, struct k
+@@ -1274,7 +1279,7 @@ gnumcoll(struct key_value *kv1, struct k
   * Implements month sort (-M).
   */
  static int

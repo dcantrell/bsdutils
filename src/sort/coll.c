@@ -59,7 +59,9 @@ static int gnumcoll(struct key_value*, struct key_value *, size_t offset);
 static int monthcoll(struct key_value*, struct key_value *, size_t offset);
 static int numcoll(struct key_value*, struct key_value *, size_t offset);
 static int hnumcoll(struct key_value*, struct key_value *, size_t offset);
+#ifndef WITHOUT_LIBCRYPTO
 static int randomcoll(struct key_value*, struct key_value *, size_t offset);
+#endif
 static int versioncoll(struct key_value*, struct key_value *, size_t offset);
 
 /*
@@ -472,8 +474,10 @@ get_sort_func(struct sort_mods *sm)
 		return (gnumcoll);
 	else if (sm->Mflag)
 		return (monthcoll);
+#ifndef WITHOUT_LIBCRYPTO
 	else if (sm->Rflag)
 		return (randomcoll);
+#endif
 	else if (sm->Vflag)
 		return (versioncoll);
 	else
@@ -980,6 +984,7 @@ hnumcoll(struct key_value *kv1, struct key_value *kv2, size_t offset)
 	return (numcoll_impl(kv1, kv2, offset, true));
 }
 
+#ifndef WITHOUT_LIBCRYPTO
 /* Use hint space to memoize md5 computations, at least. */
 static void
 randomcoll_init_hint(struct key_value *kv, void *hash)
@@ -1036,6 +1041,7 @@ randomcoll(struct key_value *kv1, struct key_value *kv2,
 
 	return (memcmp(hash1, hash2, sizeof(hash1)));
 }
+#endif /* WITHOUT_LIBCRYPTO */
 
 /*
  * Implements version sort (-V).
