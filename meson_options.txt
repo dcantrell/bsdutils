@@ -8,6 +8,16 @@ option('static_rpmatch',
     description: 'Prefer static librpmatch'
 )
 
+option('fts_path',
+    type: 'string', value: '',
+    description: 'Extra search path for libfts'
+)
+
+option('rpmatch_path',
+    type: 'string', value: '',
+    description: 'Extra search path for librpmatch'
+)
+
 option('color_ls',
     type: 'boolean', value: true,
     description: 'Enable color ls(1) (needs terminfo)'

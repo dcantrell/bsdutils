@@ -95,11 +95,23 @@ libm = cc.find_library('m', required : true)
 libxo = dependency('libxo', required : true)
 
 # needed by a few utils; provided by glibc, but not by e.g. musl
+
+fts_dirs = []
+rpmatch_dirs = []
+
+if get_option('fts_path') != ''
+    fts_dirs += get_option('fts_path')
+endif
+
+if get_option('rpmatch_path') != ''
+    rpmatch_dirs += get_option('rpmatch_path')
+endif
+
 libfts = cc.find_library('fts',
-    required : false, static : get_option('static_fts')
+    required : false, static : get_option('static_fts'), dirs : fts_dirs
 )
 librpmatch = cc.find_library('rpmatch',
-    required : false, static : get_option('static_rpmatch')
+    required : false, static : get_option('static_rpmatch'), dirs : rpmatch_dirs
 )
 
 # sort needs pthreads
