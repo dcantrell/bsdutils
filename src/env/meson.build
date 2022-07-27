@@ -4,6 +4,7 @@ env_prog = executable(
       'envopts.c',
     ],
     include_directories : inc,
+    link_with : [ libcompat ],
     install : true,
 )
 

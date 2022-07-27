@@ -31,6 +31,7 @@ __FBSDID("$FreeBSD$");
 #include "extern.h"
 #include "bc.h"
 #include "pathnames.h"
+#include "compat.h"
 
 int		lineno;
 bool		interactive;
@@ -191,8 +192,7 @@ ALPHANUM	[a-z_0-9]
 			char *p = malloc(yyleng + 2);
 			if (p == NULL)
 				err(1, NULL);
-			strncpy(p, yytext, yyleng + 1);
-			yytext[yyleng] = '\0';
+			strlcpy(p, yytext, yyleng + 1);
 			yylval.astr = p;
 			return LETTER;
 		}
@@ -238,8 +238,7 @@ add_str(const char *str)
 		strbuf_sz = newsize;
 		strbuf = p;
 	}
-	strncat(strbuf, str, strbuf_sz);
-	strbuf[strbuf_sz - 1] = '\0';
+	strlcat(strbuf, str, strbuf_sz);
 }
 
 /* ARGSUSED */

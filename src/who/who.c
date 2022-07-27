@@ -48,6 +48,8 @@ __FBSDID("$FreeBSD$");
 #include <unistd.h>
 #include <utmpx.h>
 
+#include "compat.h"
+
 static void	heading(void);
 static void	process_utmp(void);
 static void	quick(void);
@@ -274,9 +276,7 @@ whoami(void)
 		tty = "tty??";
 	else if (strncmp(tty, _PATH_DEV, sizeof _PATH_DEV - 1) == 0)
 		tty += sizeof _PATH_DEV - 1;
-	strncpy(ut.ut_line, tty, sizeof ut.ut_line - 1);
-	if (strlen(tty) >= sizeof ut.ut_line)
-		ut.ut_line[sizeof ut.ut_line - 1] = '\0';
+	strlcpy(ut.ut_line, tty, sizeof ut.ut_line);
 
 	/* Search utmp for our tty, dump first matching record. */
 	if ((utx = getutxline(&ut)) != NULL && utx->ut_type == USER_PROCESS) {
@@ -290,9 +290,7 @@ whoami(void)
 		name = pwd->pw_name;
 	else
 		name = "?";
-	strncpy(ut.ut_user, name, sizeof ut.ut_user - 1);
-	if (strlen(name) >= sizeof ut.ut_user)
-		ut.ut_user[sizeof ut.ut_user - 1] = '\0';
+	strlcpy(ut.ut_user, name, sizeof ut.ut_user);
 	gettimeofday((struct timeval *)&ut.ut_tv, NULL);
 	row(&ut);
 }

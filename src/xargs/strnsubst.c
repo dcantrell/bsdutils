@@ -17,6 +17,8 @@ __FBSDID("$FreeBSD$");
 #include <unistd.h>
 #include <stdint.h>
 
+#include "compat.h"
+
 void	strnsubst(char **, const char *, const char *, size_t);
 
 /*
@@ -57,8 +59,7 @@ strnsubst(char **str, const char *match, const char *replstr, size_t maxsize)
 		replstr = "";
 
 	if (match == NULL || replstr == NULL || maxsize == strlen(s1)) {
-		strncpy(s2, s1, maxsize);
-		s2[maxsize - 1] = '\0';
+		strlcpy(s2, s1, maxsize);
 		goto done;
 	}
 
@@ -68,8 +69,7 @@ strnsubst(char **str, const char *match, const char *replstr, size_t maxsize)
 			break;
 		if ((strlen(s2) + strlen(s1) + strlen(replstr) -
 		    strlen(match) + 1) > maxsize) {
-			strncat(s2, s1, maxsize);
-			s2[maxsize - 1] = '\0';
+			strlcat(s2, s1, maxsize);
 			goto done;
 		}
 		strncat(s2, s1, (uintptr_t)this - (uintptr_t)s1);

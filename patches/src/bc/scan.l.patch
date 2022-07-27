@@ -1,23 +1,14 @@
---- bc/scan.l.orig	2021-06-12 06:26:11.490778976 +0200
-+++ bc/scan.l	2021-06-12 06:47:02.271086318 +0200
-@@ -191,7 +191,8 @@ ALPHANUM	[a-z_0-9]
- 			char *p = malloc(yyleng + 2);
- 			if (p == NULL)
- 				err(1, NULL);
--			strlcpy(p, yytext, yyleng + 1);
-+			strncpy(p, yytext, yyleng + 1);
-+			yytext[yyleng] = '\0';
- 			yylval.astr = p;
- 			return LETTER;
- 		}
-@@ -237,12 +238,13 @@ add_str(const char *str)
- 		strbuf_sz = newsize;
- 		strbuf = p;
- 	}
--	strlcat(strbuf, str, strbuf_sz);
-+	strncat(strbuf, str, strbuf_sz);
-+	strbuf[strbuf_sz - 1] = '\0';
- }
+--- bc/scan.l.orig	2021-04-09 02:24:12.000000000 +0200
++++ bc/scan.l	2022-07-27 20:24:55.328402751 +0200
+@@ -31,6 +31,7 @@ __FBSDID("$FreeBSD$");
+ #include "extern.h"
+ #include "bc.h"
+ #include "pathnames.h"
++#include "compat.h"
+ 
+ int		lineno;
+ bool		interactive;
+@@ -242,7 +243,7 @@ add_str(const char *str)
  
  /* ARGSUSED */
  void
@@ -26,7 +17,7 @@
  {
  	static const char str1[] = "[\n]P\n";
  	static const char str2[] = "[^C\n]P\n";
-@@ -265,7 +267,7 @@ abort_line(int sig __unused)
+@@ -265,7 +266,7 @@ abort_line(int sig __unused)
   * line after a ^C.
   */
  unsigned char

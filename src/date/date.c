@@ -242,10 +242,8 @@ printisodate(struct tm *lt)
 	char fmtbuf[32], buf[32], tzbuf[8];
 
 	fmtbuf[0] = 0;
-	for (it = iso8601_fmts; it <= iso8601_selected; it++) {
-		strncat(fmtbuf, it->format_string, 31);
-		fmtbuf[31] = '\0';
-	}
+	for (it = iso8601_fmts; it <= iso8601_selected; it++)
+		strlcat(fmtbuf, it->format_string, sizeof(fmtbuf));
 
 	(void)strftime(buf, sizeof(buf), fmtbuf, lt);
 
@@ -253,8 +251,7 @@ printisodate(struct tm *lt)
 		(void)strftime(tzbuf, sizeof(tzbuf), "%z", lt);
 		memmove(&tzbuf[4], &tzbuf[3], 3);
 		tzbuf[3] = ':';
-		strncat(buf, tzbuf, 31);
-		buf[31] = '\0';
+		strlcat(buf, tzbuf, sizeof(buf));
 	}
 
 	printdate(buf);

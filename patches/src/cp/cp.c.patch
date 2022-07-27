@@ -1,5 +1,5 @@
 --- cp/cp.c.orig	2021-04-09 02:24:01.000000000 +0200
-+++ cp/cp.c	2021-10-27 16:43:58.729835853 +0200
++++ cp/cp.c	2022-07-27 20:23:03.423337122 +0200
 @@ -75,6 +75,7 @@ __FBSDID("$FreeBSD$");
  #include <unistd.h>
  
@@ -17,17 +17,6 @@
  
  int
  main(int argc, char *argv[])
-@@ -187,8 +188,8 @@ main(int argc, char *argv[])
- 
- 	/* Save the target base in "to". */
- 	target = argv[--argc];
--	if (strlcpy(to.p_path, target, sizeof(to.p_path)) >= sizeof(to.p_path))
--		errx(1, "%s: name too long", target);
-+	strncpy(to.p_path, target, sizeof(to.p_path));
-+	to.p_path[sizeof(to.p_path) - 1] = '\0';
- 	to.p_end = to.p_path + strlen(to.p_path);
- 	if (to.p_path == to.p_end) {
- 		*to.p_end++ = '.';
 @@ -375,12 +376,9 @@ copy(char *argv[], enum op type, int fts
  			if (pflag) {
  				if (setfile(curr->fts_statp, -1))

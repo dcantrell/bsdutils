@@ -5,6 +5,7 @@ bc_prog = executable(
       'tty.c',
     ],
     include_directories : inc,
+    link_with : [ libcompat ],
     dependencies : [ libedit ],
     install : true,
 )

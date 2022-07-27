@@ -65,6 +65,14 @@ if not cc.has_function('strtoq')
    add_global_arguments([ '-Dstrtoq=strtoull' ], language : [ 'c', 'cpp' ])
 endif
 
+if cc.has_function('strlcpy')
+   add_global_arguments('-DHAVE_STRLCPY', language : [ 'c', 'cpp' ])
+endif
+
+if cc.has_function('strlcat')
+   add_global_arguments('-DHAVE_STRLCAT', language : [ 'c', 'cpp' ])
+endif
+
 # Build everything with _GNU_SOURCE enabled
 add_global_arguments('-D_GNU_SOURCE', language : [ 'c', 'cpp' ])
 

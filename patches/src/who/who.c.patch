@@ -1,6 +1,6 @@
 --- who/who.c.orig	2021-06-26 22:34:17.828638305 +0200
-+++ who/who.c	2021-06-28 19:56:29.457213687 +0200
-@@ -45,7 +45,6 @@ __FBSDID("$FreeBSD$");
++++ who/who.c	2022-07-27 20:33:33.309462307 +0200
+@@ -45,10 +45,11 @@ __FBSDID("$FreeBSD$");
  #include <stdlib.h>
  #include <string.h>
  #include <time.h>
@@ -8,7 +8,12 @@
  #include <unistd.h>
  #include <utmpx.h>
  
-@@ -118,7 +117,7 @@ main(int argc, char *argv[])
++#include "compat.h"
++
+ static void	heading(void);
+ static void	process_utmp(void);
+ static void	quick(void);
+@@ -118,7 +119,7 @@ main(int argc, char *argv[])
  		usage();
  
  	if (*argv != NULL) {
@@ -17,7 +22,7 @@
  			err(1, "%s", *argv);
  	}
  
-@@ -171,8 +170,10 @@ row(const struct utmpx *ut)
+@@ -171,8 +172,10 @@ row(const struct utmpx *ut)
  	struct tm *tm;
  	char state;
  
@@ -30,26 +35,11 @@
  
  	state = '?';
  	idle = 0;
-@@ -273,7 +274,9 @@ whoami(void)
- 		tty = "tty??";
- 	else if (strncmp(tty, _PATH_DEV, sizeof _PATH_DEV - 1) == 0)
- 		tty += sizeof _PATH_DEV - 1;
--	strlcpy(ut.ut_line, tty, sizeof ut.ut_line);
-+	strncpy(ut.ut_line, tty, sizeof ut.ut_line - 1);
-+	if (strlen(tty) >= sizeof ut.ut_line)
-+		ut.ut_line[sizeof ut.ut_line - 1] = '\0';
- 
- 	/* Search utmp for our tty, dump first matching record. */
- 	if ((utx = getutxline(&ut)) != NULL && utx->ut_type == USER_PROCESS) {
-@@ -287,8 +290,10 @@ whoami(void)
- 		name = pwd->pw_name;
+@@ -288,7 +291,7 @@ whoami(void)
  	else
  		name = "?";
--	strlcpy(ut.ut_user, name, sizeof ut.ut_user);
+ 	strlcpy(ut.ut_user, name, sizeof ut.ut_user);
 -	gettimeofday(&ut.ut_tv, NULL);
-+	strncpy(ut.ut_user, name, sizeof ut.ut_user - 1);
-+	if (strlen(name) >= sizeof ut.ut_user)
-+		ut.ut_user[sizeof ut.ut_user - 1] = '\0';
 +	gettimeofday((struct timeval *)&ut.ut_tv, NULL);
  	row(&ut);
  }

@@ -7,6 +7,7 @@ dc_prog = executable(
       'stack.c',
     ],
     include_directories : inc,
+    link_with : [ libcompat ],
     dependencies : [ libcrypto, ],
     install : true,
 )

@@ -1,30 +1,12 @@
 --- xargs/strnsubst.c.orig	2021-04-09 02:24:13.000000000 +0200
-+++ xargs/strnsubst.c	2021-06-12 06:22:35.200168473 +0200
-@@ -15,6 +15,7 @@ __FBSDID("$FreeBSD$");
++++ xargs/strnsubst.c	2022-07-27 20:34:53.381620474 +0200
+@@ -15,6 +15,9 @@ __FBSDID("$FreeBSD$");
  #include <stdlib.h>
  #include <string.h>
  #include <unistd.h>
 +#include <stdint.h>
++
++#include "compat.h"
  
  void	strnsubst(char **, const char *, const char *, size_t);
  
-@@ -56,7 +57,8 @@ strnsubst(char **str, const char *match,
- 		replstr = "";
- 
- 	if (match == NULL || replstr == NULL || maxsize == strlen(s1)) {
--		strlcpy(s2, s1, maxsize);
-+		strncpy(s2, s1, maxsize);
-+		s2[maxsize - 1] = '\0';
- 		goto done;
- 	}
- 
-@@ -66,7 +68,8 @@ strnsubst(char **str, const char *match,
- 			break;
- 		if ((strlen(s2) + strlen(s1) + strlen(replstr) -
- 		    strlen(match) + 1) > maxsize) {
--			strlcat(s2, s1, maxsize);
-+			strncat(s2, s1, maxsize);
-+			s2[maxsize - 1] = '\0';
- 			goto done;
- 		}
- 		strncat(s2, s1, (uintptr_t)this - (uintptr_t)s1);

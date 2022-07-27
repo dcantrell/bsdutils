@@ -1,5 +1,5 @@
 --- stat/stat.c.orig	2021-04-09 02:24:12.000000000 +0200
-+++ stat/stat.c	2021-06-12 06:22:35.164172032 +0200
++++ stat/stat.c	2022-07-27 20:27:11.675049700 +0200
 @@ -42,17 +42,18 @@ __FBSDID("$FreeBSD$");
  #if HAVE_CONFIG_H
  #include "config.h" 
@@ -191,27 +191,7 @@
  		/* FALLTHROUGH */
  #if HAVE_STRUCT_STAT_ST_BIRTHTIME
  	case SHOW_st_btime:
-@@ -821,7 +800,8 @@ format1(const struct stat *st,
- 		small = 0;
- 		data = 0;
- 		if (file == NULL) {
--			(void)strlcpy(path, "(stdin)", sizeof(path));
-+			(void)strncpy(path, "(stdin)", sizeof(path));
-+			path[sizeof(path) - 1] = '\0';
- 			sdata = path;
- 		} else {
- 			snprintf(path, sizeof(path), " -> ");
-@@ -909,7 +889,8 @@ format1(const struct stat *st,
- 	case SHOW_filename:
- 		small = 0;
- 		data = 0;
--		(void)strlcpy(path, file, sizeof(path));
-+		(void)strncpy(path, file, sizeof(path));
-+		path[sizeof(path) - 1] = '\0';
- 		sdata = path;
- 		formats = FMTF_STRING;
- 		if (ofmt == 0)
-@@ -1091,7 +1072,7 @@ format1(const struct stat *st,
+@@ -1091,7 +1070,7 @@ format1(const struct stat *st,
  #define hex2nibble(c) (c <= '9' ? c - '0' : toupper(c) - 'A' + 10)
  int
  hex2byte(const char c[2]) {

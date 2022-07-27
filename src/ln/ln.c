@@ -56,6 +56,8 @@ __FBSDID("$FreeBSD$");
 #include <string.h>
 #include <unistd.h>
 
+#include "compat.h"
+
 static int	fflag;			/* Unlink existing files. */
 static int	Fflag;			/* Remove empty directories also. */
 static int	hflag;			/* Check new name for symlink first. */
@@ -253,9 +255,8 @@ linkit(const char *source, const char *target, int isdir)
 	if (!Fflag && (isdir ||
 	    (lstat(target, &sb) == 0 && S_ISDIR(sb.st_mode)) ||
 	    (!hflag && stat(target, &sb) == 0 && S_ISDIR(sb.st_mode)))) {
-		strncpy(bbuf, source, sizeof(bbuf));
-		bbuf[sizeof(bbuf) - 1] = '\0';
-		if ((p = basename(bbuf)) == NULL ||
+		if (strlcpy(bbuf, source, sizeof(bbuf)) >= sizeof(bbuf) ||
+		    (p = basename(bbuf)) == NULL ||
 		    snprintf(path, sizeof(path), "%s/%s", target, p) >=
 		    (ssize_t)sizeof(path)) {
 			errno = ENAMETOOLONG;
@@ -280,8 +281,7 @@ linkit(const char *source, const char *target, int isdir)
 			 * absolute path of the source, by appending `source'
 			 * to the parent directory of the target.
 			 */
-			strncpy(bbuf, target, sizeof(bbuf));
-			bbuf[sizeof(bbuf) - 1] = '\0';
+			strlcpy(bbuf, target, sizeof(bbuf));
 			p = dirname(bbuf);
 			if (p != NULL) {
 				(void)snprintf(wbuf, sizeof(wbuf), "%s/%s",
