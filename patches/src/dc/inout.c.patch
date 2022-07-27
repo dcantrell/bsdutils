@@ -1,15 +1,13 @@
 --- dc/inout.c.orig	2021-04-09 02:24:12.000000000 +0200
-+++ dc/inout.c	2022-01-05 03:25:41.711498447 +0100
-@@ -177,7 +177,8 @@ printwrap(FILE *f, const char *p)
- 	char buf[12];
++++ dc/inout.c	2022-07-27 20:24:03.681435771 +0200
+@@ -25,6 +25,7 @@ __FBSDID("$FreeBSD$");
+ #include <string.h>
  
- 	q = buf;
--	strlcpy(buf, p, sizeof(buf));
-+	strncpy(buf, p, sizeof(buf));
-+	buf[sizeof(buf) - 1] = '\0';
- 	while (*q)
- 		putcharwrap(f, *q++);
- }
+ #include "extern.h"
++#include "compat.h"
+ 
+ #define MAX_CHARS_PER_LINE 68
+ 
 @@ -192,7 +193,7 @@ readnumber(struct source *src, u_int bas
  	bool dot = false, sign = false;
  

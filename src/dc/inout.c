@@ -25,6 +25,7 @@ __FBSDID("$FreeBSD$");
 #include <string.h>
 
 #include "extern.h"
+#include "compat.h"
 
 #define MAX_CHARS_PER_LINE 68
 
@@ -177,8 +178,7 @@ printwrap(FILE *f, const char *p)
 	char buf[12];
 
 	q = buf;
-	strncpy(buf, p, sizeof(buf));
-	buf[sizeof(buf) - 1] = '\0';
+	strlcpy(buf, p, sizeof(buf));
 	while (*q)
 		putcharwrap(f, *q++);
 }

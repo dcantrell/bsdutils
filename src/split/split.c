@@ -164,10 +164,9 @@ main(int argc, char **argv)
 			err(EX_NOINPUT, "%s", *argv);
 		++argv;
 	}
-	if (*argv != NULL) {			/* File name prefix. */
-		strncpy(fname, *argv++, sizeof(fname));
-		fname[sizeof(fname) - 1] = '\0';
-	}
+	if (*argv != NULL)			/* File name prefix. */
+		if (strlcpy(fname, *argv++, sizeof(fname)) >= sizeof(fname))
+			errx(EX_USAGE, "file name prefix is too long");
 	if (*argv != NULL)
 		usage();
 

@@ -702,7 +702,6 @@ makelink(const char *from_name, const char *to_name,
 
 	if (dolink & LN_RELATIVE) {
 		char *to_name_copy, *cp, *d, *ld, *ls, *s;
-		size_t plen;
 
 		if (*from_name != '/') {
 			/* this is already a relative link */
@@ -727,18 +726,13 @@ makelink(const char *from_name, const char *to_name,
 		if (realpath(cp, dst) == NULL)
 			err(EX_OSERR, "%s: realpath", cp);
 		/* .. and add the last component. */
-		plen = strlen(dst);
 		if (strcmp(dst, "/") != 0) {
-			if (sizeof(dst) < (plen + 2))
+			if (strlcat(dst, "/", sizeof(dst)) > sizeof(dst))
 				errx(1, "resolved pathname too long");
-			dst[plen++] = '/';
-			dst[plen] = '\0';
 		}
 		strcpy(to_name_copy, to_name);
-		cp = basename(to_name_copy);
-		if (sizeof(dst) < (plen + strlen(cp) + 1))
+		if (strlcat(dst, cp, sizeof(dst)) > sizeof(dst))
 			errx(1, "resolved pathname too long");
-		memcpy(&dst[plen], cp, strlen(cp) + 1);
 		free(to_name_copy);
 
 		/* Trim common path components. */
@@ -761,9 +755,9 @@ makelink(const char *from_name, const char *to_name,
 		/* Count the number of directories we need to backtrack. */
 		for (++d, lnk[0] = '\0'; *d; d++)
 			if (*d == '/')
-				(void)strcat(lnk, "../");
+				(void)strlcat(lnk, "../", sizeof(lnk));
 
-		(void)strcat(lnk, ++s);
+		(void)strlcat(lnk, ++s, sizeof(lnk));
 
 		do_symlink(lnk, to_name, target_sb);
 		/* XXX: Link may point outside of destdir. */

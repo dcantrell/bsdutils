@@ -46,6 +46,7 @@ __FBSDID("$FreeBSD$");
 #include <ctype.h>
 #include <string.h>
 #include "hexdump.h"
+#include "compat.h"
 
 FU *endfu;					/* format at end-of-data */
 
@@ -140,8 +141,7 @@ add(const char *fmt)
 				badfmt(fmt);
 		if (!(tfu->fmt = malloc(p - savep + 1)))
 			err(1, NULL);
-		strncpy(tfu->fmt, savep, p - savep);
-		tfu->fmt[p - savep] = '\0';
+		(void) strlcpy(tfu->fmt, savep, p - savep + 1);
 		escape(tfu->fmt);
 		p++;
 	}

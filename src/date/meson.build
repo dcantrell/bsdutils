@@ -4,6 +4,7 @@ date_prog = executable(
       'vary.c',
     ],
     include_directories : inc,
+    link_with : [ libcompat ],
     install : true,
 )
 

@@ -1,6 +1,13 @@
 --- hexdump/parse.c.orig	2021-07-02 01:55:39.887054656 +0200
-+++ hexdump/parse.c	2022-01-10 04:28:28.585413869 +0100
-@@ -52,7 +52,7 @@ FU *endfu;					/* format at end-of-data
++++ hexdump/parse.c	2022-07-27 20:35:24.986525261 +0200
+@@ -46,13 +46,14 @@ __FBSDID("$FreeBSD$");
+ #include <ctype.h>
+ #include <string.h>
+ #include "hexdump.h"
++#include "compat.h"
+ 
+ FU *endfu;					/* format at end-of-data */
+ 
  void
  addfile(const char *name)
  {
@@ -9,7 +16,7 @@
  	FILE *fp;
  	int ch;
  	char buf[2048 + 1];
-@@ -77,7 +77,7 @@ addfile(const char *name)
+@@ -77,7 +78,7 @@ addfile(const char *name)
  void
  add(const char *fmt)
  {
@@ -18,16 +25,6 @@
  	static FS **nextfs;
  	FS *tfs;
  	FU *tfu, **nextfu;
-@@ -140,7 +140,8 @@ add(const char *fmt)
- 				badfmt(fmt);
- 		if (!(tfu->fmt = malloc(p - savep + 1)))
- 			err(1, NULL);
--		(void) strlcpy(tfu->fmt, savep, p - savep + 1);
-+		strncpy(tfu->fmt, savep, p - savep);
-+		tfu->fmt[p - savep] = '\0';
- 		escape(tfu->fmt);
- 		p++;
- 	}
 @@ -153,7 +154,7 @@ size(FS *fs)
  {
  	FU *fu;

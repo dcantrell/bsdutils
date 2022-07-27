@@ -5,6 +5,7 @@ cp_prog = executable(
     ],
     dependencies : [ libfts, ],
     include_directories : inc,
+    link_with : [ libcompat ],
     install : true,
 )
 

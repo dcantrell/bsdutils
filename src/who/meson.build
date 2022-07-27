@@ -2,6 +2,7 @@ who_prog = executable(
     'who',
     [ 'who.c' ],
     include_directories : [ inc, ],
+    link_with : [ libcompat ],
     install : true,
 )
 

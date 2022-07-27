@@ -1,5 +1,5 @@
 --- split/split.c.orig	2021-04-09 02:24:12.000000000 +0200
-+++ split/split.c	2021-06-12 06:22:35.160172428 +0200
++++ split/split.c	2022-07-27 20:27:52.611040651 +0200
 @@ -51,7 +51,6 @@ static const char sccsid[] = "@(#)split.
  #include <errno.h>
  #include <fcntl.h>
@@ -35,17 +35,3 @@
  			if (error == -1)
  				errx(EX_USAGE, "%s: offset too large", optarg);
  			break;
-@@ -161,9 +164,10 @@ main(int argc, char **argv)
- 			err(EX_NOINPUT, "%s", *argv);
- 		++argv;
- 	}
--	if (*argv != NULL)			/* File name prefix. */
--		if (strlcpy(fname, *argv++, sizeof(fname)) >= sizeof(fname))
--			errx(EX_USAGE, "file name prefix is too long");
-+	if (*argv != NULL) {			/* File name prefix. */
-+		strncpy(fname, *argv++, sizeof(fname));
-+		fname[sizeof(fname) - 1] = '\0';
-+	}
- 	if (*argv != NULL)
- 		usage();
- 

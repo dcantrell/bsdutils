@@ -1,6 +1,15 @@
 --- ln/ln.c.orig	2021-04-09 02:24:01.000000000 +0200
-+++ ln/ln.c	2021-06-12 06:22:35.096178756 +0200
-@@ -148,6 +148,7 @@ main(int argc, char *argv[])
++++ ln/ln.c	2022-07-27 20:25:58.858180989 +0200
+@@ -56,6 +56,8 @@ __FBSDID("$FreeBSD$");
+ #include <string.h>
+ #include <unistd.h>
+ 
++#include "compat.h"
++
+ static int	fflag;			/* Unlink existing files. */
+ static int	Fflag;			/* Remove empty directories also. */
+ static int	hflag;			/* Check new name for symlink first. */
+@@ -148,6 +150,7 @@ main(int argc, char *argv[])
  	switch(argc) {
  	case 0:
  		usage();
@@ -8,25 +17,3 @@
  		/* NOTREACHED */
  	case 1:				/* ln source */
  		exit(linkit(argv[0], ".", 1));
-@@ -252,8 +253,9 @@ linkit(const char *source, const char *t
- 	if (!Fflag && (isdir ||
- 	    (lstat(target, &sb) == 0 && S_ISDIR(sb.st_mode)) ||
- 	    (!hflag && stat(target, &sb) == 0 && S_ISDIR(sb.st_mode)))) {
--		if (strlcpy(bbuf, source, sizeof(bbuf)) >= sizeof(bbuf) ||
--		    (p = basename(bbuf)) == NULL ||
-+		strncpy(bbuf, source, sizeof(bbuf));
-+		bbuf[sizeof(bbuf) - 1] = '\0';
-+		if ((p = basename(bbuf)) == NULL ||
- 		    snprintf(path, sizeof(path), "%s/%s", target, p) >=
- 		    (ssize_t)sizeof(path)) {
- 			errno = ENAMETOOLONG;
-@@ -278,7 +280,8 @@ linkit(const char *source, const char *t
- 			 * absolute path of the source, by appending `source'
- 			 * to the parent directory of the target.
- 			 */
--			strlcpy(bbuf, target, sizeof(bbuf));
-+			strncpy(bbuf, target, sizeof(bbuf));
-+			bbuf[sizeof(bbuf) - 1] = '\0';
- 			p = dirname(bbuf);
- 			if (p != NULL) {
- 				(void)snprintf(wbuf, sizeof(wbuf), "%s/%s",

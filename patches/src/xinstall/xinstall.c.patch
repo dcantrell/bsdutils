@@ -1,5 +1,5 @@
 --- xinstall/xinstall.c.orig	2021-04-09 02:24:13.000000000 +0200
-+++ xinstall/xinstall.c	2022-07-27 20:19:11.606548246 +0200
++++ xinstall/xinstall.c	2022-07-27 20:36:47.922402971 +0200
 @@ -57,13 +57,8 @@ __FBSDID("$FreeBSD$");
  #include <fcntl.h>
  #include <grp.h>
@@ -293,48 +293,15 @@
  	int ret;
  
  	if (safecopy && target_sb != NULL) {
-@@ -685,6 +702,7 @@ makelink(const char *from_name, const ch
- 
- 	if (dolink & LN_RELATIVE) {
- 		char *to_name_copy, *cp, *d, *ld, *ls, *s;
-+		size_t plen;
- 
- 		if (*from_name != '/') {
- 			/* this is already a relative link */
-@@ -709,14 +727,18 @@ makelink(const char *from_name, const ch
- 		if (realpath(cp, dst) == NULL)
- 			err(EX_OSERR, "%s: realpath", cp);
- 		/* .. and add the last component. */
-+		plen = strlen(dst);
- 		if (strcmp(dst, "/") != 0) {
--			if (strlcat(dst, "/", sizeof(dst)) > sizeof(dst))
-+			if (sizeof(dst) < (plen + 2))
+@@ -714,7 +731,6 @@ makelink(const char *from_name, const ch
  				errx(1, "resolved pathname too long");
-+			dst[plen++] = '/';
-+			dst[plen] = '\0';
  		}
  		strcpy(to_name_copy, to_name);
- 		cp = basename(to_name_copy);
--		if (strlcat(dst, cp, sizeof(dst)) > sizeof(dst))
-+		if (sizeof(dst) < (plen + strlen(cp) + 1))
+-		cp = basename(to_name_copy);
+ 		if (strlcat(dst, cp, sizeof(dst)) > sizeof(dst))
  			errx(1, "resolved pathname too long");
-+		memcpy(&dst[plen], cp, strlen(cp) + 1);
  		free(to_name_copy);
- 
- 		/* Trim common path components. */
-@@ -739,9 +761,9 @@ makelink(const char *from_name, const ch
- 		/* Count the number of directories we need to backtrack. */
- 		for (++d, lnk[0] = '\0'; *d; d++)
- 			if (*d == '/')
--				(void)strlcat(lnk, "../", sizeof(lnk));
-+				(void)strcat(lnk, "../");
- 
--		(void)strlcat(lnk, ++s, sizeof(lnk));
-+		(void)strcat(lnk, ++s);
- 
- 		do_symlink(lnk, to_name, target_sb);
- 		/* XXX: Link may point outside of destdir. */
-@@ -763,7 +785,7 @@ makelink(const char *from_name, const ch
+@@ -763,7 +779,7 @@ makelink(const char *from_name, const ch
   *	build a path name and install the file
   */
  static void
@@ -343,7 +310,7 @@
  {
  	struct stat from_sb, temp_sb, to_sb;
  	struct timespec tsb[2];
-@@ -783,8 +805,7 @@ install(const char *from_name, const cha
+@@ -783,8 +799,7 @@ install(const char *from_name, const cha
  			if (stat(from_name, &from_sb))
  				err(EX_OSERR, "%s", from_name);
  			if (!S_ISREG(from_sb.st_mode)) {
@@ -353,7 +320,7 @@
  			}
  		}
  		/* Build the target path. */
-@@ -818,8 +839,7 @@ install(const char *from_name, const cha
+@@ -818,8 +833,7 @@ install(const char *from_name, const cha
  	}
  
  	if (target && !S_ISREG(to_sb.st_mode) && !S_ISLNK(to_sb.st_mode)) {
@@ -363,7 +330,7 @@
  		return;
  	}
  
-@@ -1068,14 +1088,14 @@ install(const char *from_name, const cha
+@@ -1068,14 +1082,14 @@ install(const char *from_name, const cha
   *	unless it points to pre-computed digest.
   */
  static int
@@ -381,7 +348,7 @@
  
  	rv = 0;
  	if (from_len != to_len)
-@@ -1171,7 +1191,7 @@ create_tempfile(const char *path, char *
+@@ -1171,7 +1185,7 @@ create_tempfile(const char *path, char *
   *	create a new file, overwriting an existing one if necessary
   */
  static int
@@ -390,7 +357,7 @@
  {
  	char backup[MAXPATHLEN];
  	int saved_errno = 0;
-@@ -1336,13 +1356,14 @@ strip(const char *to_name, int to_fd, co
+@@ -1336,13 +1350,14 @@ strip(const char *to_name, int to_fd, co
  	    __DECONST(char **, args), environ);
  	if (error != 0) {
  		(void)unlink(to_name);

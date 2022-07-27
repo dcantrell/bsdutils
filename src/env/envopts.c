@@ -45,6 +45,7 @@ __FBSDID("$FreeBSD$");
 #include <unistd.h>
 
 #include "envopts.h"
+#include "compat.h"
 
 static const char *
 		 expand_vars(int in_thisarg, char **thisarg_p, char **dest_p,
@@ -419,8 +420,7 @@ expand_vars(int in_thisarg, char **thisarg_p, char **dest_p, const char **src_p)
 	*src_p = vend;
 	namelen = vend - vbegin + 1;
 	vname = malloc(namelen);
-	strncpy(vname, vbegin, namelen);
-	vname[namelen - 1] = '\0';
+	strlcpy(vname, vbegin, namelen);
 	vvalue = getenv(vname);
 	if (vvalue == NULL || *vvalue == '\0') {
 		if (env_verbosity > 2)

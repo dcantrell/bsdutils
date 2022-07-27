@@ -800,8 +800,7 @@ format1(const struct stat *st,
 		small = 0;
 		data = 0;
 		if (file == NULL) {
-			(void)strncpy(path, "(stdin)", sizeof(path));
-			path[sizeof(path) - 1] = '\0';
+			(void)strlcpy(path, "(stdin)", sizeof(path));
 			sdata = path;
 		} else {
 			snprintf(path, sizeof(path), " -> ");
@@ -889,8 +888,7 @@ format1(const struct stat *st,
 	case SHOW_filename:
 		small = 0;
 		data = 0;
-		(void)strncpy(path, file, sizeof(path));
-		path[sizeof(path) - 1] = '\0';
+		(void)strlcpy(path, file, sizeof(path));
 		sdata = path;
 		formats = FMTF_STRING;
 		if (ofmt == 0)
