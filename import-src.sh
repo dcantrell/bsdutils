@@ -62,6 +62,7 @@ CMDS="bin/test
       bin/hostname
       usr.bin/id
       usr.bin/join
+      bin/kill
       bin/ln
       usr.bin/logname
       bin/ls
