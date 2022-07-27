@@ -1,5 +1,5 @@
---- stty/stty.c.orig	2021-04-27 23:52:35.000000000 -0400
-+++ stty/stty.c	2021-06-30 09:47:01.352249412 -0400
+--- stty/stty.c.orig	2021-04-09 02:24:01.000000000 +0200
++++ stty/stty.c	2022-07-27 21:01:57.554185413 +0200
 @@ -51,6 +51,8 @@ __FBSDID("$FreeBSD$");
  #include <stdlib.h>
  #include <string.h>
@@ -18,17 +18,20 @@
  
  	fmt = NOTSET;
  	i.fd = STDIN_FILENO;
-@@ -129,10 +131,10 @@ args:	argc -= optind;
+@@ -129,10 +131,13 @@ args:	argc -= optind;
  
  		if (isdigit(**argv)) {
  			speed_t speed;
 -
 -			speed = strtonum(*argv, 0, UINT_MAX, &errstr);
 -			if (errstr)
-+			speed = strtoul(*argv, NULL, 10);
-+			if (errno == ERANGE || errno == EINVAL) {
++			unsigned long baud;
++			char *errstr;
++			baud = strtoul(*argv, &errstr, 10);
++			if (*errstr) {
  				err(1, "speed");
 +			}
++			speed = get_speed(baud);
  			cfsetospeed(&i.t, speed);
  			cfsetispeed(&i.t, speed);
  			i.set = 1;

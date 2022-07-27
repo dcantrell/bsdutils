@@ -147,7 +147,7 @@ cp -p usr/src/usr.bin/primes/primes.h ${CWD}/src/factor
 cp -p usr/src/usr.bin/primes/pr_tbl.c ${CWD}/src/factor
 
 # These files are needed for the df command
-cp -p usr/sbin/sbin/mount/vfslist.c ${CWD}/src/df
+cp -p usr/src/sbin/mount/vfslist.c ${CWD}/src/df
 
 # These are not used
 rm -rf ${CWD}/src/sort/nls
