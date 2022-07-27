@@ -1353,7 +1353,7 @@ strip(const char *to_name, int to_fd, const char *from_name, char **dresp)
 		args[5] = NULL;
 	}
 	error = posix_spawnp(&pid, stripbin, NULL, NULL,
-	    (char **)args, environ);
+	    __DECONST(char **, args), environ);
 	if (error != 0) {
 		(void)unlink(to_name);
 		errno = error;

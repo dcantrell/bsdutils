@@ -1,5 +1,5 @@
 --- xinstall/xinstall.c.orig	2021-04-09 02:24:13.000000000 +0200
-+++ xinstall/xinstall.c	2021-06-26 22:10:53.281498208 +0200
++++ xinstall/xinstall.c	2022-07-27 20:19:11.606548246 +0200
 @@ -57,13 +57,8 @@ __FBSDID("$FreeBSD$");
  #include <fcntl.h>
  #include <grp.h>
@@ -390,12 +390,8 @@
  {
  	char backup[MAXPATHLEN];
  	int saved_errno = 0;
-@@ -1333,16 +1353,17 @@ strip(const char *to_name, int to_fd, co
- 		args[5] = NULL;
- 	}
- 	error = posix_spawnp(&pid, stripbin, NULL, NULL,
--	    __DECONST(char **, args), environ);
-+	    (char **)args, environ);
+@@ -1336,13 +1356,14 @@ strip(const char *to_name, int to_fd, co
+ 	    __DECONST(char **, args), environ);
  	if (error != 0) {
  		(void)unlink(to_name);
 -		errc(error == EAGAIN || error == EPROCLIM || error == ENOMEM ?
