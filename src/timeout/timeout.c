@@ -43,6 +43,8 @@ __FBSDID("$FreeBSD$");
 #include <sysexits.h>
 #include <unistd.h>
 
+#include "compat.h"
+
 #define EXIT_TIMEOUT 124
 
 extern char *__progname;
@@ -105,7 +107,7 @@ static int
 parse_signal(const char *str)
 {
 	int sig, i;
-	char *signame;
+	const char *signame;
 
 	sig = strtoll(str, NULL, 10);
 
@@ -116,7 +118,7 @@ parse_signal(const char *str)
 		str += 3;
 
 	for (i = 1; i < NSIG; i++) {
-		signame = strsignal(i);
+		signame = signum_to_signame(i);
 		if (signame && strcasecmp(str, signame) == 0)
 			return (i);
 	}
