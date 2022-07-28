@@ -1,5 +1,5 @@
 --- cp/utils.c.orig	2021-04-09 02:24:01.000000000 +0200
-+++ cp/utils.c	2021-06-12 06:22:35.008187458 +0200
++++ cp/utils.c	2022-07-28 17:58:23.172300018 +0200
 @@ -38,7 +38,6 @@ static char sccsid[] = "@(#)utils.c	8.3
  __FBSDID("$FreeBSD$");
  
@@ -44,7 +44,24 @@
  				if (wcount >= (ssize_t)wresid)
  					break;
  			}
-@@ -246,13 +238,6 @@ copy_file(const FTSENT *entp, int dne)
+@@ -236,9 +228,14 @@ copy_file(const FTSENT *entp, int dne)
+ 				if (use_copy_file_range) {
+ 					rcount = copy_file_range(from_fd, NULL,
+ 			    		    to_fd, NULL, SSIZE_MAX, 0);
+-					if (rcount < 0 && errno == EINVAL) {
+-						/* Prob a non-seekable FD */
++					if (rcount < 0) switch (errno) {
++					case EINVAL: /* Prob a non-seekable FD */
++					case EXDEV: /* Cross-FS link */
++					case ENOSYS: /* Syscall not supported */
+ 						use_copy_file_range = 0;
++						break;
++					default:
++						break;
+ 					}
+ 				}
+ 				if (!use_copy_file_range) {
+@@ -246,13 +243,6 @@ copy_file(const FTSENT *entp, int dne)
  					    buf, bufsize);
  				}
  				wtotal += rcount;
@@ -58,7 +75,7 @@
  			} while (rcount > 0);
  			if (rcount < 0) {
  				warn("%s", entp->fts_path);
-@@ -281,8 +266,6 @@ copy_file(const FTSENT *entp, int dne)
+@@ -281,8 +271,6 @@ copy_file(const FTSENT *entp, int dne)
  	if (!lflag && !sflag) {
  		if (pflag && setfile(fs, to_fd))
  			rval = 1;
@@ -67,7 +84,7 @@
  		if (close(to_fd)) {
  			warn("%s", to.p_path);
  			rval = 1;
-@@ -409,163 +392,14 @@ setfile(struct stat *fs, int fd)
+@@ -409,163 +397,14 @@ setfile(struct stat *fs, int fd)
  
  	if (!gotstat || fs->st_mode != ts.st_mode)
  		if (fdval ? fchmod(fd, fs->st_mode) :
