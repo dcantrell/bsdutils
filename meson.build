@@ -15,6 +15,11 @@ cpp = meson.get_compiler('cpp')
 # FreeBSD code sometimes ignores things
 add_global_arguments([ '-Wno-unused-result' ], language : [ 'c', 'cpp' ])
 
+# Avoid a pointless warning in some programs
+if cc.has_argument('-Wstring-plus-int')
+    add_global_arguments([ '-Wno-string-plus-int' ], language : [ 'c' ])
+endif
+
 # Find lex
 lex_prog = find_program('flex', 'lex', required : true)
 lex = generator(
