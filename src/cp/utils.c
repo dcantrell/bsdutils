@@ -228,9 +228,14 @@ copy_file(const FTSENT *entp, int dne)
 				if (use_copy_file_range) {
 					rcount = copy_file_range(from_fd, NULL,
 			    		    to_fd, NULL, SSIZE_MAX, 0);
-					if (rcount < 0 && errno == EINVAL) {
-						/* Prob a non-seekable FD */
+					if (rcount < 0) switch (errno) {
+					case EINVAL: /* Prob a non-seekable FD */
+					case EXDEV: /* Cross-FS link */
+					case ENOSYS: /* Syscall not supported */
 						use_copy_file_range = 0;
+						break;
+					default:
+						break;
 					}
 				}
 				if (!use_copy_file_range) {
