@@ -37,7 +37,7 @@ not available.  All uses of libcapsicum are patched out of this port.
 fileargs_t and fileargs_open()
 ------------------------------
 This appears to be tied to the libcapsicum stuff.  Where
-fileargs_open() is used, I am replacing it with either open(2) or
+fileargs_open() is used, we are replacing it with either open(2) or
 fopen(3) calls with appropriate read/write options.  The fileargs_t
 variables are removed.
 
@@ -48,9 +48,9 @@ The maximum raw I/O size is defined in <sys/param.h>, but that define
 does not exist on Linux.  MAXPHYS has history in the Unix world and
 nearly all commercial Unix variants provide this information in a
 header file.  But Linux is more flexible and having a hardcoded
-default does not necessarily work for all supported hardware.  I am
+default does not necessarily work for all supported hardware.  We are
 not sure what the best corresponding value is to use on Linux, so for
-now I just copied the MAXPHYS definition from FreeBSD and am using
+now we just copied the MAXPHYS definition from FreeBSD and am using
 that where it is used.  It defaults to 1 megabyte on 64-bit systems,
 so whatever.
 
@@ -401,7 +401,6 @@ instead.
 
 check_utility_compat()
 ----------------------
-
 The check_utility_compat() function checks whether utility should
 behave in a traditional (FreeBSD 4.7-compatible) manner, or in
 accordance with IEEE Std 1003.1-2001 (“POSIX.1”).  The configuration
