@@ -23,6 +23,11 @@ check: setup
 clean:
 	-rm -rf $(MESON_BUILD_DIR)
 
+authors:
+	git log --pretty="%an <%ae>" | sort -u | sed -e 's|^|- |g' | sed G > AUTHORS.md
+	head -n $$(($$(wc -l < AUTHORS.md) - 1)) AUTHORS.md > AUTHORS.md.new
+	mv AUTHORS.md.new AUTHORS.md
+
 # Quiet errors about target arguments not being targets
 %:
 	@true
