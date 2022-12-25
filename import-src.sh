@@ -158,29 +158,5 @@ rm -rf ${CWD}/src/sort/nls
 # sort manpage
 mv ${CWD}/src/sort/sort.1.in ${CWD}/src/sort/sort.1
 
-#####################
-# APPLY ANY PATCHES #
-#####################
-
-if [ -d ${CWD}/patches/compat ]; then
-    for patchfile in ${CWD}/patches/compat/*.patch ; do
-        destfile="$(basename ${patchfile} .patch)"
-        [ -f "${CWD}/compat/${destfile}.orig" ] && rm -f "${CWD}/compat/${destfile}.orig"
-        patch -d ${CWD} -p0 -b -z .orig < ${patchfile}
-    done
-fi
-
-if [ -d ${CWD}/patches/src ]; then
-    cd ${CWD}/patches/src
-    for subdir in * ; do
-        [ -d ${subdir} ] || continue
-        for patchfile in ${CWD}/patches/src/${subdir}/*.patch ; do
-            destfile="$(basename ${patchfile} .patch)"
-            [ -f "${CWD}/src/${subdir}/${destfile}.orig" ] && rm -f "${CWD}/src/${subdir}/${destfile}.orig"
-            patch -d ${CWD}/src -p0 -b -z .orig < ${patchfile}
-        done
-    done
-fi
-
 # Clean up
 rm -rf ${TMPDIR}
