@@ -47,29 +47,13 @@ __FBSDID("$FreeBSD$");
 #include <sys/uio.h>
 
 #include <assert.h>
+#include <capsicum_helpers.h>
 #include <err.h>
 #include <errno.h>
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-/*
- * Report an error and exit.
- * Use it instead of err(3) to avoid linking-in stdio.
- */
-static __dead2 void
-errexit(const char *prog, const char *reason)
-{
-	char *errstr = strerror(errno);
-	write(STDERR_FILENO, prog, strlen(prog));
-	write(STDERR_FILENO, ": ", 2);
-	write(STDERR_FILENO, reason, strlen(reason));
-	write(STDERR_FILENO, ": ", 2);
-	write(STDERR_FILENO, errstr, strlen(errstr));
-	write(STDERR_FILENO, "\n", 1);
-	exit(1);
-}
 
 int
 main(int argc, char *argv[])
@@ -79,7 +63,9 @@ main(int argc, char *argv[])
 	struct iovec *iov, *vp; /* Elements to write, current element. */
 	char space[] = " ";
 	char newline[] = "\n";
-	char *progname = argv[0];
+
+	if (caph_limit_stdio() < 0 || caph_enter() < 0)
+		err(1, "capsicum");
 
 	/* This utility may NOT do getopt(3) option parsing. */
 	if (*++argv && !strcmp(*argv, "-n")) {
@@ -92,7 +78,7 @@ main(int argc, char *argv[])
 	veclen = (argc >= 2) ? (argc - 2) * 2 + 1 : 0;
 
 	if ((vp = iov = malloc((veclen + 1) * sizeof(struct iovec))) == NULL)
-		errexit(progname, "malloc");
+		err(1, "malloc");
 
 	while (argv[0] != NULL) {
 		size_t len;
@@ -131,7 +117,7 @@ main(int argc, char *argv[])
 
 		nwrite = (veclen > IOV_MAX) ? IOV_MAX : veclen;
 		if (writev(STDOUT_FILENO, iov, nwrite) == -1)
-			errexit(progname, "write");
+			err(1, "write");
 		iov += nwrite;
 		veclen -= nwrite;
 	}

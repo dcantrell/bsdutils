@@ -41,6 +41,7 @@ static const char sccsid[] = "@(#)logname.c	8.2 (Berkeley) 4/3/94";
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 
+#include <capsicum_helpers.h>
 #include <err.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -49,9 +50,12 @@ __FBSDID("$FreeBSD$");
 void usage(void);
 
 int
-main(int argc, char *argv[] __attribute__((unused)))
+main(int argc, char *argv[] __unused)
 {
 	char *p;
+
+	if (caph_limit_stdio() < 0 || caph_enter() < 0)
+		err(1, "capsicum");
 
 	if (argc != 1)
 		usage();

@@ -56,7 +56,7 @@ struct mapinfo {
 
 struct file_info {
 	FILE *fp;
-	char *file_name;
+	const char *file_name;
 	struct stat st;
 };
 
@@ -78,3 +78,4 @@ int maparound(struct mapinfo *, off_t);
 void printfn(const char *, int);
 
 extern int Fflag, fflag, qflag, rflag, rval, no_files;
+extern fileargs_t *fa;

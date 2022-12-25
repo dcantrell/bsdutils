@@ -55,8 +55,6 @@ __FBSDID("$FreeBSD$");
 #include <sysexits.h>
 #include <unistd.h>
 
-#include "compat.h"
-
 static int	build(char *, mode_t);
 static void	usage(void);
 
@@ -165,7 +163,7 @@ build(char *path, mode_t omode)
 			 * POSIX 1003.2:
 			 * For each dir operand that does not name an existing
 			 * directory, effects equivalent to those caused by the
-			 * following command shall occcur:
+			 * following command shall occur:
 			 *
 			 * mkdir -p -m $(umask -S),u+wx $(dirname dir) &&
 			 *    mkdir [-m mode] dir

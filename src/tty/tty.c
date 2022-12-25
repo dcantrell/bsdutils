@@ -48,8 +48,6 @@ __FBSDID("$FreeBSD$");
 #include <stdlib.h>
 #include <unistd.h>
 
-extern char *__progname;
-
 static void usage(void);
 
 int
@@ -79,6 +77,6 @@ main(int argc, char *argv[])
 static void
 usage(void)
 {
-	fprintf(stderr, "usage: %s [-s]\n", __progname);
+	fprintf(stderr, "usage: %s [-s]\n", getprogname());
 	exit(2);
 }

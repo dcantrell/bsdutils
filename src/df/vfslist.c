@@ -41,6 +41,8 @@ __FBSDID("$FreeBSD$");
 #include <stdlib.h>
 #include <string.h>
 
+#include "extern.h"
+
 static int	  skipvfs;
 
 int

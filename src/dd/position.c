@@ -72,9 +72,9 @@ seek_offset(IO *io)
 	 *
 	 * Bail out if the calculation of a file offset would overflow.
 	 */
-	if ((io->flags & ISCHR) == 0 && (n < 0 || n > LONG_MAX / (ssize_t)sz))
+	if ((io->flags & ISCHR) == 0 && (n < 0 || n > OFF_MAX / (ssize_t)sz))
 		errx(1, "seek offsets cannot be larger than %jd",
-		    (intmax_t)LONG_MAX);
+		    (intmax_t)OFF_MAX);
 	else if ((io->flags & ISCHR) != 0 && (uint64_t)n > UINT64_MAX / sz)
 		errx(1, "seek offsets cannot be larger than %ju",
 		    (uintmax_t)UINT64_MAX);

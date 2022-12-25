@@ -42,11 +42,13 @@ __FBSDID("$FreeBSD$");
 
 #include <sys/param.h>
 #include <sys/stat.h>
+#include <sys/acl.h>
 
 #include <err.h>
 #include <errno.h>
 #include <fts.h>
 #include <langinfo.h>
+#include <libutil.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -64,8 +66,6 @@ __FBSDID("$FreeBSD$");
 #include "ls.h"
 #include "extern.h"
 
-#include "compat.h"
-
 static int	printaname(const FTSENT *, u_long, u_long);
 static void	printdev(size_t, dev_t);
 static void	printlink(const FTSENT *);
@@ -78,6 +78,7 @@ static void	endcolor_ansi(void);
 static void	endcolor(int);
 static int	colortype(mode_t);
 #endif
+static void	aclmode(char *, const FTSENT *);
 
 #define	IS_NOPRINT(p)	((p)->fts_number == NO_PRINT)
 
@@ -230,16 +231,23 @@ printlong(const DISPLAY *dp)
 			(void)printf("%*jd ",
 			    dp->s_block, howmany(sp->st_blocks, blocksize));
 		strmode(sp->st_mode, buf);
+		aclmode(buf, p);
 		np = p->fts_pointer;
 		(void)printf("%s %*ju %-*s  %-*s  ", buf, dp->s_nlink,
 		    (uintmax_t)sp->st_nlink, dp->s_user, np->user, dp->s_group,
 		    np->group);
+		if (f_flags)
+			(void)printf("%-*s ", dp->s_flags, np->flags);
+		if (f_label)
+			(void)printf("%-*s ", dp->s_label, np->label);
 		if (S_ISCHR(sp->st_mode) || S_ISBLK(sp->st_mode))
 			printdev(dp->s_size, sp->st_rdev);
 		else
 			printsize(dp->s_size, sp->st_size);
 		if (f_accesstime)
 			printtime(sp->st_atime);
+		else if (f_birthtime)
+			printtime(sp->st_birthtime);
 		else if (f_statustime)
 			printtime(sp->st_ctime);
 		else
@@ -456,11 +464,8 @@ printtime(time_t ftime)
 	const char *format;
 	static int d_first = -1;
 
-	if (d_first < 0) {
-		d_first = 0;
-		if (strlen(nl_langinfo(D_FMT)) >= 2 && nl_langinfo(D_FMT)[1] == 'd')
-			d_first = 1;
-	}
+	if (d_first < 0)
+		d_first = (*nl_langinfo(D_MD_ORDER) == 'd');
 	if (now == 0)
 		now = time(NULL);
 
@@ -505,6 +510,9 @@ printtype(u_int mode)
 		return (1);
 	case S_IFSOCK:
 		(void)putchar('=');
+		return (1);
+	case S_IFWHT:
+		(void)putchar('%');
 		return (1);
 	default:
 		break;
@@ -609,7 +617,7 @@ colortype(mode_t mode)
 	switch (mode & S_IFMT) {
 	case S_IFDIR:
 		if (mode & S_IWOTH)
-			if (mode & S_ISVTX)
+			if (mode & S_ISTXT)
 				printcolor(C_WSDIR);
 			else
 				printcolor(C_WDIR);
@@ -745,4 +753,75 @@ printsize(size_t width, off_t bytes)
 		(void)printf(format, (u_int)width, bytes);
 	} else
 		(void)printf("%*jd ", (u_int)width, bytes);
+}
+
+/*
+ * Add a + after the standard rwxrwxrwx mode if the file has an
+ * ACL. strmode() reserves space at the end of the string.
+ */
+static void
+aclmode(char *buf, const FTSENT *p)
+{
+	char name[MAXPATHLEN + 1];
+	int ret, trivial;
+	static dev_t previous_dev = NODEV;
+	static int supports_acls = -1;
+	static int type = ACL_TYPE_ACCESS;
+	acl_t facl;
+
+	/*
+	 * XXX: ACLs are not supported on whiteouts and device files
+	 * residing on UFS.
+	 */
+	if (S_ISCHR(p->fts_statp->st_mode) || S_ISBLK(p->fts_statp->st_mode) ||
+	    S_ISWHT(p->fts_statp->st_mode))
+		return;
+
+	if (previous_dev == p->fts_statp->st_dev && supports_acls == 0)
+		return;
+
+	if (p->fts_level == FTS_ROOTLEVEL)
+		snprintf(name, sizeof(name), "%s", p->fts_name);
+	else
+		snprintf(name, sizeof(name), "%s/%s",
+		    p->fts_parent->fts_accpath, p->fts_name);
+
+	if (previous_dev != p->fts_statp->st_dev) {
+		previous_dev = p->fts_statp->st_dev;
+		supports_acls = 0;
+
+		ret = lpathconf(name, _PC_ACL_NFS4);
+		if (ret > 0) {
+			type = ACL_TYPE_NFS4;
+			supports_acls = 1;
+		} else if (ret < 0 && errno != EINVAL) {
+			warn("%s", name);
+			return;
+		}
+		if (supports_acls == 0) {
+			ret = lpathconf(name, _PC_ACL_EXTENDED);
+			if (ret > 0) {
+				type = ACL_TYPE_ACCESS;
+				supports_acls = 1;
+			} else if (ret < 0 && errno != EINVAL) {
+				warn("%s", name);
+				return;
+			}
+		}
+	}
+	if (supports_acls == 0)
+		return;
+	facl = acl_get_link_np(name, type);
+	if (facl == NULL) {
+		warn("%s", name);
+		return;
+	}
+	if (acl_is_trivial_np(facl, &trivial)) {
+		acl_free(facl);
+		warn("%s", name);
+		return;
+	}
+	if (!trivial)
+		buf[10] = '+';
+	acl_free(facl);
 }

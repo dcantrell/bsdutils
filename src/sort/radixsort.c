@@ -37,7 +37,6 @@ __FBSDID("$FreeBSD$");
 #if defined(SORT_THREADS)
 #include <pthread.h>
 #include <semaphore.h>
-#include <sched.h>
 #endif
 #include <stdlib.h>
 #include <string.h>
@@ -47,8 +46,6 @@ __FBSDID("$FreeBSD$");
 
 #include "coll.h"
 #include "radixsort.h"
-
-#include "compat.h"
 
 #define DEFAULT_SORT_FUNC_RADIXSORT mergesort
 
@@ -261,7 +258,7 @@ add_leaf(struct sort_level *sl, struct sort_list_item *item)
 static inline int
 get_wc_index(struct sort_list_item *sli, size_t level)
 {
-	const size_t wcfact = (MB_CUR_MAX == 1) ? 1 : sizeof(wchar_t);
+	const size_t wcfact = (mb_cur_max == 1) ? 1 : sizeof(wchar_t);
 	const struct key_value *kv;
 	const struct bwstring *bws;
 
@@ -334,7 +331,7 @@ free_sort_level(struct sort_level *sl)
 static void
 run_sort_level_next(struct sort_level *sl)
 {
-	const size_t wcfact = (MB_CUR_MAX == 1) ? 1 : sizeof(wchar_t);
+	const size_t wcfact = (mb_cur_max == 1) ? 1 : sizeof(wchar_t);
 	struct sort_level *slc;
 	size_t i, sln, tosort_num;
 
@@ -650,7 +647,7 @@ run_top_sort_level(struct sort_level *sl)
 			pthread_t pth;
 
 			pthread_attr_init(&attr);
-			pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+			pthread_attr_setdetachstate(&attr, PTHREAD_DETACHED);
 
 			for (;;) {
 				int res = pthread_create(&pth, &attr,
@@ -658,7 +655,7 @@ run_top_sort_level(struct sort_level *sl)
 				if (res >= 0)
 					break;
 				if (errno == EAGAIN) {
-					sched_yield();
+					pthread_yield();
 					continue;
 				}
 				err(2, NULL);
@@ -687,9 +684,7 @@ run_sort(struct sort_list_item **base, size_t nmemb)
 		pthread_mutexattr_t mattr;
 
 		pthread_mutexattr_init(&mattr);
-#ifdef PTHREAD_MUTEX_ADAPTIVE_NP
 		pthread_mutexattr_settype(&mattr, PTHREAD_MUTEX_ADAPTIVE_NP);
-#endif
 
 		pthread_mutex_init(&g_ls_mutex, &mattr);
 		pthread_cond_init(&g_ls_cond, NULL);

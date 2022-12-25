@@ -31,7 +31,7 @@
 .\"	@(#)find.1	8.7 (Berkeley) 5/9/95
 .\" $FreeBSD$
 .\"
-.Dd April 18, 2020
+.Dd November 8, 2021
 .Dt FIND 1
 .Os
 .Sh NAME
@@ -135,6 +135,19 @@ primary specified by
 Refer to its description under
 .Sx PRIMARIES
 for more information.
+.It Fl f Ar path
+Add
+.Ar path
+to the list of paths that will be recursed into.
+This is useful when
+.Ar path
+begins with a character that would otherwise be interpreted as an
+.Ar expression ,
+namely
+.Dq Li "!" ,
+.Dq Li "("
+and
+.Dq Li - .
 .It Fl s
 Cause
 .Nm
@@ -646,8 +659,7 @@ In addition, if
 then
 .Ar file
 is instead interpreted as a direct date specification of the form
-understood by
-.Xr cvs 1 .
+understood by ISO8601 or RFC822.
 Note that
 .Ic -newermm
 is equivalent to
@@ -988,7 +1000,6 @@ section below for details.
 .Sh SEE ALSO
 .Xr chflags 1 ,
 .Xr chmod 1 ,
-.Xr cvs 1 ,
 .Xr locate 1 ,
 .Xr lsvfs 1 ,
 .Xr whereis 1 ,
@@ -1016,9 +1027,9 @@ and
 as well as
 .Ic -amin , -anewer , -cmin , -cnewer , -delete , -empty , -fstype ,
 .Ic -iname , -inum , -iregex , -ls , -maxdepth , -mindepth , -mmin ,
-.Ic -path , -print0 , -regex , -sparse
+.Ic -not , -path , -print0 , -regex , -sparse
 and all of the
-.Ic -B*
+.Fl B*
 birthtime related primaries are extensions to
 .St -p1003.1-2001 .
 .Pp
@@ -1071,10 +1082,17 @@ and
 .Xr sed 1
 options.
 .Sh HISTORY
-A
+A simple
 .Nm
 command appeared in
-.At v1 .
+.At v1
+and was removed in
+.At v3 .
+It was rewritten for
+.At v5
+and later be enhanced for the Programmer's Workbench (PWB).
+These changes were later incorporated in
+.At v7.
 .Sh BUGS
 The special characters used by
 .Nm

@@ -64,6 +64,7 @@ __FBSDID("$FreeBSD$");
 #define	_DIAGASSERT(x)	assert(x)
 #endif
 
+#include "namespace.h"
 #include <sys/types.h>
 #include <sys/param.h>
 
@@ -73,7 +74,6 @@ __FBSDID("$FreeBSD$");
 #include <stdlib.h>
 #include <wchar.h>
 #include <wctype.h>
-#include <limits.h>
 
 #ifdef __weak_alias
 __weak_alias(strvisx,_strvisx)
@@ -81,6 +81,7 @@ __weak_alias(strvisx,_strvisx)
 
 #if !HAVE_VIS || !HAVE_SVIS
 #include <ctype.h>
+#include <limits.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -131,6 +132,30 @@ iscgraph(int c) {
 
 static const wchar_t char_shell[] = L"'`\";&<>()|{}]\\$!^~";
 static const wchar_t char_glob[] = L"*?[#";
+
+#if !HAVE_NBTOOL_CONFIG_H
+#ifndef __NetBSD__
+/*
+ * On NetBSD MB_LEN_MAX is currently 32 which does not fit on any integer
+ * integral type and it is probably wrong, since currently the maximum
+ * number of bytes and character needs is 6. Until this is fixed, the
+ * loops below are using sizeof(uint64_t) - 1 instead of MB_LEN_MAX, and
+ * the assertion is commented out.
+ */
+#ifdef __FreeBSD__
+/*
+ * On FreeBSD including <sys/systm.h> for CTASSERT only works in kernel
+ * mode.
+ */
+#ifndef CTASSERT
+#define CTASSERT(x)             _CTASSERT(x, __LINE__)
+#define _CTASSERT(x, y)         __CTASSERT(x, y)
+#define __CTASSERT(x, y)        typedef char __assert ## y[(x) ? 1 : -1]
+#endif
+#endif /* __FreeBSD__ */
+CTASSERT(MB_LEN_MAX <= sizeof(uint64_t));
+#endif /* !__NetBSD__ */
+#endif
 
 /*
  * This is do_hvis, for HTTP style (RFC 1808)
@@ -280,7 +305,7 @@ static wchar_t *
 do_svis(wchar_t *dst, wint_t c, int flags, wint_t nextc, const wchar_t *extra)
 {
 	int iswextra, i, shft;
-	u_int64_t bmsk, wmsk;
+	uint64_t bmsk, wmsk;
 
 	iswextra = wcschr(extra, c) != NULL;
 	if (!iswextra && (ISGRAPH(flags, c) || iswwhite(c) ||
@@ -293,11 +318,11 @@ do_svis(wchar_t *dst, wint_t c, int flags, wint_t nextc, const wchar_t *extra)
 	wmsk = 0;
 	for (i = sizeof(wmsk) - 1; i >= 0; i--) {
 		shft = i * NBBY;
-		bmsk = (u_int64_t)0xffLL << shft;
+		bmsk = (uint64_t)0xffLL << shft;
 		wmsk |= bmsk;
 		if ((c & wmsk) || i == 0)
 			dst = do_mbyte(dst, (wint_t)(
-			    (u_int64_t)(c & bmsk) >> shft),
+			    (uint64_t)(c & bmsk) >> shft),
 			    flags, nextc, iswextra);
 	}
 
@@ -372,7 +397,7 @@ istrsenvisx(char **mbdstp, size_t *dlen, const char *mbsrc, size_t mblength,
 {
 	wchar_t *dst, *src, *pdst, *psrc, *start, *extra;
 	size_t len, olen;
-	u_int64_t bmsk, wmsk;
+	uint64_t bmsk, wmsk;
 	wint_t c;
 	visfun_t f;
 	int clen = 0, cerr, error = -1, i, shft;
@@ -440,7 +465,8 @@ istrsenvisx(char **mbdstp, size_t *dlen, const char *mbsrc, size_t mblength,
 	while (mbslength > 0) {
 		/* Convert one multibyte character to wchar_t. */
 		if (!cerr)
-			clen = mbrtowc(src, mbsrc, MB_LEN_MAX, &mbstate);
+			clen = mbrtowc(src, mbsrc, MIN(mbslength, MB_LEN_MAX),
+			    &mbstate);
 		if (cerr || clen < 0) {
 			/* Conversion error, process as a byte instead. */
 			*src = (wint_t)(u_char)*mbsrc;
@@ -529,11 +555,11 @@ istrsenvisx(char **mbdstp, size_t *dlen, const char *mbsrc, size_t mblength,
 			wmsk = 0;
 			for (i = sizeof(wmsk) - 1; i >= 0; i--) {
 				shft = i * NBBY;
-				bmsk = (u_int64_t)0xffLL << shft;
+				bmsk = (uint64_t)0xffLL << shft;
 				wmsk |= bmsk;
 				if ((*dst & wmsk) || i == 0)
 					mbdst[clen++] = (char)(
-					    (u_int64_t)(*dst & bmsk) >>
+					    (uint64_t)(*dst & bmsk) >>
 					    shft);
 			}
 			cerr = 1;

@@ -36,15 +36,11 @@ static char sccsid[] = "@(#)key.c	8.3 (Berkeley) 4/2/94";
 __FBSDID("$FreeBSD$");
 
 #include <sys/types.h>
-#include <sys/ttydefaults.h>
 
 #include <err.h>
-#include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <unistd.h>
 #include <string.h>
-#include <termios.h>
 
 #include "stty.h"
 #include "extern.h"
@@ -195,23 +191,13 @@ f_everything(struct info *ip)
 void
 f_extproc(struct info *ip)
 {
-	struct termios tio;
-	errno = 0;
-
-	if (tcgetattr(ip->fd, &tio) == -1) {
-		err(1, "extproc");
-		return;
-	}
 
 	if (ip->off) {
-		tio.c_lflag &= ~EXTPROC;
+		int tmp = 0;
+		(void)ioctl(ip->fd, TIOCEXT, &tmp);
 	} else {
-		tio.c_lflag |= EXTPROC;
-	}
-
-	if (tcsetattr(ip->fd, TCSANOW, &tio) == -1) {
-		err(1, "extproc");
-		return;
+		int tmp = 1;
+		(void)ioctl(ip->fd, TIOCEXT, &tmp);
 	}
 }
 
@@ -272,16 +258,11 @@ f_sane(struct info *ip)
 {
 	struct termios def;
 
-	def.c_cflag = TTYDEF_CFLAG;
-	def.c_iflag = TTYDEF_IFLAG;
-	def.c_lflag = TTYDEF_LFLAG;
-	def.c_oflag = TTYDEF_OFLAG;
-	cfsetispeed(&def, TTYDEF_SPEED);
-	cfsetospeed(&def, TTYDEF_SPEED);
+	cfmakesane(&def);
 	ip->t.c_cflag = def.c_cflag | (ip->t.c_cflag & CLOCAL);
 	ip->t.c_iflag = def.c_iflag;
 	/* preserve user-preference flags in lflag */
-#define	LKEEP	(ECHOKE|ECHOE|ECHOK|ECHOPRT|ECHOCTL|VWERASE|TOSTOP|NOFLSH)
+#define	LKEEP	(ECHOKE|ECHOE|ECHOK|ECHOPRT|ECHOCTL|ALTWERASE|TOSTOP|NOFLSH)
 	ip->t.c_lflag = def.c_lflag | (ip->t.c_lflag & LKEEP);
 	ip->t.c_oflag = def.c_oflag;
 	ip->set = 1;
@@ -298,7 +279,7 @@ void
 f_speed(struct info *ip)
 {
 
-	(void)printf("%lu\n", (u_long)get_baud(cfgetospeed(&ip->t)));
+	(void)printf("%lu\n", (u_long)cfgetospeed(&ip->t));
 }
 
 void
@@ -306,7 +287,7 @@ f_tty(struct info *ip)
 {
 	int tmp;
 
-	tmp = N_TTY;
+	tmp = TTYDISC;
 	if (ioctl(ip->fd, TIOCSETD, &tmp) < 0)
 		err(1, "TIOCSETD");
 }

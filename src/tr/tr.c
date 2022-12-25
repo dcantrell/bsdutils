@@ -44,7 +44,9 @@ static const char sccsid[] = "@(#)tr.c	8.2 (Berkeley) 5/4/95";
 #endif
 
 #include <sys/types.h>
+#include <sys/capsicum.h>
 
+#include <capsicum_helpers.h>
 #include <ctype.h>
 #include <err.h>
 #include <limits.h>
@@ -60,7 +62,6 @@ static const char sccsid[] = "@(#)tr.c	8.2 (Berkeley) 5/4/95";
 #include "cmap.h"
 #include "cset.h"
 #include "extern.h"
-#include "compat.h"
 
 static STR s1 = { STRING1, NORMAL, 0, OOBCH, 0, { 0, OOBCH }, NULL, NULL };
 static STR s2 = { STRING2, NORMAL, 0, OOBCH, 0, { 0, OOBCH }, NULL, NULL };
@@ -77,13 +78,18 @@ main(int argc, char **argv)
 	int n, *p;
 	int Cflag, cflag, dflag, sflag, isstring2;
 	wint_t ch, cnt, lastch;
-	int optc;
 
 	(void)setlocale(LC_ALL, "");
 
+	if (caph_limit_stdio() == -1)
+		err(1, "unable to limit stdio");
+
+	if (caph_enter() < 0)
+		err(1, "unable to enter capability mode");
+
 	Cflag = cflag = dflag = sflag = 0;
-	while ((optc = getopt(argc, argv, "Ccdsu")) != -1)
-		switch(optc) {
+	while ((ch = getopt(argc, argv, "Ccdsu")) != -1)
+		switch((char)ch) {
 		case 'C':
 			Cflag = 1;
 			cflag = 0;
@@ -113,7 +119,6 @@ main(int argc, char **argv)
 	default:
 		usage();
 		/* NOTREACHED */
-		return 1;
 	case 1:
 		isstring2 = 0;
 		break;
@@ -302,7 +307,7 @@ endloop:
 
 		s2.str = argv[1];
 		s2.state = NORMAL;
-		for (cnt = 0; cnt < (wint_t)n; cnt++) {
+		for (cnt = 0; cnt < n; cnt++) {
 			(void)next(&s2);
 			cmap_add(map, carray[cnt], s2.lastch);
 			/*

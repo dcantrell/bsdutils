@@ -57,8 +57,13 @@ __FBSDID("$FreeBSD$");
 #include <fcntl.h>
 #include <grp.h>
 #include <libgen.h>
+#include <md5.h>
 #include <paths.h>
 #include <pwd.h>
+#include <ripemd.h>
+#include <sha.h>
+#include <sha256.h>
+#include <sha512.h>
 #include <spawn.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -68,9 +73,7 @@ __FBSDID("$FreeBSD$");
 #include <unistd.h>
 #include <vis.h>
 
-#include <openssl/evp.h>
-
-#include "compat.h"
+#include "mtree.h"
 
 /*
  * We need to build xinstall during the bootstrap stage when building on a
@@ -96,7 +99,13 @@ __FBSDID("$FreeBSD$");
 #define	NOCHANGEBITS	(UF_IMMUTABLE | UF_APPEND | SF_IMMUTABLE | SF_APPEND)
 #define	BACKUP_SUFFIX	".old"
 
-typedef EVP_MD_CTX *DIGEST_CTX;
+typedef union {
+	MD5_CTX		MD5;
+	RIPEMD160_CTX	RIPEMD160;
+	SHA1_CTX	SHA1;
+	SHA256_CTX	SHA256;
+	SHA512_CTX	SHA512;
+}	DIGEST_CTX;
 
 static enum {
 	DIGEST_NONE = 0,
@@ -156,7 +165,7 @@ main(int argc, char *argv[])
 	fset = 0;
 	iflags = 0;
 	group = owner = NULL;
-	while ((ch = getopt(argc, argv, "B:bCcD:dg:h:l:M:m:o:pSsT:Uv")) !=
+	while ((ch = getopt(argc, argv, "B:bCcD:df:g:h:l:M:m:N:o:pSsT:Uv")) !=
 	     -1)
 		switch((char)ch) {
 		case 'B':
@@ -177,12 +186,10 @@ main(int argc, char *argv[])
 		case 'd':
 			dodir = 1;
 			break;
-#if 0
 		case 'f':
 			haveopt_f = 1;
 			fflags = optarg;
 			break;
-#endif
 		case 'g':
 			haveopt_g = 1;
 			group = optarg;
@@ -229,13 +236,11 @@ main(int argc, char *argv[])
 			mode = getmode(set, 0);
 			free(set);
 			break;
-#if 0
 		case 'N':
 			if (!setup_getid(optarg))
 				err(EX_OSERR, "Unable to use user and group "
 				    "databases in `%s'", optarg);
 			break;
-#endif
 		case 'o':
 			haveopt_o = 1;
 			owner = optarg;
@@ -305,38 +310,30 @@ main(int argc, char *argv[])
 
 	/* get group and owner id's */
 	if (group != NULL && !dounpriv) {
-		struct group *gr = getgrnam(group);
-		if (!gr) {
+		if (gid_from_group(group, &gid) == -1) {
 			id_t id;
 			if (!parseid(group, &id))
 				errx(1, "unknown group %s", group);
 			gid = id;
-		} else {
-			gid = gr->gr_gid;
 		}
 	} else
 		gid = (gid_t)-1;
 
 	if (owner != NULL && !dounpriv) {
-		struct passwd *pw = getpwnam(owner);
-		if (!pw) {
+		if (uid_from_user(owner, &uid) == -1) {
 			id_t id;
 			if (!parseid(owner, &id))
 				errx(1, "unknown user %s", owner);
 			uid = id;
-		} else {
-			uid = pw->pw_uid;
 		}
 	} else
 		uid = (uid_t)-1;
 
-#if 0
 	if (fflags != NULL && !dounpriv) {
 		if (strtofflags(&fflags, &fset, NULL))
 			errx(EX_USAGE, "%s: invalid flag", fflags);
 		iflags |= SETFLAGS;
 	}
-#endif
 
 	if (metafile != NULL) {
 		if ((metafp = fopen(metafile, "a")) == NULL)
@@ -387,7 +384,8 @@ main(int argc, char *argv[])
 		if (stat(*argv, &from_sb))
 			err(EX_OSERR, "%s", *argv);
 		if (!S_ISREG(to_sb.st_mode)) {
-			errx(EX_OSERR, "%s: not a regular file", to_name);
+			errno = EFTYPE;
+			err(EX_OSERR, "%s", to_name);
 		}
 		if (to_sb.st_dev == from_sb.st_dev &&
 		    to_sb.st_ino == from_sb.st_ino)
@@ -402,106 +400,91 @@ main(int argc, char *argv[])
 static char *
 digest_file(const char *name)
 {
-	DIGEST_CTX ctx;
-	FILE *f;
-	char *buf;
 
-	if (digesttype == DIGEST_NONE)
-		return NULL;
-
-	f = fopen(name, "rb");
-	if (!f)
-		errx(1, "unable to open file %s", name);
-
-	buf = malloc(16 * 1024);
-	if (!buf) {
-		fclose(f);
-		errx(1, "unable to allocate buffer");
+	switch (digesttype) {
+	case DIGEST_MD5:
+		return (MD5File(name, NULL));
+	case DIGEST_RIPEMD160:
+		return (RIPEMD160_File(name, NULL));
+	case DIGEST_SHA1:
+		return (SHA1_File(name, NULL));
+	case DIGEST_SHA256:
+		return (SHA256_File(name, NULL));
+	case DIGEST_SHA512:
+		return (SHA512_File(name, NULL));
+	default:
+		return (NULL);
 	}
-
-	digest_init(&ctx);
-	for (;;) {
-		size_t n = fread(buf, 1, 16 * 1024, f);
-		digest_update(&ctx, buf, n);
-		if (n != (16 * 1024)) {
-			if (feof(f))
-				break;
-			if (ferror(f)) {
-				free(buf);
-				fclose(f);
-				errx(1, "unable to read file %s", name);
-			}
-		}
-	}
-
-	fclose(f);
-	return digest_end(&ctx, NULL);
 }
 
 static void
 digest_init(DIGEST_CTX *c)
 {
-	const EVP_MD *digestmd = NULL;
 
 	switch (digesttype) {
 	case DIGEST_NONE:
 		break;
 	case DIGEST_MD5:
-		digestmd = EVP_md5();
+		MD5Init(&(c->MD5));
 		break;
 	case DIGEST_RIPEMD160:
-		digestmd = EVP_ripemd160();
+		RIPEMD160_Init(&(c->RIPEMD160));
 		break;
 	case DIGEST_SHA1:
-		digestmd = EVP_sha1();
+		SHA1_Init(&(c->SHA1));
 		break;
 	case DIGEST_SHA256:
-		digestmd = EVP_sha256();
+		SHA256_Init(&(c->SHA256));
 		break;
 	case DIGEST_SHA512:
-		digestmd = EVP_sha512();
+		SHA512_Init(&(c->SHA512));
 		break;
-	}
-
-	if (digestmd) {
-		*c = EVP_MD_CTX_new();
-		if (!c || !EVP_DigestInit_ex(*c, digestmd, NULL))
-			errx(1, "failed to initialize digest");
 	}
 }
 
 static void
 digest_update(DIGEST_CTX *c, const char *data, size_t len)
 {
-	if (digesttype == DIGEST_NONE)
-		return;
 
-	EVP_DigestUpdate(*c, data, len);
+	switch (digesttype) {
+	case DIGEST_NONE:
+		break;
+	case DIGEST_MD5:
+		MD5Update(&(c->MD5), data, len);
+		break;
+	case DIGEST_RIPEMD160:
+		RIPEMD160_Update(&(c->RIPEMD160), data, len);
+		break;
+	case DIGEST_SHA1:
+		SHA1_Update(&(c->SHA1), data, len);
+		break;
+	case DIGEST_SHA256:
+		SHA256_Update(&(c->SHA256), data, len);
+		break;
+	case DIGEST_SHA512:
+		SHA512_Update(&(c->SHA512), data, len);
+		break;
+	}
 }
 
 static char *
 digest_end(DIGEST_CTX *c, char *buf)
 {
-	unsigned char digbuf[EVP_MAX_MD_SIZE + 1];
 
-	if ((digesttype == DIGEST_NONE) || !*c)
-		return NULL;
-
-	unsigned int mdlen = 0;
-	if (!EVP_DigestFinal(*c, digbuf, &mdlen))
-		errx(1, "failed to finalize digest");
-
-	if (!buf) {
-		buf = malloc(mdlen * 2 + 1);
-		if (!buf)
-			errx(1, "unable to allocate buffer");
+	switch (digesttype) {
+	case DIGEST_MD5:
+		return (MD5End(&(c->MD5), buf));
+	case DIGEST_RIPEMD160:
+		return (RIPEMD160_End(&(c->RIPEMD160), buf));
+	case DIGEST_SHA1:
+		return (SHA1_End(&(c->SHA1), buf));
+	case DIGEST_SHA256:
+		return (SHA256_End(&(c->SHA256), buf));
+	case DIGEST_SHA512:
+		return (SHA512_End(&(c->SHA512), buf));
+	default:
+		return (NULL);
 	}
-
-	for (unsigned int i = 0; i < mdlen; ++i) {
-	    sprintf(buf + (i * 2), "%02x", digbuf[i]);
-	}
-
-	return buf;
 }
 
 /*
@@ -546,7 +529,7 @@ static int
 do_link(const char *from_name, const char *to_name,
     const struct stat *target_sb)
 {
-	char tmpl[MAXPATHLEN + 12];
+	char tmpl[MAXPATHLEN];
 	int ret;
 
 	if (safecopy && target_sb != NULL) {
@@ -731,6 +714,7 @@ makelink(const char *from_name, const char *to_name,
 				errx(1, "resolved pathname too long");
 		}
 		strcpy(to_name_copy, to_name);
+		cp = basename(to_name_copy);
 		if (strlcat(dst, cp, sizeof(dst)) > sizeof(dst))
 			errx(1, "resolved pathname too long");
 		free(to_name_copy);
@@ -779,7 +763,7 @@ makelink(const char *from_name, const char *to_name,
  *	build a path name and install the file
  */
 static void
-install(const char *from_name, const char *to_name, u_long fset __attribute__((unused)), u_int flags)
+install(const char *from_name, const char *to_name, u_long fset, u_int flags)
 {
 	struct stat from_sb, temp_sb, to_sb;
 	struct timespec tsb[2];
@@ -799,7 +783,8 @@ install(const char *from_name, const char *to_name, u_long fset __attribute__((u
 			if (stat(from_name, &from_sb))
 				err(EX_OSERR, "%s", from_name);
 			if (!S_ISREG(from_sb.st_mode)) {
-				errx(EX_OSERR, "%s: not a regular file", from_name);
+				errno = EFTYPE;
+				err(EX_OSERR, "%s", from_name);
 			}
 		}
 		/* Build the target path. */
@@ -833,7 +818,8 @@ install(const char *from_name, const char *to_name, u_long fset __attribute__((u
 	}
 
 	if (target && !S_ISREG(to_sb.st_mode) && !S_ISLNK(to_sb.st_mode)) {
-		warnx("%s: not a regular file or a symlink", to_name);
+		errno = EFTYPE;
+		warn("%s", to_name);
 		return;
 	}
 
@@ -1082,14 +1068,14 @@ install(const char *from_name, const char *to_name, u_long fset __attribute__((u
  *	unless it points to pre-computed digest.
  */
 static int
-compare(int from_fd, const char *from_name __attribute__((unused)), size_t from_len,
-	int to_fd, const char *to_name __attribute__((unused)), size_t to_len,
+compare(int from_fd, const char *from_name __unused, size_t from_len,
+	int to_fd, const char *to_name __unused, size_t to_len,
 	char **dresp)
 {
 	char *p, *q;
 	int rv;
 	int do_digest, done_compare;
-	DIGEST_CTX ctx = NULL;
+	DIGEST_CTX ctx;
 
 	rv = 0;
 	if (from_len != to_len)
@@ -1185,7 +1171,7 @@ create_tempfile(const char *path, char *temp, size_t tsize)
  *	create a new file, overwriting an existing one if necessary
  */
 static int
-create_newfile(const char *path, int target, struct stat *sbp __attribute__((unused)))
+create_newfile(const char *path, int target, struct stat *sbp)
 {
 	char backup[MAXPATHLEN];
 	int saved_errno = 0;
@@ -1350,14 +1336,13 @@ strip(const char *to_name, int to_fd, const char *from_name, char **dresp)
 	    __DECONST(char **, args), environ);
 	if (error != 0) {
 		(void)unlink(to_name);
-		errno = error;
-		err(EX_OSERR, "spawn %s", stripbin);
+		errc(error == EAGAIN || error == EPROCLIM || error == ENOMEM ?
+		    EX_TEMPFAIL : EX_OSERR, error, "spawn %s", stripbin);
 	}
 	if (waitpid(pid, &status, 0) == -1) {
 		error = errno;
 		(void)unlink(to_name);
-		errno = error;
-		err(EX_SOFTWARE, "wait");
+		errc(EX_SOFTWARE, error, "wait");
 		/* NOTREACHED */
 	}
 	if (status != 0) {

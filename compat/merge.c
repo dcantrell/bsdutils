@@ -52,15 +52,11 @@ __FBSDID("$FreeBSD$");
  * (The default is pairwise merging.)
  */
 
-#include <sys/types.h>
 #include <sys/param.h>
 
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h>
-
-#include "compat.h"
 
 #ifdef I_AM_MERGESORT_B
 #include "block_abi.h"
@@ -133,12 +129,8 @@ mergesort(void *base, size_t nmemb, size_t size, cmp_t cmp)
 	if (nmemb == 0)
 		return (0);
 
-	/*
-	 * XXX
-	 * Stupid subtraction for the Cray.
-	 */
 	iflag = 0;
-	if (!(size % ISIZE) && !(((char *)base - (char *)0) % ISIZE))
+	if (__is_aligned(size, ISIZE) && __is_aligned(base, ISIZE))
 		iflag = 1;
 
 	if ((list2 = malloc(nmemb * size + PSIZE)) == NULL)

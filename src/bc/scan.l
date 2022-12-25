@@ -31,7 +31,6 @@ __FBSDID("$FreeBSD$");
 #include "extern.h"
 #include "bc.h"
 #include "pathnames.h"
-#include "compat.h"
 
 int		lineno;
 bool		interactive;
@@ -243,7 +242,7 @@ add_str(const char *str)
 
 /* ARGSUSED */
 void
-abort_line(int sig __attribute__((unused)))
+abort_line(int sig __unused)
 {
 	static const char str1[] = "[\n]P\n";
 	static const char str2[] = "[^C\n]P\n";
@@ -266,7 +265,7 @@ abort_line(int sig __attribute__((unused)))
  * line after a ^C.
  */
 unsigned char
-bc_eof(EditLine *e, int ch __attribute__((unused)))
+bc_eof(EditLine *e, int ch __unused)
 {
 	const struct lineinfo *info = el_line(e);
 

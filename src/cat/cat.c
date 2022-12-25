@@ -48,6 +48,7 @@ static char sccsid[] = "@(#)cat.c	8.2 (Berkeley) 4/27/95";
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 
+#include <sys/capsicum.h>
 #include <sys/param.h>
 #include <sys/stat.h>
 #ifndef NO_UDOM_SUPPORT
@@ -56,6 +57,7 @@ __FBSDID("$FreeBSD$");
 #include <netdb.h>
 #endif
 
+#include <capsicum_helpers.h>
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
@@ -68,11 +70,14 @@ __FBSDID("$FreeBSD$");
 #include <wchar.h>
 #include <wctype.h>
 
-#include "compat.h"
+#include <libcasper.h>
+#include <casper/cap_fileargs.h>
+#include <casper/cap_net.h>
 
 static int bflag, eflag, lflag, nflag, sflag, tflag, vflag;
 static int rval;
 static const char *filename;
+static fileargs_t *fa;
 
 static void usage(void) __dead2;
 static void scanfiles(char *argv[], int cooked);
@@ -140,6 +145,29 @@ init_casper_net(cap_channel_t *casper)
 }
 #endif
 
+static void
+init_casper(int argc, char *argv[])
+{
+	cap_channel_t *casper;
+	cap_rights_t rights;
+
+	casper = cap_init();
+	if (casper == NULL)
+		err(EXIT_FAILURE, "unable to create Casper");
+
+	fa = fileargs_cinit(casper, argc, argv, O_RDONLY, 0,
+	    cap_rights_init(&rights, CAP_READ | CAP_FSTAT | CAP_FCNTL),
+	    FA_OPEN | FA_REALPATH);
+	if (fa == NULL)
+		err(EXIT_FAILURE, "unable to create fileargs");
+
+#ifndef NO_UDOM_SUPPORT
+	init_casper_net(casper);
+#endif
+
+	cap_close(casper);
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -189,6 +217,13 @@ main(int argc, char *argv[])
 			err(EXIT_FAILURE, "stdout");
 	}
 
+	init_casper(argc, argv);
+
+	caph_cache_catpages();
+
+	if (caph_enter_casper() < 0)
+		err(EXIT_FAILURE, "capsicum");
+
 	if (bflag || eflag || nflag || sflag || tflag || vflag)
 		scanfiles(argv, 1);
 	else
@@ -209,7 +244,7 @@ usage(void)
 }
 
 static void
-scanfiles(char *argv[], int cooked __attribute__((unused)))
+scanfiles(char *argv[], int cooked __unused)
 {
 	int fd, i;
 	char *path;
@@ -225,7 +260,7 @@ scanfiles(char *argv[], int cooked __attribute__((unused)))
 			fd = STDIN_FILENO;
 		} else {
 			filename = path;
-			fd = open(path, O_RDONLY);
+			fd = fileargs_open(fa, path);
 #ifndef NO_UDOM_SUPPORT
 			if (fd < 0 && errno == EOPNOTSUPP)
 				fd = udom_open(path, O_RDONLY);
@@ -308,6 +343,7 @@ cook_cat(FILE *fp)
 				if (ferror(fp) && errno == EILSEQ) {
 					clearerr(fp);
 					/* Resync attempt. */
+					memset(&fp->_mbstate, 0, sizeof(mbstate_t));
 					if ((ch = getc(fp)) == EOF)
 						break;
 					wch = ch;

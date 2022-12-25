@@ -48,6 +48,7 @@ __FBSDID("$FreeBSD$");
 #include <sys/types.h>
 
 #include <ctype.h>
+#include <db.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -97,83 +98,7 @@ typedef struct _buf {
 	int b_bsize;
 } BUF;
 
-#define HASH_CHUNK_SIZE 64
-#define HASH_BUCKET_COUNT 1024
-
-struct hash_elem {
-	NODE *elem;
-	struct hash_elem *next;
-};
-
-struct hash_chunk {
-	struct hash_elem elems[HASH_CHUNK_SIZE];
-	struct hash_chunk *next;
-};
-
-struct hash {
-	struct hash_elem **elems;
-	struct hash_chunk *chunks;
-	struct hash_elem *top;
-};
-
-static void hash_init(struct hash *h) {
-	h->chunks = NULL;
-	h->top = NULL;
-	h->elems = calloc(1024, sizeof(struct hash_elem *));
-}
-
-static void hash_destroy(struct hash *h) {
-	for (size_t i = 0; i < HASH_BUCKET_COUNT; ++i) {
-		struct hash_elem *e = h->elems[i];
-		while (e) {
-			free(e->elem->n_arcs);
-			free(e->elem);
-			e = e->next;
-		}
-	}
-	free(h->elems);
-	while (h->chunks) {
-		struct hash_chunk *c = h->chunks;
-		h->chunks = h->chunks->next;
-		free(c);
-	}
-}
-
-static size_t hash_key(char *key) {
-	size_t h = 5381;
-	for (size_t i = 0, k; (k = key[i]); ++i)
-		h = ((h << 5) + h) ^ k;
-	return h;
-}
-
-static NODE *hash_find(struct hash *h, char *key) {
-	size_t hash = hash_key(key) & (HASH_BUCKET_COUNT - 1);
-	for (struct hash_elem *c = h->elems[hash]; c; c = c->next) {
-		if (!strcmp(key, c->elem->n_name))
-			return c->elem;
-	}
-	return NULL;
-}
-
-static struct hash_elem *hash_insert(struct hash *h, char *key) {
-	size_t hash = hash_key(key) & (HASH_BUCKET_COUNT - 1);
-	if (!h->top) {
-		struct hash_chunk *c = calloc(1, sizeof(struct hash_chunk));
-		c->next = h->chunks;
-		h->chunks = c;
-		for (size_t i = 0; i < (HASH_CHUNK_SIZE - 1); ++i) 
-			c->elems[i].next = &c->elems[i + 1];
-		c->elems[HASH_CHUNK_SIZE - 1].next = h->top;
-		h->top = c->elems;
-	}
-	struct hash_elem *hc = h->top;
-	h->top = h->top->next;
-	hc->next = h->elems[hash];
-	h->elems[hash] = hc;
-	return hc;
-}
-
-static struct hash db;
+static DB *db;
 static NODE *graph, **cycle_buf, **longest_cycle;
 static int debug, longest, quiet;
 
@@ -229,8 +154,6 @@ main(int argc, char *argv[])
 	for (b = bufs, n = 2; --n >= 0; b++)
 		b->b_buf = grow_buf(NULL, b->b_bsize = 1024);
 
-	hash_init(&db);
-
 	/* parse input and build the graph */
 	for (n = 0, c = getc(fp);;) {
 		while (c != EOF && isspace(c))
@@ -260,7 +183,6 @@ main(int argc, char *argv[])
 
 	/* do the sort */
 	tsort();
-	hash_destroy(&db);
 	exit(0);
 }
 
@@ -315,15 +237,28 @@ add_arc(char *s1, char *s2)
 static NODE *
 get_node(char *name)
 {
-	NODE *n = hash_find(&db, name);
-	size_t nlen;
+	DBT data, key;
+	NODE *n;
 
-	if (n)
-		return n;
+	if (db == NULL &&
+	    (db = dbopen(NULL, O_RDWR, 0, DB_HASH, NULL)) == NULL)
+		err(1, "db: %s", name);
 
-	nlen = strlen(name) + 1;
+	key.data = name;
+	key.size = strlen(name) + 1;
 
-	if ((n = malloc(sizeof(NODE) + nlen)) == NULL)
+	switch ((*db->get)(db, &key, &data, 0)) {
+	case 0:
+		bcopy(data.data, &n, sizeof(n));
+		return (n);
+	case 1:
+		break;
+	default:
+	case -1:
+		err(1, "db: %s", name);
+	}
+
+	if ((n = malloc(sizeof(NODE) + key.size)) == NULL)
 		err(1, NULL);
 
 	n->n_narcs = 0;
@@ -331,7 +266,7 @@ get_node(char *name)
 	n->n_arcs = NULL;
 	n->n_refcnt = 0;
 	n->n_flags = 0;
-	bcopy(name, n->n_name, nlen);
+	bcopy(name, n->n_name, key.size);
 
 	/* Add to linked list. */
 	if ((n->n_next = graph) != NULL)
@@ -340,7 +275,10 @@ get_node(char *name)
 	graph = n;
 
 	/* Add to hash table. */
-	hash_insert(&db, name)->elem = n;
+	data.data = &n;
+	data.size = sizeof(n);
+	if ((*db->put)(db, &key, &data, 0))
+		err(1, "db: %s", name);
 	return (n);
 }
 

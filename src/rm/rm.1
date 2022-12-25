@@ -42,7 +42,7 @@
 .Sh SYNOPSIS
 .Nm
 .Op Fl f | i
-.Op Fl dIRrvx
+.Op Fl dIRrvWx
 .Ar
 .Nm unlink
 .Op Fl -
@@ -110,6 +110,11 @@ Equivalent to
 .Fl R .
 .It Fl v
 Be verbose when deleting files, showing them as they are removed.
+.It Fl W
+Attempt to undelete the named files.
+Currently, this option can only be used to recover
+files covered by whiteouts in a union file system (see
+.Xr undelete 2 ) .
 .It Fl x
 When removing a hierarchy, do not cross mount points.
 .El
@@ -206,7 +211,9 @@ option does not have any effect as of
 .Fx 13
 and may be removed in the future.
 .Sh SEE ALSO
+.Xr chflags 1 ,
 .Xr rmdir 1 ,
+.Xr undelete 2 ,
 .Xr unlink 2 ,
 .Xr fts 3 ,
 .Xr getopt 3 ,

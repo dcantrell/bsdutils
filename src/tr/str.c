@@ -51,52 +51,12 @@ static const char sccsid[] = "@(#)str.c	8.2 (Berkeley) 4/28/95";
 
 #include "extern.h"
 
-#include "compat.h"
-
 static int      backslash(STR *, int *);
 static int	bracket(STR *);
 static void	genclass(STR *);
 static void	genequiv(STR *);
 static int      genrange(STR *, int);
 static void	genseq(STR *);
-
-static wint_t
-findwchar(wctype_t wct, wchar_t min, wchar_t max)
-{
-	for (; min <= max; ++min) {
-		if (iswctype(min, wct))
-			return min;
-	}
-	return (wint_t)-1;
-}
-
-/* we cannot reasonably implement this for wide characters/unicode, since
- * the standard posix api has no way to find out the actual ranges, and
- * doing binary search on the entire wchar range is inefficient (especially
- * considering the character range does not have to be contiguous, which
- * means doing a new search after we get to the end of the current part
- * of the range)
- *
- * therefore, stick with what is representable in the C locale and do a
- * simple linear search instead, this should always get us reliable results
- */
-
-static wint_t
-nextwctype(wint_t ch, wctype_t wct)
-{
-	if (ch == (wint_t)-1) {
-		/* locate first character in the class */
-		return findwchar(wct, 0, UCHAR_MAX);
-	}
-
-	if ((ch == (wint_t)-1) || (ch >= UCHAR_MAX))
-		return (wint_t)-1;
-
-	if (!iswctype(++ch, wct))
-		return findwchar(wct, ch, UCHAR_MAX);
-
-	return ch;
-}
 
 wint_t
 next(STR *s)
@@ -126,10 +86,8 @@ next(STR *s)
 		default:
 			clen = mbrtowc(&wch, s->str, MB_LEN_MAX, NULL);
 			if (clen == (size_t)-1 || clen == (size_t)-2 ||
-			    clen == 0) {
-				errno = EILSEQ;
-				err(1, NULL);
-			}
+			    clen == 0)
+				errc(1, EILSEQ, NULL);
 			is_octal = 0;
 			s->lastch = wch;
 			s->str += clen;
@@ -158,7 +116,7 @@ next(STR *s)
 	case CCLASS_LOWER:
 		s->cnt++;
 		ch = nextwctype(s->lastch, s->cclass);
-		if (ch == (wint_t)-1) {
+		if (ch == -1) {
 			s->state = NORMAL;
 			return (next(s));
 		}
@@ -245,10 +203,8 @@ genequiv(STR *s)
 		s->str += 2;
 	} else {
 		clen = mbrtowc(&wc, s->str, MB_LEN_MAX, NULL);
-		if (clen == (size_t)-1 || clen == (size_t)-2 || clen == 0) {
-			errno = EILSEQ;
-			err(1, NULL);
-		}
+		if (clen == (size_t)-1 || clen == (size_t)-2 || clen == 0)
+			errc(1, EILSEQ, NULL);
 		s->equiv[0] = wc;
 		if (s->str[clen] != '=')
 			errx(1, "misplaced equivalence equals sign");
@@ -285,10 +241,9 @@ genequiv(STR *s)
 static int
 genrange(STR *s, int was_octal)
 {
-	wint_t stopval;
-	int octal;
+	int stopval, octal;
 	char *savestart;
-	wint_t n, cnt, *p;
+	int n, cnt, *p;
 	size_t clen;
 	wchar_t wc;
 
@@ -298,10 +253,8 @@ genrange(STR *s, int was_octal)
 		stopval = backslash(s, &octal);
 	else {
 		clen = mbrtowc(&wc, s->str, MB_LEN_MAX, NULL);
-		if (clen == (size_t)-1 || clen == (size_t)-2) {
-			errno = EILSEQ;
-			err(1, NULL);
-		}
+		if (clen == (size_t)-1 || clen == (size_t)-2)
+			errc(1, EILSEQ, NULL);
 		stopval = wc;
 		s->str += clen;
 	}
@@ -353,10 +306,8 @@ genseq(STR *s)
 		s->lastch = backslash(s, NULL);
 	else {
 		clen = mbrtowc(&wc, s->str, MB_LEN_MAX, NULL);
-		if (clen == (size_t)-1 || clen == (size_t)-2) {
-			errno = EILSEQ;
-			err(1, NULL);
-		}
+		if (clen == (size_t)-1 || clen == (size_t)-2)
+			errc(1, EILSEQ, NULL);
 		s->lastch = wc;
 		s->str += clen;
 	}

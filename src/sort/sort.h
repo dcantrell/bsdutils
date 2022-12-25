@@ -39,10 +39,7 @@
 #include <wchar.h>
 
 #include <sys/types.h>
-
-#ifndef WITHOUT_LIBCRYPTO
-#include <openssl/evp.h>
-#endif
+#include <md5.h>
 
 #define	VERSION	"2.3-FreeBSD"
 
@@ -52,7 +49,8 @@
 #include <nl_types.h>
 
 extern nl_catd catalog;
-#define	getstr(n)	 catgets(catalog, 1, n, nlsstr[n])
+#define	getstr(n)	\
+	(catalog == (nl_catd)-1 ? nlsstr[n] : catgets(catalog, 1, n, nlsstr[n]))
 #endif
 
 extern const char *nlsstr[];
@@ -63,31 +61,15 @@ extern unsigned int ncpu;
 extern size_t nthreads;
 #endif
 
-/* bsdutils additions */
-
-#ifndef WITHOUT_LIBCRYPTO
-#define MD5_DIGEST_LENGTH 16
-
-typedef struct {
-	EVP_MD_CTX *mdctx;
-} MD5_CTX;
-
-void MD5Init(MD5_CTX *context);
-void MD5Update(MD5_CTX *context, const void *data, unsigned int len);
-void MD5Final(unsigned char digest[MD5_DIGEST_LENGTH], MD5_CTX *context);
-#endif
-
 /*
  * If true, we output some debug information.
  */
 extern bool debug_sort;
 
-#ifndef WITHOUT_LIBCRYPTO
 /*
  * MD5 context for random hash function
  */
 extern MD5_CTX md5_ctx;
-#endif
 
 /*
  * sort.c
@@ -145,5 +127,11 @@ extern bool need_hint;
 extern struct sort_opts sort_opts_vals;
 
 extern struct sort_mods * const default_sort_mods;
+
+/* 
+ * Cached value of MB_CUR_MAX. Because MB_CUR_MAX is used often throughout the program,
+ * this avoids frequent calls to __mb_cur_max.
+ */
+extern size_t mb_cur_max;
 
 #endif /* __BSD_SORT_H__ */

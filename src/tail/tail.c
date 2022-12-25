@@ -46,9 +46,11 @@ static const char copyright[] =
 static const char sccsid[] = "@(#)tail.c	8.1 (Berkeley) 6/6/93";
 #endif
 
+#include <sys/capsicum.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#include <capsicum_helpers.h>
 #include <err.h>
 #include <errno.h>
 #include <getopt.h>
@@ -57,11 +59,13 @@ static const char sccsid[] = "@(#)tail.c	8.1 (Berkeley) 6/6/93";
 #include <string.h>
 #include <unistd.h>
 
+#include <libcasper.h>
+#include <casper/cap_fileargs.h>
+
 #include "extern.h"
 
 int Fflag, fflag, qflag, rflag, rval, no_files;
-
-static file_info_t *files;
+fileargs_t *fa;
 
 static void obsolete(char **);
 static void usage(void);
@@ -82,9 +86,10 @@ main(int argc, char *argv[])
 	FILE *fp;
 	off_t off;
 	enum STYLE style;
-	int i, ch, first;
-	file_info_t *file;
+	int ch, first;
+	file_info_t file, *filep, *files;
 	char *p;
+	cap_rights_t rights;
 
 	/*
 	 * Tail's options are weird.  First, -n10 is the same as -n-10, not
@@ -108,7 +113,7 @@ main(int argc, char *argv[])
 	case '+':							\
 		if (off)						\
 			off -= (units);					\
-		style = (forward);				\
+			style = (forward);				\
 		break;							\
 	case '-':							\
 		off = -off;						\
@@ -155,6 +160,22 @@ main(int argc, char *argv[])
 
 	no_files = argc ? argc : 1;
 
+	cap_rights_init(&rights, CAP_FSTAT, CAP_FSTATFS, CAP_FCNTL,
+	    CAP_MMAP_R);
+	if (fflag)
+		cap_rights_set(&rights, CAP_EVENT);
+	if (caph_rights_limit(STDIN_FILENO, &rights) < 0 ||
+	    caph_limit_stderr() < 0 || caph_limit_stdout() < 0)
+		err(1, "can't limit stdio rights");
+
+	fa = fileargs_init(argc, argv, O_RDONLY, 0, &rights, FA_OPEN);
+	if (fa == NULL)
+		err(1, "unable to init casper");
+
+	caph_cache_catpages();
+	if (caph_enter_casper() < 0)
+		err(1, "unable to enter capability mode");
+
 	/*
 	 * If displaying in reverse, don't permit follow option, and convert
 	 * style values.
@@ -183,34 +204,28 @@ main(int argc, char *argv[])
 	}
 
 	if (*argv && fflag) {
-		files = (struct file_info *) malloc(no_files *
-		    sizeof(struct file_info));
-		if (!files)
+		files = malloc(no_files * sizeof(struct file_info));
+		if (files == NULL)
 			err(1, "Couldn't malloc space for file descriptors.");
 
-		for (file = files; (fn = *argv++); file++) {
-			file->file_name = strdup(fn);
-			if (! file->file_name)
-				errx(1, "Couldn't malloc space for file name.");
-			file->fp = fopen(file->file_name, "r");
-			if (file->fp == NULL ||
-			    fstat(fileno(file->fp), &file->st)) {
-				if (file->fp != NULL) {
-					fclose(file->fp);
-					file->fp = NULL;
+		for (filep = files; (fn = *argv++); filep++) {
+			filep->file_name = fn;
+			filep->fp = fileargs_fopen(fa, filep->file_name, "r");
+			if (filep->fp == NULL ||
+			    fstat(fileno(filep->fp), &filep->st)) {
+				if (filep->fp != NULL) {
+					fclose(filep->fp);
+					filep->fp = NULL;
 				}
 				if (!Fflag || errno != ENOENT)
-					ierr(file->file_name);
+					ierr(filep->file_name);
 			}
 		}
 		follow(files, style, off);
-		for (i = 0, file = files; i < no_files; i++, file++) {
-		    free(file->file_name);
-		}
 		free(files);
 	} else if (*argv) {
 		for (first = 1; (fn = *argv++);) {
-			if ((fp = fopen(fn, "r")) == NULL ||
+			if ((fp = fileargs_fopen(fa, fn, "r")) == NULL ||
 			    fstat(fileno(fp), &sb)) {
 				ierr(fn);
 				continue;
@@ -243,11 +258,17 @@ main(int argc, char *argv[])
 			fflag = 0;		/* POSIX.2 requires this. */
 		}
 
-		if (rflag)
+		if (rflag) {
 			reverse(stdin, fn, style, off, &sb);
-		else
+		} else if (fflag) {
+			file.file_name = fn;
+			file.fp = stdin;
+			follow(&file, style, off);
+		} else {
 			forward(stdin, fn, style, off, &sb);
+		}
 	}
+	fileargs_free(fa);
 	exit(rval);
 }
 

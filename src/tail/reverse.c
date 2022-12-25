@@ -42,6 +42,7 @@ static char sccsid[] = "@(#)reverse.c	8.1 (Berkeley) 6/6/93";
 __FBSDID("$FreeBSD$");
 
 #include <sys/param.h>
+#include <sys/queue.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
 
@@ -53,6 +54,9 @@ __FBSDID("$FreeBSD$");
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
+#include <libcasper.h>
+#include <casper/cap_fileargs.h>
 
 #include "extern.h"
 
@@ -173,8 +177,7 @@ r_reg(FILE *fp, const char *fn, enum STYLE style, off_t off, struct stat *sbp)
 
 #define BSZ	(128 * 1024)
 typedef struct bfelem {
-	struct bfelem *next;
-	struct bfelem **prev;
+	TAILQ_ENTRY(bfelem) entries;
 	size_t len;
 	char l[BSZ];
 } bfelem_t;
@@ -196,13 +199,9 @@ r_buf(FILE *fp, const char *fn)
 	size_t llen;
 	char *p;
 	off_t enomem = 0;
-	struct bfhead {
-	    struct bfelem *tqh_first;
-	    struct bfelem **tqh_last;
-	} head;
+	TAILQ_HEAD(bfhead, bfelem) head;
 
-	head.tqh_first = NULL;
-	head.tqh_last = &head.tqh_first;
+	TAILQ_INIT(&head);
 
 	while (!feof(fp)) {
 		size_t len;
@@ -213,22 +212,14 @@ r_buf(FILE *fp, const char *fn)
 		 * keep going.
 		 */
 		while ((tl = malloc(sizeof(bfelem_t))) == NULL) {
-			first = head.tqh_first;
-			if (head.tqh_first == NULL)
+			first = TAILQ_FIRST(&head);
+			if (TAILQ_EMPTY(&head))
 				err(1, "malloc");
 			enomem += first->len;
-			if ((first->next) != NULL)
-				first->next->prev = first->prev;
-			else
-				head.tqh_last = first->prev;
-			*first->prev = first->next;
+			TAILQ_REMOVE(&head, first, entries);
 			free(first);
 		}
-
-		tl->next = NULL;
-		tl->prev = head.tqh_last;
-		*head.tqh_last = tl;
-		head.tqh_last = &tl->next;
+		TAILQ_INSERT_TAIL(&head, tl, entries);
 
 		/* Fill the block with input data. */
 		len = 0;
@@ -257,8 +248,8 @@ r_buf(FILE *fp, const char *fn)
 	 *    free any buffers that start after the "\n" just found
 	 *    Loop
 	 */
-	tl = *(((struct bfhead *)(head.tqh_last))->tqh_last);
-	first = head.tqh_first;
+	tl = TAILQ_LAST(&head, bfhead);
+	first = TAILQ_FIRST(&head);
 	while (tl != NULL) {
 		struct bfelem *temp;
 
@@ -276,33 +267,23 @@ r_buf(FILE *fp, const char *fn)
 					if (start && *p == '\n')
 						WR(p, 1);
 				}
-				tr = tl->next;
+				tr = TAILQ_NEXT(tl, entries);
 				llen = 0;
 				if (tr != NULL) {
-					for (; tr && (temp = tr->next, 1); tr = temp) {
+					TAILQ_FOREACH_FROM_SAFE(tr, &head,
+					    entries, temp) {
 						if (tr->len)
 							WR(&tr->l, tr->len);
-
-						if ((tr->next) != NULL)
-							tr->next->prev = tr->prev;
-						else
-							head.tqh_last = tr->prev;
-						*tr->prev = tr->next;
-
+						TAILQ_REMOVE(&head, tr,
+						    entries);
 						free(tr);
 					}
 				}
 			}
 		}
 		tl->len = llen;
-		tl = *(((struct bfhead *)(tl->prev))->tqh_last);
+		tl = TAILQ_PREV(tl, bfhead, entries);
 	}
-
-	if ((first->next) != NULL)
-		first->next->prev = first->prev;
-	else
-		head.tqh_last = first->prev;
-	*first->prev = first->next;
-
+	TAILQ_REMOVE(&head, first, entries);
 	free(first);
 }
