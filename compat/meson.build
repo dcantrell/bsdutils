@@ -7,8 +7,9 @@ libcompat_sources = [
     'strmode.c',
     'expand_number.c',
     'vis.c',
-    'strlfuncs.c',
     'signames.c',
+    'strlcpy.c',
+    'strlcat.c',
 ]
 
 libcompat = static_library(
