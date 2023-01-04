@@ -64,8 +64,9 @@ jobs:
                   [ -f 82.patch ] && patch -p1 < 82.patch
 
                   ./configure --prefix=/usr/local
-                  make
-                  make install
+                  make V=1
+                  make V=1 install
+
                   # make sure it does not interfere with bsdutils
                   apk del bsd-compat-headers
 
