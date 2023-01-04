@@ -23,20 +23,13 @@ jobs:
     glibc:
         runs-on: ubuntu-latest
 
+        container:
+            image: "fedora:latest"
+
         steps:
             - name: dependencies
               run: |
-                  sudo env DEBIAN_FRONTEND=noninteractive apt-get -y install meson ninja-build libedit-dev libacl1-dev curl
-
-            - name: libxo
-              run: |
-                  VER="$(git ls-remote --tag https://github.com/Juniper/libxo | grep -E "\/[0-9\.]+$" | rev | cut -d '/' -f 1 | rev | sort -n | tail -n 1)"
-                  curl -k -f -L -O https://github.com/Juniper/libxo/releases/download/${VER}/libxo-${VER}.tar.gz
-                  tar -xf libxo-${VER}.tar.gz
-                  cd libxo-${VER}
-                  ./configure --prefix=/usr/local
-                  make
-                  sudo make install
+                  sudo dnf install -y meson ninja-build make libedit-devel libcurl-devel libxo-devel
 
             - uses: actions/checkout@v2
 
