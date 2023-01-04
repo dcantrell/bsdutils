@@ -1,9 +1,10 @@
 project('bsdutils',
         [ 'c', 'cpp' ],
-        version : '1.0',
+        version : '13.1',
         default_options : [
             'c_std=c99',
             'warning_level=2',
+            'werror=false',
             'buildtype=debugoptimized'
         ],
         license : 'BSD-3-Clause')
