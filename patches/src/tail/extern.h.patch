@@ -1,7 +1,0 @@
---- tail/extern.h.orig	2021-06-28 22:42:57.681736456 +0200
-+++ tail/extern.h	2021-06-29 20:47:55.866629774 +0200
-@@ -78,4 +78,3 @@ int maparound(struct mapinfo *, off_t);
- void printfn(const char *, int);
- 
- extern int Fflag, fflag, qflag, rflag, rval, no_files;
--extern fileargs_t *fa;
