@@ -28,7 +28,6 @@ xz -dc src.txz | tar -xf -
 
 # XXX: commands
 #usr.bin/arch
-#usr.bin/readlink  (part of stat)
 
 # copy in the source for all coreutils programs
 CMDS="bin/test
