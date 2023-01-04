@@ -68,6 +68,8 @@ static const char sccsid[] = "@(#)main.c	8.2 (Berkeley) 1/3/94";
 #include "defs.h"
 #include "extern.h"
 
+#include "compat.h"
+
 /*
  * Linked list of units (strings and files) to be compiled
  */
@@ -118,6 +120,7 @@ static char oldfname[PATH_MAX];	/* Old file name (for in-place editing) */
 static char tmpfname[PATH_MAX];	/* Temporary file name (for in-place editing) */
 const char *inplace;		/* Inplace edit file extension. */
 u_long linenum;
+const char *progname;
 
 static void add_compunit(enum e_cut, char *);
 static void add_file(char *);
@@ -134,6 +137,7 @@ main(int argc, char *argv[])
 	fflag = 0;
 	fflagstdin = 0;
 	inplace = NULL;
+	progname = basename(argv[0]);
 
 	while ((c = getopt(argc, argv, "EI:ae:f:i:lnru")) != -1)
 		switch (c) {
@@ -213,7 +217,7 @@ usage(void)
 	(void)fprintf(stderr,
 	    "usage: %s script [-Ealnru] [-i extension] [file ...]\n"
 	    "\t%s [-Ealnu] [-i extension] [-e script] ... [-f script_file]"
-	    " ... [file ...]\n", getprogname(), getprogname());
+	    " ... [file ...]\n", progname, progname);
 	exit(1);
 }
 
@@ -262,7 +266,7 @@ again:
 			state = ST_STRING;
 			goto again;
 		default:
-			__unreachable();
+			(void) 0;
 		}
 	case ST_FILE:
 		if ((p = fgets(buf, n, f)) != NULL) {

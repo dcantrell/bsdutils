@@ -827,11 +827,15 @@ compile_tr(char *p, struct s_tr **py)
 			y->bytetab[i] = (btowc(i) != WEOF) ? i : 0;
 		while (*op != '\0') {
 			oclen = mbrlen(op, MB_LEN_MAX, &mbs1);
-			if (oclen == (size_t)-1 || oclen == (size_t)-2)
-				errc(1, EILSEQ, NULL);
+			if (oclen == (size_t)-1 || oclen == (size_t)-2) {
+				errno = EILSEQ;
+				err(1, NULL);
+			}
 			nclen = mbrlen(np, MB_LEN_MAX, &mbs2);
-			if (nclen == (size_t)-1 || nclen == (size_t)-2)
-				errc(1, EILSEQ, NULL);
+			if (nclen == (size_t)-1 || nclen == (size_t)-2) {
+				errno = EILSEQ;
+				err(1, NULL);
+			}
 			if (oclen == 1 && nclen == 1)
 				y->bytetab[(u_char)*op] = *np;
 			else {
