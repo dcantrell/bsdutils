@@ -48,7 +48,7 @@ jobs:
         steps:
             - name: dependencies
               run: |
-                  apk add curl git libtool autoconf automake make patch gcc musl-dev linux-headers g++ meson flex bison libedit-dev openssl-dev fts-dev acl-dev
+                  apk add curl git libtool autoconf automake make patch gcc musl-dev linux-headers g++ meson flex bison libedit-dev openssl-dev musl-fts-dev acl-dev
 
             - name: libxo
               run: |
