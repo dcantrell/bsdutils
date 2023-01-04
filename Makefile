@@ -28,6 +28,9 @@ authors:
 	head -n $$(($$(wc -l < AUTHORS.md) - 1)) AUTHORS.md > AUTHORS.md.new
 	mv AUTHORS.md.new AUTHORS.md
 
+import:
+	$(topdir)/utils/import-src.sh $(topdir)/upstream.conf
+
 # Quiet errors about target arguments not being targets
 %:
 	@true

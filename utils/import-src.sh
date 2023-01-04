@@ -4,13 +4,22 @@
 #                 this tree.  Primarily for maintenance use when
 #                 a new version of FreeBSD comes out.
 #
-# Author: David Cantrell <david.l.cantrell@gmail.com>
+# Author: David Cantrell <dcantrell@burdell.org>
 #
 
 PATH=/bin:/usr/bin
-CWD="$(pwd)"
+PROGNAME="$(basename $0)"
+
+if [ -z "${1}" ] || [ ! -f "${1}" ]; then
+    echo "Usage: ${PROGNAME} CONFIG_FILE" >&2
+    echo "e.g., ${PROGNAME} upstream.conf" >&2
+    exit 1
+fi
+
+. ${1}
+
+CWD="$(dirname $(realpath ${1}))"
 TMPDIR="$(mktemp -d --tmpdir=${CWD})"
-. ${CWD}/upstream.conf
 
 fail_exit() {
     cd ${CWD}
@@ -25,9 +34,6 @@ done
 cd ${TMPDIR}
 curl -L --retry 3 --ftp-pasv -O ${SRC} || fail_exit
 xz -dc src.txz | tar -xf -
-
-# XXX: commands
-#usr.bin/arch
 
 # copy in the source for all coreutils programs
 CMDS="bin/test
@@ -81,6 +87,7 @@ CMDS="bin/test
       bin/realpath
       bin/rm
       bin/rmdir
+      usr.bin/sed
       usr.bin/seq
       bin/sleep
       usr.bin/sort
