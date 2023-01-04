@@ -43,8 +43,8 @@ static char sccsid[] = "@(#)id.c	8.2 (Berkeley) 2/16/94";
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 
+#include <sys/types.h>
 #include <sys/param.h>
-#include <sys/mac.h>
 
 #ifdef USE_BSM_AUDIT
 #include <bsm/audit.h>
@@ -67,7 +67,6 @@ static void	pretty(struct passwd *);
 static void	auditid(void);
 #endif
 static void	group(struct passwd *, int);
-static void	maclabel(void);
 static void	usage(void);
 static struct passwd *who(char *);
 
@@ -78,14 +77,12 @@ main(int argc, char *argv[])
 {
 	struct group *gr;
 	struct passwd *pw;
-	int Gflag, Mflag, Pflag, ch, gflag, id, nflag, pflag, rflag, uflag;
-	int Aflag, cflag;
-	int error;
+	int Gflag, Pflag, ch, gflag, id, nflag, pflag, rflag, uflag;
+	int Aflag;
 	const char *myname;
-	char loginclass[MAXLOGNAME];
 
-	Gflag = Mflag = Pflag = gflag = nflag = pflag = rflag = uflag = 0;
-	Aflag = cflag = 0;
+	Gflag = Pflag = gflag = nflag = pflag = rflag = uflag = 0;
+	Aflag = 0;
 
 	myname = strrchr(argv[0], '/');
 	myname = (myname != NULL) ? myname + 1 : argv[0];
@@ -99,7 +96,7 @@ main(int argc, char *argv[])
 	}
 
 	while ((ch = getopt(argc, argv,
-	    (isgroups || iswhoami) ? "" : "APGMacgnpru")) != -1)
+	    (isgroups || iswhoami) ? "" : "APGagnpru")) != -1)
 		switch(ch) {
 #ifdef USE_BSM_AUDIT
 		case 'A':
@@ -109,16 +106,10 @@ main(int argc, char *argv[])
 		case 'G':
 			Gflag = 1;
 			break;
-		case 'M':
-			Mflag = 1;
-			break;
 		case 'P':
 			Pflag = 1;
 			break;
 		case 'a':
-			break;
-		case 'c':
-			cflag = 1;
 			break;
 		case 'g':
 			gflag = 1;
@@ -144,10 +135,10 @@ main(int argc, char *argv[])
 
 	if (iswhoami && argc > 0)
 		usage();
-	if ((cflag || Aflag || Mflag) && argc > 0)
+	if (Aflag && argc > 0)
 		usage();
 
-	switch(Aflag + Gflag + Mflag + Pflag + gflag + pflag + uflag) {
+	switch(Aflag + Gflag + Pflag + gflag + pflag + uflag) {
 	case 1:
 		break;
 	case 0:
@@ -160,7 +151,7 @@ main(int argc, char *argv[])
 
 	pw = *argv ? who(*argv) : NULL;
 
-	if (Mflag && pw != NULL)
+	if (pw != NULL)
 		usage();
 
 #ifdef USE_BSM_AUDIT
@@ -169,14 +160,6 @@ main(int argc, char *argv[])
 		exit(0);
 	}
 #endif
-
-	if (cflag) {
-		error = getloginclass(loginclass, sizeof(loginclass));
-		if (error != 0)
-			err(1, "loginclass");
-		(void)printf("%s\n", loginclass);
-		exit(0);
-	}
 
 	if (gflag) {
 		id = pw ? pw->pw_gid : rflag ? getgid() : getegid();
@@ -198,11 +181,6 @@ main(int argc, char *argv[])
 
 	if (Gflag) {
 		group(pw, nflag);
-		exit(0);
-	}
-
-	if (Mflag) {
-		maclabel();
 		exit(0);
 	}
 
@@ -418,30 +396,6 @@ group(struct passwd *pw, int nflag)
 	free(groups);
 }
 
-static void
-maclabel(void)
-{
-	char *string;
-	mac_t label;
-	int error;
-
-	error = mac_prepare_process_label(&label);
-	if (error == -1)
-		errx(1, "mac_prepare_type: %s", strerror(errno));
-
-	error = mac_get_proc(label);
-	if (error == -1)
-		errx(1, "mac_get_proc: %s", strerror(errno));
-
-	error = mac_to_text(label, &string);
-	if (error == -1)
-		errx(1, "mac_to_text: %s", strerror(errno));
-
-	(void)printf("%s\n", string);
-	mac_free(label);
-	free(string);
-}
-
 static struct passwd *
 who(char *u)
 {
@@ -471,9 +425,9 @@ pline(struct passwd *pw)
 			err(1, "getpwuid");
 	}
 
-	(void)printf("%s:%s:%d:%d:%s:%ld:%ld:%s:%s:%s\n", pw->pw_name,
-			pw->pw_passwd, pw->pw_uid, pw->pw_gid, pw->pw_class,
-			(long)pw->pw_change, (long)pw->pw_expire, pw->pw_gecos,
+	(void)printf("%s:%s:%d:%d:%s:%s:%s\n", pw->pw_name,
+			pw->pw_passwd, pw->pw_uid, pw->pw_gid,
+			pw->pw_gecos,
 			pw->pw_dir, pw->pw_shell);
 }
 
@@ -487,7 +441,7 @@ usage(void)
 	else if (iswhoami)
 		(void)fprintf(stderr, "usage: whoami\n");
 	else
-		(void)fprintf(stderr, "%s\n%s%s\n%s\n%s\n%s\n%s\n%s\n%s\n",
+		(void)fprintf(stderr, "%s\n%s%s\n%s\n%s\n%s\n%s\n",
 		    "usage: id [user]",
 #ifdef USE_BSM_AUDIT
 		    "       id -A\n",
@@ -495,9 +449,7 @@ usage(void)
 		    "",
 #endif
 		    "       id -G [-n] [user]",
-		    "       id -M",
 		    "       id -P [user]",
-		    "       id -c",
 		    "       id -g [-nr] [user]",
 		    "       id -p [user]",
 		    "       id -u [-nr] [user]");

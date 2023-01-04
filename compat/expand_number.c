@@ -34,7 +34,6 @@ __FBSDID("$FreeBSD$");
 #include <ctype.h>
 #include <errno.h>
 #include <inttypes.h>
-#include <libutil.h>
 #include <stdint.h>
 
 int

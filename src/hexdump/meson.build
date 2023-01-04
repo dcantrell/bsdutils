@@ -1,6 +1,12 @@
 hexdump_prog = executable(
     'hexdump',
-    [ 'conv.c', 'display.c', 'hexdump.c', 'hexsyntax.c', 'odsyntax.c', 'parse.c' ],
+    [ 'conv.c',
+      'display.c',
+      'hexdump.c',
+      'hexsyntax.c',
+      'odsyntax.c',
+      'parse.c',
+    ],
     include_directories : [ inc, ],
     link_with : [ libcompat ],
     install : true,

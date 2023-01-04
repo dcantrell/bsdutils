@@ -35,7 +35,7 @@
 #include <limits.h>
 
 #define	NCHARS_SB	(UCHAR_MAX + 1)	/* Number of single-byte characters. */
-#define	OOBCH		-1		/* Out of band character value. */
+#define	OOBCH		(wint_t)(-1)		/* Out of band character value. */
 
 typedef struct {
 	enum { STRING1, STRING2 } which;
@@ -51,3 +51,5 @@ typedef struct {
 
 wint_t	 next(STR *);
 int charcoll(const void *, const void *);
+
+#define iswrune(v) (iswprint(v) || iswcntrl(v))

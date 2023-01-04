@@ -36,6 +36,8 @@
  * $FreeBSD$
  */
 
+#include <sys/types.h>
+
 /* Input/output stream state. */
 typedef struct {
 	u_char		*db;		/* buffer address */

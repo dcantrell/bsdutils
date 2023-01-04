@@ -40,7 +40,7 @@
 .Nd list directory contents
 .Sh SYNOPSIS
 .Nm
-.Op Fl ABCFGHILPRSTUWZabcdfghiklmnopqrstuwxy1\&,
+.Op Fl ABCFGHILPRSTWabcdfghiklmnpqrstuwxy1\&,
 .Op Fl -color Ns = Ns Ar when
 .Op Fl D Ar format
 .Op Ar
@@ -185,17 +185,8 @@ The
 option gives even more control over the output format.
 This option is not defined in
 .St -p1003.1-2008 .
-.It Fl U
-Use time when file was created for sorting or printing.
-This option is not defined in
-.St -p1003.1-2008 .
 .It Fl W
 Display whiteouts when scanning directories.
-This option is not defined in
-.St -p1003.1-2008 .
-.It Fl Z
-Display each file's MAC label; see
-.Xr maclabel 7 .
 This option is not defined in
 .St -p1003.1-2008 .
 .It Fl a
@@ -338,15 +329,6 @@ Display user and group IDs numerically rather than converting to a user
 or group name in a long
 .Pq Fl l
 output.
-.It Fl o
-Include the file flags in a long
-.Pq Fl l
-output.
-This option is incompatible with
-.St -p1003.1-2008 .
-See
-.Xr chflags 1
-for a list of file flags and their meanings.
 .It Fl p
 Write a slash
 .Pq Ql /
@@ -856,11 +838,10 @@ List the contents of the current working directory in long format:
 .Dl $ ls -l
 .Pp
 In addition to listing the contents of the current working directory in
-long format, show inode numbers, file flags (see
-.Xr chflags 1 ) ,
+long format, show inode numbers,
 and suffix each filename with a symbol representing its file type:
 .Pp
-.Dl $ ls -lioF
+.Dl $ ls -liF
 .Pp
 List the files in
 .Pa /var/log ,
@@ -874,7 +855,6 @@ files in order to be compatible with the
 .St -p1003.2
 specification.
 .Sh SEE ALSO
-.Xr chflags 1 ,
 .Xr chmod 1 ,
 .Xr getfacl 1 ,
 .Xr sort 1 ,
@@ -889,9 +869,9 @@ specification.
 .Xr getfmac 8
 .Sh STANDARDS
 With the exception of options
-.Fl g , n
+.Fl g
 and
-.Fl o ,
+.Fl n,
 the
 .Nm
 utility conforms to
@@ -899,7 +879,7 @@ utility conforms to
 and
 .St -p1003.1-2008 .
 The options
-.Fl B , D , G , I , T , U , W , Z , b , h , w , y
+.Fl B , D , G , I , T , W , b , h , w , y
 and
 .Fl ,
 are non-standard extensions.

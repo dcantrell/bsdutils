@@ -478,41 +478,101 @@ struct bwstring *
 bwsfgetln(FILE *f, size_t *len, bool zero_ended, struct reader_buffer *rb)
 {
 	wint_t eols;
+	wchar_t sbuf[256];
 
 	eols = zero_ended ? btowc('\0') : btowc('\n');
 
 	if (!zero_ended && (mb_cur_max > 1)) {
-		wchar_t *ret;
+		wchar_t *buf = NULL;
+		wchar_t *wptr;
+		size_t bufsz = 0;
+		size_t wlen;
+		struct bwstring *ret;
 
-		ret = fgetwln(f, len);
-
-		if (ret == NULL) {
+		wptr = fgetws(sbuf, sizeof(sbuf) / sizeof(wchar_t), f);
+		if (wptr) {
+			wlen = wcslen(wptr);
+			if (wptr[wlen - 1] == (wchar_t)eols)
+				return bwssbdup(wptr, wlen - 1);
+			if (feof(f))
+				return bwssbdup(wptr, wlen);
+		} else {
 			if (!feof(f))
 				err(2, NULL);
 			return (NULL);
 		}
-		if (*len > 0) {
-			if (ret[*len - 1] == (wchar_t)eols)
-				--(*len);
+
+		bufsz = wlen + 256;
+		buf = malloc(bufsz * sizeof(wchar_t));
+		memcpy(buf, wptr, wlen * sizeof(wchar_t));
+		for (;;) {
+			wchar_t *nptr = fgetws(&buf[wlen], 256, f);
+			if (!f) {
+				if (feof(f))
+					break;
+				free(buf);
+				err(2, NULL);
+			}
+			wlen += wcslen(nptr);
+			if (buf[wlen - 1] == (wchar_t)eols) {
+				--wlen;
+				break;
+			}
+			if (feof(f))
+				break;
+			bufsz += 256;
+			buf = realloc(buf, bufsz);
 		}
-		return (bwssbdup(ret, *len));
 
-	} else if (!zero_ended && (mb_cur_max == 1)) {
-		char *ret;
+		ret = bwssbdup(buf, wlen);
+		free(buf);
+		return ret;
 
-		ret = fgetln(f, len);
+	} else if (!zero_ended && (MB_CUR_MAX == 1)) {
+		char *buf = NULL;
+		char *bptr;
+		size_t bufsz = 0;
+		size_t blen;
+		struct bwstring *ret;
 
-		if (ret == NULL) {
+		bptr = fgets((char *)sbuf, sizeof(sbuf), f);
+		if (bptr) {
+			blen = strlen(bptr);
+			if (bptr[blen - 1] == '\n')
+				return bwscsbdup((unsigned char *)bptr, blen - 1);
+			if (feof(f))
+				return bwscsbdup((unsigned char *)bptr, blen);
+		} else {
 			if (!feof(f))
 				err(2, NULL);
 			return (NULL);
 		}
-		if (*len > 0) {
-			if (ret[*len - 1] == '\n')
-				--(*len);
-		}
-		return (bwscsbdup((unsigned char *)ret, *len));
 
+		bufsz = blen + 256;
+		buf = malloc(bufsz);
+		memcpy(buf, bptr, blen);
+		for (;;) {
+			char *nptr = fgets(&buf[blen], 256, f);
+			if (!f) {
+				if (feof(f))
+					break;
+				free(buf);
+				err(2, NULL);
+			}
+			blen += strlen(nptr);
+			if (buf[blen - 1] == '\n') {
+				--blen;
+				break;
+			}
+			if (feof(f))
+				break;
+			bufsz += 256;
+			buf = realloc(buf, bufsz);
+		}
+
+		ret = bwscsbdup((unsigned char *)buf, blen);
+		free(buf);
+		return ret;
 	} else {
 		*len = 0;
 
@@ -537,7 +597,7 @@ bwsfgetln(FILE *f, size_t *len, bool zero_ended, struct reader_buffer *rb)
 						return (NULL);
 					goto line_read_done;
 				}
-				if (c == eols)
+				if ((wint_t)c == eols)
 					goto line_read_done;
 
 				if (*len + 1 >= rb->fgetwln_z_buffer_size) {

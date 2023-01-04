@@ -1,8 +1,6 @@
 df_prog = executable(
     'df',
-    [ 'df.c',
-      'vfslist.c',
-    ],
+    [ 'df.c' ],
     include_directories : inc,
     dependencies : [ libxo ],
     link_with : [ libcompat ],

@@ -39,7 +39,10 @@
 #include <wchar.h>
 
 #include <sys/types.h>
-#include <md5.h>
+
+#ifndef WITHOUT_LIBCRYPTO
+#include <openssl/evp.h>
+#endif
 
 #define	VERSION	"2.3-FreeBSD"
 
@@ -61,15 +64,31 @@ extern unsigned int ncpu;
 extern size_t nthreads;
 #endif
 
+/* bsdutils additions */
+
+#ifndef WITHOUT_LIBCRYPTO
+#define MD5_DIGEST_LENGTH 16
+
+typedef struct {
+	EVP_MD_CTX *mdctx;
+} MD5_CTX;
+
+void MD5Init(MD5_CTX *context);
+void MD5Update(MD5_CTX *context, const void *data, unsigned int len);
+void MD5Final(unsigned char digest[MD5_DIGEST_LENGTH], MD5_CTX *context);
+#endif
+
 /*
  * If true, we output some debug information.
  */
 extern bool debug_sort;
 
+#ifndef WITHOUT_LIBCRYPTO
 /*
  * MD5 context for random hash function
  */
 extern MD5_CTX md5_ctx;
+#endif
 
 /*
  * sort.c

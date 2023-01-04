@@ -33,6 +33,7 @@
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 
+#include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/param.h>
 #include <err.h>
@@ -44,6 +45,7 @@ __FBSDID("$FreeBSD$");
 #include <unistd.h>
 
 #include "envopts.h"
+#include "compat.h"
 
 static const char *
 		 expand_vars(int in_thisarg, char **thisarg_p, char **dest_p,

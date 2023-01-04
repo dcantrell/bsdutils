@@ -45,7 +45,7 @@ __FBSDID("$FreeBSD$");
 #include <unistd.h>
 
 int
-main(int argc __unused, char *argv[] __unused)
+main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
 {
 	sync();
 	exit(0);
