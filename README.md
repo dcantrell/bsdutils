@@ -26,18 +26,39 @@ releases, so keep that in mind.  The workflow is basically:
 
 2) Verify URL in upstream.conf works (FreeBSD may move things around).
 
-3) Run ./import-src.sh.  It is adviseable to capture stdout and stderr
-to see what patches fail to apply.  Any that fail, you want to
-manually fix and then run import-src.sh again to get a clean import of
-the version you are updating to.
+3) Run ./import-src.sh.
 
-4) Now build all the commands and fix any new build errors.
+4) Do an initial commit of this import and tag it as
+   X.Y-RELEASE-import.  For example, importing source from FreeBSD 13.1
+   would have a tag named 13.1-RELEASE-import in the tree.
 
-Once this is clean, you can commit the import of the new version of
-FreeBSD code.  The import-src.sh and patches step is meant to make it
-more clear what changes I apply to FreeBSD code from release to
-release and also if any external projects want to use these patches
-and the FreeBSD source directly.
+   * NOTE: The tree should have Makefile.bsd files in it right now,
+     but those should not be committed.  Leave them in place for now.
+
+5) Use git to gather the changes between the previous
+   X.[Y-1]-RELEASE-import tag and the previous commit.  Apply these to
+   the tree now.  This is mostly easy, but some patches will have to
+   be manually applied.  What I tend to do is generate a large patch
+   with git and then run splitdiff on that to get individual patches
+   for each source file.  I then have a script that tries to apply
+   each of those and for any that fail, I retain them.  If the patch
+   applied successfully, I remove the patch.  The remaining set I need
+   to apply by hand.
+
+6) After applying patches, run make.  Fix anything that fails.  This
+   is the step that updates the patches for the new FreeBSD source.
+
+7) Now check each Makefile.bsd file to see if our meson.build files
+   need updating.  There may be new compiler flags or macros to
+   define.  Likewise there may be new source files that should be
+   listed.  Use this step to also remove any source files that no
+   longer exist (the Makefile.bsd file won't reference the file, so
+   you can remove it and update the meson.build file).
+
+8) Now commit these changes.
+
+Push the changes and check that CI passes.  After some testing, it's
+probably time for a release.
 
 
 Build Requirements
