@@ -53,6 +53,7 @@ __FBSDID("$FreeBSD$");
 #include <stdlib.h>
 #include <sysexits.h>
 #include <unistd.h>
+#include <signal.h>
 
 #include "extern.h"
 
