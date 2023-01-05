@@ -5,21 +5,8 @@ id_prog = executable(
     install : true,
 )
 
-# XXX: this should be a relative symlink to id
-groups_prog = executable(
-    'groups',
-    [ 'id.c' ],
-    include_directories : inc,
-    install : true,
-)
-
-# XXX: this should be a relative symlink to id
-whoami_prog = executable(
-    'whoami',
-    [ 'id.c' ],
-    include_directories : inc,
-    install : true,
-)
+meson.add_install_script(install_link, 'id', 'groups', get_option('bindir'))
+meson.add_install_script(install_link, 'id', 'whoami', get_option('bindir'))
 
 install_man('id.1')
 install_man('groups.1')
