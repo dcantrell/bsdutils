@@ -4,4 +4,4 @@ printf_prog = executable(
     install : true,
 )
 
-install_man('printf.1b')
+install_man('printf.1')

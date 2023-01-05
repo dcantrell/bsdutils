@@ -6,4 +6,4 @@ tr_prog = executable(
     install : true,
 )
 
-install_man('tr.1b')
+install_man('tr.1')

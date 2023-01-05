@@ -5,4 +5,4 @@ join_prog = executable(
     install : true,
 )
 
-install_man('join.1b')
+install_man('join.1')

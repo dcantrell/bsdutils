@@ -5,4 +5,4 @@ expand_prog = executable(
     install : true,
 )
 
-install_man('expand.1b')
+install_man('expand.1')

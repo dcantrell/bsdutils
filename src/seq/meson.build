@@ -6,4 +6,4 @@ seq_prog = executable(
     install : true,
 )
 
-install_man('seq.1b')
+install_man('seq.1')

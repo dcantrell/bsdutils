@@ -6,4 +6,4 @@ truncate_prog = executable(
     install : true,
 )
 
-install_man('truncate.1b')
+install_man('truncate.1')

@@ -6,4 +6,4 @@ who_prog = executable(
     install : true,
 )
 
-install_man('who.1b')
+install_man('who.1')

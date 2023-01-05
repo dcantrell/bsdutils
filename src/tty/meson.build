@@ -5,4 +5,4 @@ tty_prog = executable(
     install : true,
 )
 
-install_man('tty.1b')
+install_man('tty.1')

@@ -8,6 +8,6 @@ id_prog = executable(
 meson.add_install_script(install_link, 'id', 'groups', get_option('bindir'))
 meson.add_install_script(install_link, 'id', 'whoami', get_option('bindir'))
 
-install_man('id.1b')
-install_man('groups.1b')
-install_man('whoami.1b')
+install_man('id.1')
+install_man('groups.1')
+install_man('whoami.1')

@@ -6,4 +6,4 @@ cat_prog = executable(
     install : true,
 )
 
-install_man('cat.1b')
+install_man('cat.1')

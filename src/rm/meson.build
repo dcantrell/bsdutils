@@ -7,9 +7,9 @@ rm_prog = executable(
     install : true,
 )
 
-install_man('rm.1b')
+install_man('rm.1')
 
 meson.add_install_script(install_link, 'rm', 'unlink', get_option('bindir'))
 meson.add_install_script(
-    install_link, 'rm.1b', 'unlink.1', join_paths(get_option('mandir'), 'man1')
+    install_link, 'rm.1', 'unlink.1', join_paths(get_option('mandir'), 'man1')
 )

@@ -5,4 +5,4 @@ nice_prog = executable(
     install : true,
 )
 
-install_man('nice.1b')
+install_man('nice.1')

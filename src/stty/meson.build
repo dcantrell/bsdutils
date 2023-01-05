@@ -12,4 +12,4 @@ stty_prog = executable(
     install : true,
 )
 
-install_man('stty.1b')
+install_man('stty.1')

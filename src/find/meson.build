@@ -17,4 +17,4 @@ find_prog = executable(
     install : true,
 )
 
-install_man('find.1b')
+install_man('find.1')

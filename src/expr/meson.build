@@ -9,4 +9,4 @@ expr_prog = executable(
     install : true,
 )
 
-install_man('expr.1b')
+install_man('expr.1')

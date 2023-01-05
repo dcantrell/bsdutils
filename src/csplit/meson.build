@@ -5,4 +5,4 @@ csplit_prog = executable(
     install : true,
 )
 
-install_man('csplit.1b')
+install_man('csplit.1')

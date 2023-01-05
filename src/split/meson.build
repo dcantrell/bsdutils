@@ -6,4 +6,4 @@ split_prog = executable(
     install : true,
 )
 
-install_man('split.1b')
+install_man('split.1')

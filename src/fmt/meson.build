@@ -5,4 +5,4 @@ fmt_prog = executable(
     install : true,
 )
 
-install_man('fmt.1b')
+install_man('fmt.1')

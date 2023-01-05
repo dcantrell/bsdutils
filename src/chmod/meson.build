@@ -7,4 +7,4 @@ chmod_prog = executable(
     install : true,
 )
 
-install_man('chmod.1b')
+install_man('chmod.1')

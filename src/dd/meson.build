@@ -12,4 +12,4 @@ dd_prog = executable(
     install : true,
 )
 
-install_man('dd.1b')
+install_man('dd.1')

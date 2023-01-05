@@ -5,4 +5,4 @@ pwd_prog = executable(
     install : true,
 )
 
-install_man('pwd.1b')
+install_man('pwd.1')

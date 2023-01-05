@@ -5,4 +5,4 @@ basename_prog = executable(
     install : true,
 )
 
-install_man('basename.1b')
+install_man('basename.1')

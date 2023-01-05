@@ -4,4 +4,4 @@ yes_prog = executable(
     install : true,
 )
 
-install_man('yes.1b')
+install_man('yes.1')

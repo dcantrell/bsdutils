@@ -6,9 +6,9 @@ test_prog = executable(
 
 meson.add_install_script('install.sh', get_option('bindir'))
 
-install_man('test.1b')
+install_man('test.1')
 
 meson.add_install_script(install_link, 'test', '[', get_option('bindir'))
 meson.add_install_script(
-    install_link, 'test.1b', '[.1', join_paths(get_option('mandir'), 'man1')
+    install_link, 'test.1', '[.1', join_paths(get_option('mandir'), 'man1')
 )

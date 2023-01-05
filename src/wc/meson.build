@@ -6,4 +6,4 @@ wc_prog = executable(
     install : true,
 )
 
-install_man('wc.1b')
+install_man('wc.1')

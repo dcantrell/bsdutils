@@ -9,4 +9,4 @@ cp_prog = executable(
     install : true,
 )
 
-install_man('cp.1b')
+install_man('cp.1')

@@ -5,4 +5,4 @@ pathchk_prog = executable(
     install : true,
 )
 
-install_man('pathchk.1b')
+install_man('pathchk.1')

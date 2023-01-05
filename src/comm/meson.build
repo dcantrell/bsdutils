@@ -5,4 +5,4 @@ comm_prog = executable(
     install : true,
 )
 
-install_man('comm.1b')
+install_man('comm.1')

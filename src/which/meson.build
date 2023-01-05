@@ -6,4 +6,4 @@ which_prog = executable(
     install_dir : get_option('bindir'),
 )
 
-install_man('which.1b')
+install_man('which.1')

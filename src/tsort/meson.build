@@ -5,4 +5,4 @@ tsort_prog = executable(
     install : true,
 )
 
-install_man('tsort.1b')
+install_man('tsort.1')

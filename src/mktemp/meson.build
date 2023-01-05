@@ -4,4 +4,4 @@ mktemp_prog = executable(
     install : true,
 )
 
-install_man('mktemp.1b')
+install_man('mktemp.1')

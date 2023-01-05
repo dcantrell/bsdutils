@@ -10,4 +10,4 @@ tail_prog = executable(
     install : true,
 )
 
-install_man('tail.1b')
+install_man('tail.1')
