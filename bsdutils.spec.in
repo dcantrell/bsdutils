@@ -50,6 +50,24 @@ against the defined parameters.
 %install
 %meson_install
 
+# Put all man pages in *b sections
+cd %{buildroot}%{_mandir}
+for section in 1 6 7 8 ; do
+    cd man"${section}"
+    for page in *."${section}" ; do
+        if [ -L "${page}" ]; then
+            target="$(readlink "${page}")"
+            ln -sf "${target}"b "${page}"b
+            rm "${page}"
+        else
+            mv "${page}" "${page}"b
+            sed -i -e '/^\.Dt/ s/$/B/' "${page}"b
+        fi
+    done
+    cd ..
+done
+cd ..
+
 
 %files
 %doc AUTHORS.md DIFFERENCES README.md TODO TRADEOFFS
