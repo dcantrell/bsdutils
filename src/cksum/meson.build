@@ -8,14 +8,7 @@ cksum_prog = executable(
     install : true,
 )
 
-# XXX: this should be a relative symlink to cksum
-sum_prog = executable(
-    'sum',
-    srcs,
-    c_args : [ '-Duint32_t=u_int32_t' ],
-    include_directories : inc,
-    install : true,
-)
+meson.add_install_script(install_link, 'cksum', 'sum', get_option('bindir'))
 
 install_man('cksum.1')
 install_man('sum.1')
