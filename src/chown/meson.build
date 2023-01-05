@@ -10,5 +10,5 @@ chown_prog = executable(
 
 meson.add_install_script(install_link, 'chown', 'chgrp', get_option('bindir'))
 
-install_man('chown.8')
-install_man('chgrp.1')
+install_man('chown.8b')
+install_man('chgrp.1b')

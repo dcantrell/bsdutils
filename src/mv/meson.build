@@ -8,4 +8,4 @@ mv_prog = executable(
     install : true,
 )
 
-install_man('mv.1')
+install_man('mv.1b')

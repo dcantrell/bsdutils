@@ -8,4 +8,4 @@ date_prog = executable(
     install : true,
 )
 
-install_man('date.1')
+install_man('date.1b')

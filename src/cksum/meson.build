@@ -10,5 +10,5 @@ cksum_prog = executable(
 
 meson.add_install_script(install_link, 'cksum', 'sum', get_option('bindir'))
 
-install_man('cksum.1')
-install_man('sum.1')
+install_man('cksum.1bb')
+install_man('sum.1b')

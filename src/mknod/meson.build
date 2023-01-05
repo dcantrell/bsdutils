@@ -5,4 +5,4 @@ mknod_prog = executable(
     install_dir : get_option('sbindir'),
 )
 
-install_man('mknod.8')
+install_man('mknod.8b')

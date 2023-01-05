@@ -6,4 +6,4 @@ chroot_prog = executable(
     install_dir : get_option('sbindir'),
 )
 
-install_man('chroot.8')
+install_man('chroot.8b')

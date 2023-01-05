@@ -4,4 +4,4 @@ uniq_prog = executable(
     install : true,
 )
 
-install_man('uniq.1')
+install_man('uniq.1b')

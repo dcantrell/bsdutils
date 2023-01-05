@@ -6,10 +6,10 @@ ln_prog = executable(
     install : true,
 )
 
-install_man('ln.1')
-install_man('symlink.7')
+install_man('ln.1b')
+install_man('symlink.7b')
 
 meson.add_install_script(install_link, 'ln', 'link', get_option('bindir'))
 meson.add_install_script(
-    install_link, 'ln.1', 'link.1', join_paths(get_option('mandir'), 'man1')
+    install_link, 'ln.1b', 'link.1', join_paths(get_option('mandir'), 'man1')
 )

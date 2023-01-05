@@ -5,4 +5,4 @@ hostname_prog = executable(
     install : true,
 )
 
-install_man('hostname.1')
+install_man('hostname.1b')

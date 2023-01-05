@@ -8,4 +8,4 @@ users_prog = executable(
     install : true,
 )
 
-install_man('users.1')
+install_man('users.1b')

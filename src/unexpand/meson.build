@@ -5,4 +5,4 @@ unexpand_prog = executable(
     install : true,
 )
 
-install_man('unexpand.1')
+install_man('unexpand.1b')

@@ -5,4 +5,4 @@ uname_prog = executable(
     install : true,
 )
 
-install_man('uname.1')
+install_man('uname.1b')

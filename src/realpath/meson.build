@@ -5,4 +5,4 @@ realpath_prog = executable(
     install : true,
 )
 
-install_man('realpath.1')
+install_man('realpath.1b')

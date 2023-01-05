@@ -4,4 +4,4 @@ stdbuf_prog = executable(
     install : true,
 )
 
-install_man('stdbuf.1')
+install_man('stdbuf.1b')

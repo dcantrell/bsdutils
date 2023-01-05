@@ -8,4 +8,4 @@ env_prog = executable(
     install : true,
 )
 
-install_man('env.1')
+install_man('env.1b')

@@ -5,4 +5,4 @@ printenv_prog = executable(
     install : true,
 )
 
-install_man('printenv.1')
+install_man('printenv.1b')

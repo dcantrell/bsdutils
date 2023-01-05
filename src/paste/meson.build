@@ -5,4 +5,4 @@ paste_prog = executable(
     install : true,
 )
 
-install_man('paste.1')
+install_man('paste.1b')

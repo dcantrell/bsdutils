@@ -5,4 +5,4 @@ nl_prog = executable(
     install : true,
 )
 
-install_man('nl.1')
+install_man('nl.1b')

@@ -6,4 +6,4 @@ factor_prog = executable(
     install : true,
 )
 
-install_man('factor.6')
+install_man('factor.6b')

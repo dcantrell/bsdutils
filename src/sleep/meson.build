@@ -5,4 +5,4 @@ sleep_prog = executable(
     install : true,
 )
 
-install_man('sleep.1')
+install_man('sleep.1b')

@@ -5,4 +5,4 @@ logname_prog = executable(
     install : true,
 )
 
-install_man('logname.1')
+install_man('logname.1b')

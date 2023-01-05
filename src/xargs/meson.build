@@ -8,4 +8,4 @@ xargs_prog = executable(
     install : true,
 )
 
-install_man('xargs.1')
+install_man('xargs.1b')

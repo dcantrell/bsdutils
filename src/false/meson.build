@@ -5,4 +5,4 @@ false_prog = executable(
     install : true,
 )
 
-install_man('false.1')
+install_man('false.1b')

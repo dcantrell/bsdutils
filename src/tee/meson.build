@@ -4,4 +4,4 @@ tee_prog = executable(
     install : true,
 )
 
-install_man('tee.1')
+install_man('tee.1b')

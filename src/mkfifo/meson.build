@@ -7,4 +7,4 @@ mkfifo_prog = executable(
     install_dir : get_option('bindir'),
 )
 
-install_man('mkfifo.1')
+install_man('mkfifo.1b')

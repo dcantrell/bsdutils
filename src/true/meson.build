@@ -4,4 +4,4 @@ true_prog = executable(
     install : true,
 )
 
-install_man('true.1')
+install_man('true.1b')

@@ -6,4 +6,4 @@ mkdir_prog = executable(
     install : true,
 )
 
-install_man('mkdir.1')
+install_man('mkdir.1b')

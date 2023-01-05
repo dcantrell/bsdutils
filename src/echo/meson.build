@@ -5,4 +5,4 @@ echo_prog = executable(
     install : true,
 )
 
-install_man('echo.1')
+install_man('echo.1b')

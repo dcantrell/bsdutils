@@ -7,4 +7,4 @@ pr_prog = executable(
     install : true,
 )
 
-install_man('pr.1')
+install_man('pr.1b')

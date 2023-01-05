@@ -6,4 +6,4 @@ kill_prog = executable(
     install : true,
 )
 
-install_man('kill.1')
+install_man('kill.1b')

@@ -6,4 +6,4 @@ sync_prog = executable(
     install_dir : get_option('sbindir'),
 )
 
-install_man('sync.8')
+install_man('sync.8b')

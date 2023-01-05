@@ -5,4 +5,4 @@ fold_prog = executable(
     install : true,
 )
 
-install_man('fold.1')
+install_man('fold.1b')

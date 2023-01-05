@@ -12,4 +12,4 @@ dc_prog = executable(
     install : true,
 )
 
-install_man('dc.1')
+install_man('dc.1b')

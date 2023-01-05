@@ -5,4 +5,4 @@ head_prog = executable(
     install : true,
 )
 
-install_man('head.1')
+install_man('head.1b')

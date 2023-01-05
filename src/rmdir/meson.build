@@ -5,4 +5,4 @@ rmdir_prog = executable(
     install : true,
 )
 
-install_man('rmdir.1')
+install_man('rmdir.1b')

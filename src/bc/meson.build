@@ -10,6 +10,6 @@ bc_prog = executable(
     install : true,
 )
 
-install_man('bc.1')
+install_man('bc.1b')
 install_data('bc.library',
              install_dir : get_option('datadir') / 'misc')

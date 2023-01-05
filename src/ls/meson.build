@@ -20,4 +20,4 @@ ls_prog = executable(
     install : true,
 )
 
-install_man('ls.1')
+install_man('ls.1b')

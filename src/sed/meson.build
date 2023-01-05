@@ -10,4 +10,4 @@ sed_prog = executable(
     install : true,
 )
 
-install_man('sed.1')
+install_man('sed.1b')

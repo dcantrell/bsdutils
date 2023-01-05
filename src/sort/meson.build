@@ -17,4 +17,4 @@ sort_prog = executable(
     install : true,
 )
 
-install_man('sort.1')
+install_man('sort.1b')

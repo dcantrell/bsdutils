@@ -5,4 +5,4 @@ cut_prog = executable(
     install : true,
 )
 
-install_man('cut.1')
+install_man('cut.1b')

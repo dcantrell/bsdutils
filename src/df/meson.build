@@ -7,4 +7,4 @@ df_prog = executable(
     install : true,
 )
 
-install_man('df.1')
+install_man('df.1b')

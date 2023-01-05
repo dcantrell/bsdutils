@@ -6,4 +6,4 @@ timeout_prog = executable(
     install : true,
 )
 
-install_man('timeout.1')
+install_man('timeout.1b')

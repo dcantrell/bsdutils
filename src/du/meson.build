@@ -7,4 +7,4 @@ du_prog = executable(
     install : true,
 )
 
-install_man('du.1')
+install_man('du.1b')

@@ -5,4 +5,4 @@ nohup_prog = executable(
     install : true,
 )
 
-install_man('nohup.1')
+install_man('nohup.1b')
