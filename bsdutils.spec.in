@@ -1,0 +1,65 @@
+# Historically, commerical Unix systems derived from AT&T System V
+# would provide software that originated at the University of
+# California Berkeley in the /usr/ucb directory.  Some systems used
+# /usr/bsd.  This package uses the /usr/ucb directory as the bindir as
+# that's how older Unix systems did it.
+%define _bindir %{_prefix}/ucb
+%define _sbindir %{_bindir}
+
+Name:           bsdutils
+Version:        %%VERSION%%
+Release:        1%{?dist}
+Summary:        Userspace commands from FreeBSD
+Group:          Development/Tools
+License:        BSD-2-Clause AND BSD-3-Clause
+URL:            https://github.com/dcantrell/bsdutils
+Source0:        https://github.com/dcantrell/bsdutils/releases/download/v%{version}/%{name}-%{version}.tar.xz
+Source1:        https://github.com/dcantrell/bsdutils/releases/download/v%{version}/%{name}-%{version}.tar.xz.asc
+Source2:        %%GPGKEYRING%%
+
+BuildRequires:  meson
+BuildRequires:  ninja-build
+BuildRequires:  gcc
+BuildRequires:  gcc-c++
+BuildRequires:  flex
+BuildRequires:  bison
+BuildRequires:  ncurses-devel
+BuildRequires:  libedit-devel
+BuildRequires:  openssl-devel
+BuildRequires:  libxo-devel
+BuildRequires:  gnupg2
+
+
+%description
+Build deviation and compliance tool.  This program runs a number of tests
+against one or two builds of source RPM files.  The built artifacts are
+inspected and compared to report changes and validate policy compliance
+against the defined parameters.
+
+
+%prep
+%{gpgverify} --keyring='%{SOURCE2}' --signature='%{SOURCE1}' --data='%{SOURCE0}'
+%autosetup
+
+
+%build
+%meson
+%meson_build
+
+
+%install
+%meson_install
+
+
+%files
+%doc AUTHORS.md DIFFERENCES README.md TODO TRADEOFFS
+%license COPYRIGHT LICENSE
+%{_bindir}/*
+%{_mandir}/man1/*.1b*
+%{_mandir}/man6/*.6b*
+%{_mandir}/man7/*.7b*
+%{_mandir}/man8/*.8b*
+%{_datadir}/misc/bc.library
+
+
+%changelog
