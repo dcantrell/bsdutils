@@ -8,15 +8,7 @@ chown_prog = executable(
     install_dir : get_option('sbindir'),
 )
 
-# XXX: this should be a relative symlink to chown
-chgrp_prog = executable(
-    'chgrp',
-    [ 'chown.c' ],
-    c_args : [ '-DUID_MAX=INT_MAX', '-DGID_MAX=INT_MAX' ],
-    include_directories : inc,
-    dependencies : [ libfts, ],
-    install : true,
-)
+meson.add_install_script(install_link, 'chown', 'chgrp', get_option('bindir'))
 
 install_man('chown.8')
 install_man('chgrp.1')
