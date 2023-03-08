@@ -94,7 +94,7 @@ jobs:
             - name: dependencies
               run: |
                   pip3 install meson ninja
-                  brew install libxo
+                  brew install libxo libressl
 
             - uses: actions/checkout@v3
 
