@@ -6,7 +6,7 @@ project('bsdutils',
             'warning_level=2',
             'werror=false',
             'buildtype=debugoptimized',
-            'pkg_config_path=/usr/local/opt/libressl/lib/pkgconfig'
+            'pkg_config_path=/usr/local/opt/libressl/lib/pkgconfig,/usr/local/opt/openssl/lib/pkgconfig'
         ],
         license : 'BSD-3-Clause')
 

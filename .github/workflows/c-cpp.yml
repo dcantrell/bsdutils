@@ -88,18 +88,28 @@ jobs:
                   meson test -C build -v
 
     macos:
-        runs-on: macos-latest
+      name: ${{ matrix.build.name }}
+      strategy:
+        fail-fast: false
+        matrix:
+          build:
+            - name: with-libressl
+              install_pkgs: libressl
+            - name: with-openssl_1
+              install_pkgs: openssl@1.1
+            - name: with-openssl_3
+              install_pkgs: openssl@3
 
-        steps:
-            - name: dependencies
-              run: |
-                  pip3 install meson ninja
-                  brew install libxo libressl
+      steps:
+      - name: dependencies
+        run: |
+            pip3 install meson ninja
+            brew install libxo ${{ matrix.build.install_pkgs }}
 
-            - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-            - name: build and check
-              run: |
-                  meson setup build --werror -Db_buildtype=debug
-                  ninja -C build -v
-                  meson test -C build -v
+      - name: build and check
+        run: |
+          meson setup build --werror -Db_buildtype=debug
+          ninja -C build -v
+          meson test -C build -v
