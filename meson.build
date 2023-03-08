@@ -116,9 +116,10 @@ if get_option('rpmatch_path') != ''
     rpmatch_dirs += get_option('rpmatch_path')
 endif
 
-libfts = cc.find_library('fts',
-    required : false, static : get_option('static_fts'), dirs : fts_dirs
-)
+libfts = dependency('', required: false, static : get_option('static_fts'))
+if not cc.has_function('fts_open', prefix: '#include <fts.h>')
+    libfts = cc.find_library('fts', static : get_option('static_fts'), dirs : fts_dirs)
+endif
 librpmatch = cc.find_library('rpmatch',
     required : false, static : get_option('static_rpmatch'), dirs : rpmatch_dirs
 )
