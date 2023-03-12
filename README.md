@@ -82,16 +82,13 @@ have all these tools already available in their repositories.
 Additionally you will need the following shared libraries to build all
 of the programs in this project:
 
+Additionally you will need the following shared libraries to build all
+of the programs in this project:
+
     terminfo       https://invisible-mirror.net/archives/ncurses/
     libedit        http://thrysoee.dk/editline/
+    openssl        https://www.openssl.org/
     libxo          https://github.com/Juniper/libxo
-
-    openssl        https://www.openssl.org/ OR
-    libressl       https://www.libressl.org/
-
-On MacOS, if you have libressl or openssl installed via a package manager
-other than [brew](https://formulae.brew.sh/) the build system might not find
-all required libraries. If this is the case, please open a ticket.
 
 The terminfo library may be either standalone (libtinfo) or a part
 of the curses library, dependending on build. The ls(1) command needs
