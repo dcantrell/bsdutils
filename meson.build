@@ -96,7 +96,13 @@ endif
 libedit = dependency('libedit', required : get_option('libedit'))
 
 # dc(1), install(1) and sort(1) need libcrypto
-libcrypto = dependency('libcrypto', required : get_option('libcrypto'))
+libcrypto = dependency('libcrypto', required : false)
+if not libcrypto.found()
+    libcrypto = dependency('openssl', required : false)
+    if not libcrypto.found()
+        libcrypto = dependency('libressl', required : get_option('libcrypto'))
+    endif
+endif
 
 # seq(1) needs libm
 libm = cc.find_library('m', required : true)
