@@ -82,9 +82,6 @@ have all these tools already available in their repositories.
 Additionally you will need the following shared libraries to build all
 of the programs in this project:
 
-Additionally you will need the following shared libraries to build all
-of the programs in this project:
-
     terminfo       https://invisible-mirror.net/archives/ncurses/
     libedit        http://thrysoee.dk/editline/
     openssl        https://www.openssl.org/
