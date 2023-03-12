@@ -88,18 +88,8 @@ jobs:
                   meson test -C build -v
 
     macos:
-      #name: ${{ matrix.build.name }}
-      #strategy:
-        #fail-fast: false
-        #matrix:
-          #build:
-            #- name: with-libressl
-              #install_pkgs: libressl
-            #- name: with-openssl_1
-              #install_pkgs: openssl@1.1
-            #- name: with-openssl_3
-              #install_pkgs: openssl@3
       runs-on: macos-latest
+
       steps:
       - name: dependencies
         run: |
