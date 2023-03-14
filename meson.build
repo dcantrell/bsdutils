@@ -5,13 +5,18 @@ project('bsdutils',
             'c_std=c99',
             'warning_level=2',
             'werror=false',
-            'buildtype=debugoptimized'
+            'buildtype=debugoptimized',
+            'pkg_config_path=/usr/local/opt/libressl/lib/pkgconfig,/usr/local/opt/openssl/lib/pkgconfig'
         ],
         license : 'BSD-3-Clause')
 
 # Start with compilers for C and C++
 cc = meson.get_compiler('c')
 cpp = meson.get_compiler('cpp')
+
+if cc.has_header('features.h')
+    add_global_arguments([ '-D_HAVE_FEATURES_H' ], language : [ 'c', 'cpp' ])
+endif
 
 # FreeBSD code sometimes ignores things
 add_global_arguments([ '-Wno-unused-result' ], language : [ 'c', 'cpp' ])
