@@ -14,6 +14,10 @@ project('bsdutils',
 cc = meson.get_compiler('c')
 cpp = meson.get_compiler('cpp')
 
+if cc.has_header('features.h')
+    add_global_arguments([ '-D_HAVE_FEATURES_H' ], language : [ 'c', 'cpp' ])
+endif
+
 # FreeBSD code sometimes ignores things
 add_global_arguments([ '-Wno-unused-result' ], language : [ 'c', 'cpp' ])
 

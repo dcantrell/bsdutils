@@ -31,7 +31,9 @@
 #ifndef CDEFS_H
 #define CDEFS_H
 
-#include <features.h>
+#ifdef _HAVE_FEATURES_H
+# include <features.h>
+#endif
 
 #ifdef __GLIBC__
 # include_next <sys/cdefs.h>
