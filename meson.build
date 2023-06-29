@@ -100,8 +100,8 @@ libcrypto = dependency('libcrypto', required : get_option('libcrypto'))
 # seq(1) needs libm
 libm = cc.find_library('m', required : true)
 
-# df(1) needs libxo
-#libxo = dependency('libxo', required : true)
+# df(1) and wc(1) needs libxo
+libxo = dependency('libxo', required : get_option('libxo'))
 
 # needed by a few utils; provided by glibc, but not by e.g. musl
 
