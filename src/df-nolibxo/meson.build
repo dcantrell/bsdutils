@@ -1,9 +1,8 @@
-
 df_prog = executable(
   'df',
   [ 'df.c' ],
   include_directories : inc,
-  dependencies : [ libxo ],
+  dependencies : [ ],
   link_with : [ libcompat ],
   install : true,
 )

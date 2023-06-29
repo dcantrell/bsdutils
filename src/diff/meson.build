@@ -6,10 +6,10 @@ diff_prog = executable(
       'xmalloc.c',
       'pr.c',
     ],
+    include_directories : inc,
+    link_with : [ libcompat ],
     install : true,
 )
 
 install_man('diff.1')
 
-#    include_directories : inc,
-#    link_with : [ libcompat ],

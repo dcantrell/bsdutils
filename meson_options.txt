@@ -32,3 +32,8 @@ option('libedit',
     type: 'feature', value: 'enabled',
     description: 'Use libedit (needed by bc(1))'
 )
+
+option('libxo',
+    type: 'feature', value: 'disabled',
+    description: 'Use libedit (for df(1) and wc(1))'
+)

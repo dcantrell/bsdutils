@@ -278,11 +278,11 @@ diffreg(char *file1, char *file2, int flags, int capsicum)
 		padding = tabsize - (hw % tabsize);
 		if ((flags & D_EXPANDTABS) != 0 || (padding % tabsize == 0))
 			padding = MIN_PAD;
-	
+
 		hw = (width >> 1) -
 		    ((padding == MIN_PAD) ? (padding << 1) : padding) - 1;
 	}
-	
+
 
 	if (flags & D_IGNORECASE)
 		chrtran = cup2low;
@@ -1312,7 +1312,7 @@ fetch(long *f, int a, int b, FILE *lb, int ch, int oldfile, int flags)
 			if (c == '\t') {
 				if (flags & D_EXPANDTABS) {
 					newcol = ((col/tabsize)+1)*tabsize;
-					do {	
+					do {
 						if (diff_format == D_SIDEBYSIDE)
 							j++;
 						printf(" ");
