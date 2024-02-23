@@ -37,7 +37,6 @@ __FBSDID("$FreeBSD$");
 #if defined(SORT_THREADS)
 #include <pthread.h>
 #include <semaphore.h>
-#include <sched.h>
 #endif
 #include <stdlib.h>
 #include <string.h>
@@ -47,8 +46,6 @@ __FBSDID("$FreeBSD$");
 
 #include "coll.h"
 #include "radixsort.h"
-
-#include "compat.h"
 
 #define DEFAULT_SORT_FUNC_RADIXSORT mergesort
 
@@ -228,8 +225,7 @@ add_to_sublevel(struct sort_level *sl, struct sort_list_item *item, size_t indx)
 	ssl = sl->sublevels[indx];
 
 	if (ssl == NULL) {
-		ssl = sort_malloc(sizeof(struct sort_level));
-		memset(ssl, 0, sizeof(struct sort_level));
+		ssl = sort_calloc(1, sizeof(struct sort_level));
 
 		ssl->level = sl->level + 1;
 		sl->sublevels[indx] = ssl;
@@ -419,8 +415,7 @@ run_sort_level_next(struct sort_level *sl)
 	}
 
 	sl->sln = 256;
-	sl->sublevels = sort_malloc(slsz);
-	memset(sl->sublevels, 0, slsz);
+	sl->sublevels = sort_calloc(1, slsz);
 
 	sl->real_sln = 0;
 
@@ -572,8 +567,7 @@ run_top_sort_level(struct sort_level *sl)
 
 	sl->start_position = 0;
 	sl->sln = 256;
-	sl->sublevels = sort_malloc(slsz);
-	memset(sl->sublevels, 0, slsz);
+	sl->sublevels = sort_calloc(1, slsz);
 
 	for (size_t i = 0; i < sl->tosort_num; ++i)
 		place_item(sl, i);
@@ -650,7 +644,7 @@ run_top_sort_level(struct sort_level *sl)
 			pthread_t pth;
 
 			pthread_attr_init(&attr);
-			pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+			pthread_attr_setdetachstate(&attr, PTHREAD_DETACHED);
 
 			for (;;) {
 				int res = pthread_create(&pth, &attr,
@@ -658,7 +652,7 @@ run_top_sort_level(struct sort_level *sl)
 				if (res >= 0)
 					break;
 				if (errno == EAGAIN) {
-					sched_yield();
+					pthread_yield();
 					continue;
 				}
 				err(2, NULL);
@@ -687,9 +681,7 @@ run_sort(struct sort_list_item **base, size_t nmemb)
 		pthread_mutexattr_t mattr;
 
 		pthread_mutexattr_init(&mattr);
-#ifdef PTHREAD_MUTEX_ADAPTIVE_NP
 		pthread_mutexattr_settype(&mattr, PTHREAD_MUTEX_ADAPTIVE_NP);
-#endif
 
 		pthread_mutex_init(&g_ls_mutex, &mattr);
 		pthread_cond_init(&g_ls_cond, NULL);
@@ -701,8 +693,7 @@ run_sort(struct sort_list_item **base, size_t nmemb)
 	}
 #endif
 
-	sl = sort_malloc(sizeof(struct sort_level));
-	memset(sl, 0, sizeof(struct sort_level));
+	sl = sort_calloc(1, sizeof(struct sort_level));
 
 	sl->tosort = base;
 	sl->tosort_num = nmemb;

@@ -64,6 +64,7 @@ __FBSDID("$FreeBSD$");
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#include <assert.h>
 #include <err.h>
 #include <errno.h>
 #include <fts.h>
@@ -75,7 +76,6 @@ __FBSDID("$FreeBSD$");
 #include <unistd.h>
 
 #include "extern.h"
-#include "compat.h"
 
 #define	STRIP_TRAILING_SLASH(p) {					\
 	while ((p).p_end > (p).p_path + 1 && (p).p_end[-1] == '/')	\
@@ -92,8 +92,8 @@ volatile sig_atomic_t info;
 
 enum op { FILE_TO_FILE, FILE_TO_DIR, DIR_TO_DNE };
 
-static int copy(char *[], enum op, int);
-static void siginfo(int __attribute__((unused)));
+static int copy(char *[], enum op, int, struct stat *);
+static void siginfo(int __unused);
 
 int
 main(int argc, char *argv[])
@@ -262,7 +262,15 @@ main(int argc, char *argv[])
 		 */
 		type = FILE_TO_DIR;
 
-	exit (copy(argv, type, fts_options));
+	/*
+	 * For DIR_TO_DNE, we could provide copy() with the to_stat we've
+	 * already allocated on the stack here that isn't being used for
+	 * anything.  Not doing so, though, simplifies later logic a little bit
+	 * as we need to skip checking root_stat on the first iteration and
+	 * ensure that we set it with the first mkdir().
+	 */
+	exit (copy(argv, type, fts_options, (type == DIR_TO_DNE ? NULL :
+	    &to_stat)));
 }
 
 /* Does the right thing based on -R + -H/-L/-P */
@@ -282,14 +290,15 @@ copy_stat(const char *path, struct stat *sb)
 
 
 static int
-copy(char *argv[], enum op type, int fts_options)
+copy(char *argv[], enum op type, int fts_options, struct stat *root_stat)
 {
-	struct stat to_stat;
+	char rootname[NAME_MAX];
+	struct stat created_root_stat, to_stat;
 	FTS *ftsp;
 	FTSENT *curr;
 	int base = 0, dne, badcp, rval;
 	size_t nlen;
-	char *p, *target_mid;
+	char *p, *recurse_path, *target_mid;
 	mode_t mask, mode;
 
 	/*
@@ -299,10 +308,10 @@ copy(char *argv[], enum op type, int fts_options)
 	mask = ~umask(0777);
 	umask(~mask);
 
+	recurse_path = NULL;
 	if ((ftsp = fts_open(argv, fts_options, NULL)) == NULL)
 		err(1, "fts_open");
-	for (badcp = rval = 0; errno = 0, (curr = fts_read(ftsp)) != NULL;
-            badcp = 0) {
+	for (badcp = rval = 0; (curr = fts_read(ftsp)) != NULL; badcp = 0) {
 		switch (curr->fts_info) {
 		case FTS_NS:
 		case FTS_DNR:
@@ -317,6 +326,17 @@ copy(char *argv[], enum op type, int fts_options)
 			continue;
 		default:
 			;
+		}
+
+		/*
+		 * Stash the root basename off for detecting recursion later.
+		 *
+		 * This will be essential if the root is a symlink and we're
+		 * rolling with -L or -H.  The later bits will need this bit in
+		 * particular.
+		 */
+		if (curr->fts_level == FTS_ROOTLEVEL) {
+			strlcpy(rootname, curr->fts_name, sizeof(rootname));
 		}
 
 		/*
@@ -372,6 +392,41 @@ copy(char *argv[], enum op type, int fts_options)
 			to.p_end = target_mid + nlen;
 			*to.p_end = 0;
 			STRIP_TRAILING_SLASH(to);
+
+			/*
+			 * We're on the verge of recursing on ourselves.  Either
+			 * we need to stop right here (we knowingly just created
+			 * it), or we will in an immediate descendant.  Record
+			 * the path of the immediate descendant to make our
+			 * lives a little less complicated looking.
+			 */
+			if (curr->fts_info == FTS_D && root_stat != NULL &&
+			    root_stat->st_dev == curr->fts_statp->st_dev &&
+			    root_stat->st_ino == curr->fts_statp->st_ino) {
+				assert(recurse_path == NULL);
+
+				if (root_stat == &created_root_stat) {
+					/*
+					 * This directory didn't exist when we
+					 * started, we created it as part of
+					 * traversal.  Stop right here before we
+					 * do something silly.
+					 */
+					fts_set(ftsp, curr, FTS_SKIP);
+					continue;
+				}
+
+
+				if (asprintf(&recurse_path, "%s/%s", to.p_path,
+				    rootname) == -1)
+					err(1, "asprintf");
+			}
+
+			if (recurse_path != NULL &&
+			    strcmp(to.p_path, recurse_path) == 0) {
+				fts_set(ftsp, curr, FTS_SKIP);
+				continue;
+			}
 		}
 
 		if (curr->fts_info == FTS_DP) {
@@ -394,9 +449,12 @@ copy(char *argv[], enum op type, int fts_options)
 			if (pflag) {
 				if (setfile(curr->fts_statp, -1))
 					rval = 1;
+				if (preserve_dir_acls(curr->fts_statp,
+				    curr->fts_accpath, to.p_path) != 0)
+					rval = 1;
 			} else {
 				mode = curr->fts_statp->st_mode;
-				if ((mode & (S_ISUID | S_ISGID | S_ISVTX)) ||
+				if ((mode & (S_ISUID | S_ISGID | S_ISTXT)) ||
 				    ((mode | S_IRWXU) & mask) != (mode & mask))
 					if (chmod(to.p_path, mode & mask) !=
 					    0) {
@@ -464,6 +522,19 @@ copy(char *argv[], enum op type, int fts_options)
 				if (mkdir(to.p_path,
 				    curr->fts_statp->st_mode | S_IRWXU) < 0)
 					err(1, "%s", to.p_path);
+				/*
+				 * First DNE with a NULL root_stat is the root
+				 * path, so set root_stat.  We can't really
+				 * tell in all cases if the target path is
+				 * within the src path, so we just stat() the
+				 * first directory we created and use that.
+				 */
+				if (root_stat == NULL &&
+				    stat(to.p_path, &created_root_stat) == -1) {
+					err(1, "stat");
+				} else if (root_stat == NULL) {
+					root_stat = &created_root_stat;
+				}
 			} else if (!S_ISDIR(to_stat.st_mode)) {
 				errno = ENOTDIR;
 				err(1, "%s", to.p_path);
@@ -509,11 +580,12 @@ copy(char *argv[], enum op type, int fts_options)
 	if (errno)
 		err(1, "fts_read");
 	fts_close(ftsp);
+	free(recurse_path);
 	return (rval);
 }
 
 static void
-siginfo(int sig __attribute__((unused)))
+siginfo(int sig __unused)
 {
 
 	info = 1;

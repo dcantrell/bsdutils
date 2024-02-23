@@ -47,12 +47,12 @@ static char sccsid[] = "@(#)mv.c	8.2 (Berkeley) 4/2/94";
 __FBSDID("$FreeBSD$");
 
 #include <sys/types.h>
+#include <sys/acl.h>
 #include <sys/param.h>
 #include <sys/time.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <sys/mount.h>
-#include <sys/statvfs.h>
 
 #include <err.h>
 #include <errno.h>
@@ -67,8 +67,6 @@ __FBSDID("$FreeBSD$");
 #include <sysexits.h>
 #include <unistd.h>
 
-#include "compat.h"
-
 /* Exit code for a failed exec. */
 #define EXEC_FAILED 127
 
@@ -78,6 +76,8 @@ static int	copy(const char *, const char *);
 static int	do_move(const char *, const char *);
 static int	fastcopy(const char *, const char *, struct stat *);
 static void	usage(void);
+static void	preserve_fd_acls(int source_fd, int dest_fd, const char *source_path,
+		    const char *dest_path);
 
 int
 main(int argc, char *argv[])
@@ -178,8 +178,6 @@ do_move(const char *from, const char *to)
 	struct stat sb;
 	int ask, ch, first;
 	char modep[15];
-	struct passwd *pw = NULL;
-	struct group *gr = NULL;
 
 	/*
 	 * Check access.  If interactive and file exists, ask user if it
@@ -205,15 +203,10 @@ do_move(const char *from, const char *to)
 			ask = 1;
 		} else if (access(to, W_OK) && !stat(to, &sb) && isatty(STDIN_FILENO)) {
 			strmode(sb.st_mode, modep);
-			pw = getpwuid(sb.st_uid);
-			if (pw == NULL)
-				err(EXIT_FAILURE, "getpwuid");
-			gr = getgrgid(sb.st_gid);
-			if (gr == NULL)
-				err(EXIT_FAILURE, "getgrgid");
 			(void)fprintf(stderr, "override %s%s%s/%s for %s? %s",
 			    modep + 1, modep[9] == ' ' ? "" : " ",
-			    pw->pw_name, gr->gr_name, to, YESNO);
+			    user_from_uid((unsigned long)sb.st_uid, 0),
+			    group_from_gid((unsigned long)sb.st_gid, 0), to, YESNO);
 			ask = 1;
 		}
 		if (ask) {
@@ -238,6 +231,7 @@ do_move(const char *from, const char *to)
 	}
 
 	if (errno == EXDEV) {
+		struct statfs sfs;
 		char path[PATH_MAX];
 
 		/*
@@ -252,6 +246,11 @@ do_move(const char *from, const char *to)
 			/* Can't mv(1) a mount point. */
 			if (realpath(from, path) == NULL) {
 				warn("cannot resolve %s: %s", from, path);
+				return (1);
+			}
+			if (!statfs(path, &sfs) &&
+			    !strcmp(path, sfs.f_mntonname)) {
+				warnx("cannot rename a mount point");
 				return (1);
 			}
 		}
@@ -281,6 +280,7 @@ fastcopy(const char *from, const char *to, struct stat *sbp)
 	static char *bp = NULL;
 	mode_t oldmode;
 	int nread, from_fd, to_fd;
+	struct stat tsb;
 
 	if ((from_fd = open(from, O_RDONLY, 0)) < 0) {
 		warn("fastcopy: open() failed (from): %s", from);
@@ -326,7 +326,32 @@ err:		if (unlink(to))
 	}
 	if (fchmod(to_fd, sbp->st_mode))
 		warn("%s: set mode (was: 0%03o)", to, oldmode);
+	/*
+	 * POSIX 1003.2c states that if _POSIX_ACL_EXTENDED is in effect
+	 * for dest_file, then its ACLs shall reflect the ACLs of the
+	 * source_file.
+	 */
+	preserve_fd_acls(from_fd, to_fd, from, to);
 	(void)close(from_fd);
+	/*
+	 * XXX
+	 * NFS doesn't support chflags; ignore errors unless there's reason
+	 * to believe we're losing bits.  (Note, this still won't be right
+	 * if the server supports flags and we were trying to *remove* flags
+	 * on a file that we copied, i.e., that we didn't create.)
+	 */
+	if (fstat(to_fd, &tsb) == 0) {
+		if ((sbp->st_flags  & ~UF_ARCHIVE) !=
+		    (tsb.st_flags & ~UF_ARCHIVE)) {
+			if (fchflags(to_fd,
+			    sbp->st_flags | (tsb.st_flags & UF_ARCHIVE)))
+				if (errno != EOPNOTSUPP ||
+				    ((sbp->st_flags & ~UF_ARCHIVE) != 0))
+					warn("%s: set flags (was: 0%07o)",
+					    to, sbp->st_flags);
+		}
+	} else
+		warn("%s: cannot stat", to);
 
 	ts[0] = sbp->st_atim;
 	ts[1] = sbp->st_mtim;
@@ -423,6 +448,59 @@ copy(const char *from, const char *to)
 		return (1);
 	}
 	return (0);
+}
+
+static void
+preserve_fd_acls(int source_fd, int dest_fd, const char *source_path,
+    const char *dest_path)
+{
+	acl_t acl;
+	acl_type_t acl_type;
+	int acl_supported = 0, ret, trivial;
+
+	ret = fpathconf(source_fd, _PC_ACL_NFS4);
+	if (ret > 0 ) {
+		acl_supported = 1;
+		acl_type = ACL_TYPE_NFS4;
+	} else if (ret < 0 && errno != EINVAL) {
+		warn("fpathconf(..., _PC_ACL_NFS4) failed for %s",
+		    source_path);
+		return;
+	}
+	if (acl_supported == 0) {
+		ret = fpathconf(source_fd, _PC_ACL_EXTENDED);
+		if (ret > 0 ) {
+			acl_supported = 1;
+			acl_type = ACL_TYPE_ACCESS;
+		} else if (ret < 0 && errno != EINVAL) {
+			warn("fpathconf(..., _PC_ACL_EXTENDED) failed for %s",
+			    source_path);
+			return;
+		}
+	}
+	if (acl_supported == 0)
+		return;
+
+	acl = acl_get_fd_np(source_fd, acl_type);
+	if (acl == NULL) {
+		warn("failed to get acl entries for %s", source_path);
+		return;
+	}
+	if (acl_is_trivial_np(acl, &trivial)) {
+		warn("acl_is_trivial() failed for %s", source_path);
+		acl_free(acl);
+		return;
+	}
+	if (trivial) {
+		acl_free(acl);
+		return;
+	}
+	if (acl_set_fd_np(dest_fd, acl, acl_type) < 0) {
+		warn("failed to set acl entries for %s", dest_path);
+		acl_free(acl);
+		return;
+	}
+	acl_free(acl);
 }
 
 static void

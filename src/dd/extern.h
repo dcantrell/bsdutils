@@ -36,8 +36,6 @@
  * $FreeBSD$
  */
 
-#include <signal.h>
-
 void block(void);
 void block_close(void);
 void dd_out(int);

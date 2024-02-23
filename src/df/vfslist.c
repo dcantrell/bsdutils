@@ -1,7 +1,7 @@
 /*-
  * SPDX-License-Identifier: BSD-3-Clause
  *
- * Copyright (c) 1988, 1993
+ * Copyright (c) 1995
  *	The Regents of the University of California.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,53 +30,62 @@
  */
 
 #ifndef lint
-static const char copyright[] =
-"@(#) Copyright (c) 1988, 1993\n\
-	The Regents of the University of California.  All rights reserved.\n";
-#endif /* not lint */
-
-#ifndef lint
 #if 0
-static char sccsid[] = "@(#)tty.c	8.1 (Berkeley) 6/6/93";
+static char sccsid[] = "@(#)vfslist.c	8.1 (Berkeley) 5/8/95";
 #endif
 #endif /* not lint */
-
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 
-#include <stdio.h>
+#include <err.h>
 #include <stdlib.h>
-#include <unistd.h>
+#include <string.h>
 
-static void usage(void);
+#include "extern.h"
+
+static int	  skipvfs;
 
 int
-main(int argc, char *argv[])
+checkvfsname(const char *vfsname, const char **vfslist)
 {
-	int ch, sflag;
-	char *t;
 
-	sflag = 0;
-	while ((ch = getopt(argc, argv, "s")) != -1)
-		switch (ch) {
-		case 's':
-			sflag = 1;
-			break;
-		case '?':
-		default:
-			usage();
-			/* NOTREACHED */
-		}
-
-	t = ttyname(STDIN_FILENO);
-	if (!sflag)
-		puts(t ? t : "not a tty");
-	exit(t ? EXIT_SUCCESS : EXIT_FAILURE);
+	if (vfslist == NULL)
+		return (0);
+	while (*vfslist != NULL) {
+		if (strcmp(vfsname, *vfslist) == 0)
+			return (skipvfs);
+		++vfslist;
+	}
+	return (!skipvfs);
 }
 
-static void
-usage(void)
+const char **
+makevfslist(char *fslist)
 {
-	fprintf(stderr, "usage: %s [-s]\n", getprogname());
-	exit(2);
+	const char **av;
+	int i;
+	char *nextcp;
+
+	if (fslist == NULL)
+		return (NULL);
+	if (fslist[0] == 'n' && fslist[1] == 'o') {
+		fslist += 2;
+		skipvfs = 1;
+	}
+	for (i = 0, nextcp = fslist; *nextcp; nextcp++)
+		if (*nextcp == ',')
+			i++;
+	if ((av = malloc((size_t)(i + 2) * sizeof(char *))) == NULL) {
+		warnx("malloc failed");
+		return (NULL);
+	}
+	nextcp = fslist;
+	i = 0;
+	av[i++] = nextcp;
+	while ((nextcp = strchr(nextcp, ',')) != NULL) {
+		*nextcp++ = '\0';
+		av[i++] = nextcp;
+	}
+	av[i++] = NULL;
+	return (av);
 }

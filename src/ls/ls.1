@@ -32,7 +32,7 @@
 .\"     @(#)ls.1	8.7 (Berkeley) 7/29/94
 .\" $FreeBSD$
 .\"
-.Dd August 31, 2020
+.Dd October 31, 2022
 .Dt LS 1
 .Os
 .Sh NAME
@@ -40,7 +40,7 @@
 .Nd list directory contents
 .Sh SYNOPSIS
 .Nm
-.Op Fl ABCFGHILPRSTWabcdfghiklmnpqrstuwxy1\&,
+.Op Fl ABCFGHILPRSTUWZabcdfghiklmnopqrstuvwxy1\&,
 .Op Fl -color Ns = Ns Ar when
 .Op Fl D Ar format
 .Op Ar
@@ -185,8 +185,17 @@ The
 option gives even more control over the output format.
 This option is not defined in
 .St -p1003.1-2008 .
+.It Fl U
+Use time when file was created for sorting or printing.
+This option is not defined in
+.St -p1003.1-2008 .
 .It Fl W
 Display whiteouts when scanning directories.
+This option is not defined in
+.St -p1003.1-2008 .
+.It Fl Z
+Display each file's MAC label; see
+.Xr maclabel 7 .
 This option is not defined in
 .St -p1003.1-2008 .
 .It Fl a
@@ -329,6 +338,15 @@ Display user and group IDs numerically rather than converting to a user
 or group name in a long
 .Pq Fl l
 output.
+.It Fl o
+Include the file flags in a long
+.Pq Fl l
+output.
+This option is incompatible with
+.St -p1003.1-2008 .
+See
+.Xr chflags 1
+for a list of file flags and their meanings.
 .It Fl p
 Write a slash
 .Pq Ql /
@@ -381,6 +399,15 @@ of the file for sorting
 .Pq Fl t
 or printing
 .Pq Fl l .
+.It Fl v
+Sort following a natural ordering, using
+.Xr strverscmp 3
+instead of
+.Xr strcoll 3
+as the comparison function.
+E.g., files lexicographically ordered
+"bloem1", "bloem10", and "bloem9" would instead be ordered
+"bloem1", "bloem9", and "bloem10", as one would perhaps expect.
 .It Fl w
 Force raw printing of non-printable characters.
 This is the default
@@ -722,6 +749,7 @@ where
 is the foreground color and
 .Ar b
 is the background color.
+When the background color is capitalized, the text will underlined.
 .Pp
 The color designators are as follows:
 .Pp
@@ -743,23 +771,25 @@ cyan
 .It Sy h
 light grey
 .It Sy A
-bold black, usually shows up as dark grey
+bold or underlined black, usually shows up as dark grey
 .It Sy B
-bold red
+bold or underlined red
 .It Sy C
-bold green
+bold or underlined green
 .It Sy D
-bold brown, usually shows up as yellow
+bold or underlined brown, usually shows up as yellow
 .It Sy E
-bold blue
+bold or underlined blue
 .It Sy F
-bold magenta
+bold or underlined magenta
 .It Sy G
-bold cyan
+bold or underlined cyan
 .It Sy H
-bold light grey; looks like bright white
+bold or underlined light grey; looks like bright white
 .It Sy x
 default foreground or background
+.It Sy X
+default foreground or background, with an underline or bold
 .El
 .Pp
 Note that the above are standard
@@ -838,10 +868,11 @@ List the contents of the current working directory in long format:
 .Dl $ ls -l
 .Pp
 In addition to listing the contents of the current working directory in
-long format, show inode numbers,
+long format, show inode numbers, file flags (see
+.Xr chflags 1 ) ,
 and suffix each filename with a symbol representing its file type:
 .Pp
-.Dl $ ls -liF
+.Dl $ ls -lioF
 .Pp
 List the files in
 .Pa /var/log ,
@@ -855,13 +886,16 @@ files in order to be compatible with the
 .St -p1003.2
 specification.
 .Sh SEE ALSO
+.Xr chflags 1 ,
 .Xr chmod 1 ,
 .Xr getfacl 1 ,
 .Xr sort 1 ,
 .Xr xterm 1 ,
 .Xr localeconv 3 ,
+.Xr strcoll 3 ,
 .Xr strftime 3 ,
 .Xr strmode 3 ,
+.Xr strverscmp 3 ,
 .Xr termcap 5 ,
 .Xr maclabel 7 ,
 .Xr sticky 7 ,
@@ -869,9 +903,9 @@ specification.
 .Xr getfmac 8
 .Sh STANDARDS
 With the exception of options
-.Fl g
+.Fl g , n
 and
-.Fl n,
+.Fl o ,
 the
 .Nm
 utility conforms to
@@ -879,7 +913,7 @@ utility conforms to
 and
 .St -p1003.1-2008 .
 The options
-.Fl B , D , G , I , T , W , b , h , w , y
+.Fl B , D , G , I , T , U , W , Z , b , h , v , w , y
 and
 .Fl ,
 are non-standard extensions.
@@ -895,6 +929,11 @@ An
 .Nm
 command appeared in
 .At v1 .
+.Pp
+The
+.Fl v
+option was added in
+.Fx 14.0 .
 .Sh BUGS
 To maintain backward compatibility, the relationships between the many
 options are quite complex.

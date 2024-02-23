@@ -55,8 +55,6 @@ __FBSDID("$FreeBSD$");
 #include <sysexits.h>
 #include <unistd.h>
 
-#include "compat.h"
-
 static int	build(char *, mode_t);
 static void	usage(void);
 

@@ -151,19 +151,15 @@ main(int argc, char *argv[])
 			break;
 		case 'd':
 			clen = mbrlen(optarg, MB_CUR_MAX, NULL);
-			if (clen == (size_t)-1 || clen == (size_t)-2) {
-				errno = EILSEQ;
-				err(EXIT_FAILURE, NULL);
-			}
+			if (clen == (size_t)-1 || clen == (size_t)-2)
+				errc(EXIT_FAILURE, EILSEQ, NULL);
 			if (clen != 0) {
 				memcpy(delim1, optarg, delim1len = clen);
 				clen = mbrlen(optarg + delim1len,
 				    MB_CUR_MAX, NULL);
 				if (clen == (size_t)-1 ||
-				    clen == (size_t)-2) {
-					errno = EILSEQ;
-					err(EXIT_FAILURE, NULL);
-				}
+				    clen == (size_t)-2)
+					errc(EXIT_FAILURE, EILSEQ, NULL);
 				if (clen != 0) {
 					memcpy(delim2, optarg + delim1len,
 					    delim2len = clen);

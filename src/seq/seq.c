@@ -52,8 +52,6 @@ __FBSDID("$FreeBSD$");
 #define ISEXP(c)	((int)(c) == 'e' || (int)(c) == 'E')
 #define ISODIGIT(c)	((int)(c) >= '0' && (int)(c) <= '7')
 
-extern char *__progname;
-
 /* Globals */
 
 static const char *decimal_point = ".";	/* default */
@@ -145,7 +143,7 @@ main(int argc, char *argv[])
 	if (errflg) {
 		fprintf(stderr,
 		    "usage: %s [-w] [-f format] [-s string] [-t string] [first [incr]] last\n",
-		    __progname);
+		    getprogname());
 		exit(1);
 	}
 

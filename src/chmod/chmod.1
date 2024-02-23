@@ -40,7 +40,7 @@
 .Nd change file modes
 .Sh SYNOPSIS
 .Nm
-.Op Fl fv
+.Op Fl fhv
 .Op Fl R Op Fl H | L | P
 .Ar mode
 .Ar
@@ -66,6 +66,9 @@ If the
 option is specified, symbolic links on the command line are followed
 and hence unaffected by the command.
 (Symbolic links encountered during tree traversal are not followed.)
+.It Fl h
+If the file is a symbolic link, change the mode of the link itself
+rather than the file that the link points to.
 .It Fl L
 If the
 .Fl R
@@ -106,7 +109,7 @@ command's actions are determined by the last one specified.
 If
 .Nm
 receives a
-.Dv SIGUSR1
+.Dv SIGINFO
 signal (see the
 .Cm status
 argument for

@@ -40,8 +40,6 @@ __FBSDID("$FreeBSD$");
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
-#include <termios.h>
 
 #include "stty.h"
 #include "extern.h"
@@ -62,12 +60,12 @@ print(struct termios *tp, struct winsize *wp, int ldisc, enum FMT fmt)
 	cnt = 0;
 
 	/* Line discipline. */
-	if (ldisc != N_TTY) {
+	if (ldisc != TTYDISC) {
 		switch(ldisc) {
-		case N_SLIP:
+		case SLIPDISC:
 			cnt += printf("slip disc; ");
 			break;
-		case N_PPP:
+		case PPPDISC:
 			cnt += printf("ppp disc; ");
 			break;
 		default:
@@ -81,9 +79,9 @@ print(struct termios *tp, struct winsize *wp, int ldisc, enum FMT fmt)
 	ospeed = cfgetospeed(tp);
 	if (ispeed != ospeed)
 		cnt +=
-		    printf("ispeed %d baud; ospeed %d baud;", get_baud(ispeed), get_baud(ospeed));
+		    printf("ispeed %d baud; ospeed %d baud;", ispeed, ospeed);
 	else
-		cnt += printf("speed %d baud;", get_baud(ispeed));
+		cnt += printf("speed %d baud;", ispeed);
 	if (fmt >= BSD)
 		cnt += printf(" %d rows; %d columns;", wp->ws_row, wp->ws_col);
 	if (cnt)
@@ -107,11 +105,12 @@ print(struct termios *tp, struct winsize *wp, int ldisc, enum FMT fmt)
 	put("-echonl", ECHONL, 0);
 	put("-echoctl", ECHOCTL, 0);
 	put("-echoprt", ECHOPRT, 0);
-	put("-altwerase", VWERASE, 0);
+	put("-altwerase", ALTWERASE, 0);
 	put("-noflsh", NOFLSH, 0);
 	put("-tostop", TOSTOP, 0);
 	put("-flusho", FLUSHO, 0);
 	put("-pendin", PENDIN, 0);
+	put("-nokerninfo", NOKERNINFO, 0);
 	put("-extproc", EXTPROC, 0);
 
 	/* input flags */
@@ -171,7 +170,26 @@ print(struct termios *tp, struct winsize *wp, int ldisc, enum FMT fmt)
 	put("-hupcl", HUPCL, 1);
 	put("-clocal", CLOCAL, 0);
 	put("-cstopb", CSTOPB, 0);
-	put("-crtscts", CRTSCTS, 0);
+	switch(tmp & (CCTS_OFLOW | CRTS_IFLOW)) {
+	case CCTS_OFLOW:
+		bput("ctsflow");
+		break;
+	case CRTS_IFLOW:
+		bput("rtsflow");
+		break;
+	default:
+		put("-crtscts", CCTS_OFLOW | CRTS_IFLOW, 0);
+		break;
+	}
+	put("-dsrflow", CDSR_OFLOW, 0);
+	put("-dtrflow", CDTR_IFLOW, 0);
+	put("-mdmbuf", MDMBUF, 0);	/* XXX mdmbuf ==  dtrflow */
+	if (on(CNO_RTSDTR))
+		bput("-rtsdtr");
+	else {
+		if (fmt >= BSD)
+			bput("rtsdtr");
+	}
 
 	/* special control characters */
 	cc = tp->c_cc;

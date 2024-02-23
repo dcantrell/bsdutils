@@ -27,7 +27,7 @@
  *
  */
 
-__attribute__((unused)) static const char rcsid[] =
+static const char rcsid[] =
     "$FreeBSD$";
 
 #include <sys/stat.h>
@@ -39,9 +39,8 @@ __attribute__((unused)) static const char rcsid[] =
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <stdint.h>
 
-#include "compat.h"
+#include <libutil.h>
 
 static void	usage(void);
 

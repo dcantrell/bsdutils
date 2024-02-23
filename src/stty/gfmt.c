@@ -40,9 +40,7 @@ __FBSDID("$FreeBSD$");
 #include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
-#include <termios.h>
 
 #include "stty.h"
 #include "extern.h"
@@ -59,7 +57,7 @@ gerr(const char *s)
 }
 
 void
-gprint(struct termios *tp, struct winsize *wp __attribute__((unused)), int ldisc __attribute__((unused)))
+gprint(struct termios *tp, struct winsize *wp __unused, int ldisc __unused)
 {
 	struct cchar *cp;
 
@@ -69,7 +67,7 @@ gprint(struct termios *tp, struct winsize *wp __attribute__((unused)), int ldisc
 	for (cp = cchars1; cp->name; ++cp)
 		(void)printf("%s=%x:", cp->name, tp->c_cc[cp->sub]);
 	(void)printf("ispeed=%lu:ospeed=%lu\n",
-	    (u_long)get_baud(cfgetispeed(tp)), (u_long)get_baud(cfgetospeed(tp)));
+	    (u_long)cfgetispeed(tp), (u_long)cfgetospeed(tp));
 }
 
 void
@@ -101,7 +99,7 @@ gread(struct termios *tp, char *s)
 		}
 		if (CHK("ispeed")) {
 			tmp = strtoul(ep, NULL, 10);
-			cfsetispeed(tp, tmp);
+			tp->c_ispeed = tmp;
 			continue;
 		}
 		if (CHK("lflag")) {
@@ -114,7 +112,7 @@ gread(struct termios *tp, char *s)
 		}
 		if (CHK("ospeed")) {
 			tmp = strtoul(ep, NULL, 10);
-			cfsetospeed(tp, tmp);
+			tp->c_ospeed = tmp;
 			continue;
 		}
 		for (cp = cchars1; cp->name != NULL; ++cp)

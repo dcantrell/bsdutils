@@ -38,7 +38,6 @@ __FBSDID("$FreeBSD$");
 
 #include <sys/param.h>
 #include <sys/stat.h>
-#include <sys/types.h>
 
 #include <err.h>
 #include <errno.h>
@@ -54,8 +53,6 @@ __FBSDID("$FreeBSD$");
 
 #include "find.h"
 
-#include "compat.h"
-
 /* Derived from the print routines in the ls(1) source code. */
 
 static void printlink(char *);
@@ -65,29 +62,13 @@ void
 printlong(char *name, char *accpath, struct stat *sb)
 {
 	char modep[15];
-	struct passwd *pw = NULL;
-	struct group *gr = NULL;
-	char *uname = NULL;
-	char *gname = NULL;
-
-	pw = getpwuid(sb->st_uid);
-	if (pw == NULL)
-		uname = "root";
-	else
-		uname = pw->pw_name;
-
-	gr = getgrgid(sb->st_gid);
-	if (gr == NULL)
-		gname = "root";
-	else
-		gname = gr->gr_name;
 
 	(void)printf("%6ju %8"PRId64" ", (uintmax_t)sb->st_ino, sb->st_blocks);
 	(void)strmode(sb->st_mode, modep);
 	(void)printf("%s %3ju %-*s %-*s ", modep, (uintmax_t)sb->st_nlink,
 	    MAXLOGNAME - 1,
-	    uname, MAXLOGNAME - 1,
-	    gname);
+	    user_from_uid(sb->st_uid, 0), MAXLOGNAME - 1,
+	    group_from_gid(sb->st_gid, 0));
 
 	if (S_ISCHR(sb->st_mode) || S_ISBLK(sb->st_mode))
 		(void)printf("%#8jx ", (uintmax_t)sb->st_rdev);
@@ -107,6 +88,7 @@ printtime(time_t ftime)
 	static time_t lnow;
 	const char *format;
 	static int d_first = -1;
+	struct tm *tm;
 
 #ifdef D_MD_ORDER
 	if (d_first < 0)
@@ -122,7 +104,10 @@ printtime(time_t ftime)
 	else
 		/* mmm dd  yyyy || dd mmm  yyyy */
 		format = d_first ? "%e %b  %Y " : "%b %e  %Y ";
-	strftime(longstring, sizeof(longstring), format, localtime(&ftime));
+	if ((tm = localtime(&ftime)) != NULL)
+		strftime(longstring, sizeof(longstring), format, tm);
+	else
+		strlcpy(longstring, "bad date val ", sizeof(longstring));
 	fputs(longstring, stdout);
 }
 

@@ -41,6 +41,7 @@ static char sccsid[] = "@(#)sleep.c	8.3 (Berkeley) 4/2/94";
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 
+#include <capsicum_helpers.h>
 #include <err.h>
 #include <errno.h>
 #include <limits.h>
@@ -49,13 +50,11 @@ __FBSDID("$FreeBSD$");
 #include <stdlib.h>
 #include <time.h>
 
-#include "compat.h"
-
 static void usage(void);
 
 static volatile sig_atomic_t report_requested;
 static void
-report_request(int signo __attribute__((unused)))
+report_request(int signo __unused)
 {
 
 	report_requested = 1;
@@ -66,7 +65,11 @@ main(int argc, char *argv[])
 {
 	struct timespec time_to_sleep;
 	double d;
+	time_t original;
 	char buf[2];
+
+	if (caph_limit_stdio() < 0 || caph_enter() < 0)
+		err(1, "capsicum");
 
 	if (argc != 2)
 		usage();
@@ -77,7 +80,7 @@ main(int argc, char *argv[])
 		usage();
 	if (d <= 0)
 		return (0);
-	time_to_sleep.tv_sec = (time_t)d;
+	original = time_to_sleep.tv_sec = (time_t)d;
 	time_to_sleep.tv_nsec = 1e9 * (d - time_to_sleep.tv_sec);
 
 	signal(SIGINFO, report_request);
@@ -88,7 +91,12 @@ main(int argc, char *argv[])
 	 * attaches. This is a bug but it is hard to fix.
 	 */
 	while (nanosleep(&time_to_sleep, &time_to_sleep) != 0) {
-		if (errno != EINTR)
+		if (report_requested) {
+			/* Reporting does not bother with nanoseconds. */
+			warnx("about %d second(s) left out of the original %d",
+			    (int)time_to_sleep.tv_sec, (int)original);
+			report_requested = 0;
+		} else if (errno != EINTR)
 			err(1, "nanosleep");
 	}
 	return (0);

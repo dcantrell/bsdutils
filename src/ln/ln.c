@@ -56,8 +56,6 @@ __FBSDID("$FreeBSD$");
 #include <string.h>
 #include <unistd.h>
 
-#include "compat.h"
-
 static int	fflag;			/* Unlink existing files. */
 static int	Fflag;			/* Remove empty directories also. */
 static int	hflag;			/* Check new name for symlink first. */
@@ -150,7 +148,6 @@ main(int argc, char *argv[])
 	switch(argc) {
 	case 0:
 		usage();
-		break;
 		/* NOTREACHED */
 	case 1:				/* ln source */
 		exit(linkit(argv[0], ".", 1));

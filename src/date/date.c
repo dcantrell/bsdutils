@@ -58,12 +58,8 @@ __FBSDID("$FreeBSD$");
 #include <syslog.h>
 #include <unistd.h>
 #include <utmpx.h>
-#include <time.h>
-#include <langinfo.h>
 
 #include "vary.h"
-
-#include "compat.h"
 
 #ifndef	TM_YEAR_BASE
 #define	TM_YEAR_BASE	1900
@@ -168,14 +164,7 @@ main(int argc, char *argv[])
 	if (!rflag && time(&tval) == -1)
 		err(1, "time");
 
-	/* Linux libc's do not support %+ */
-#ifdef _DATE_FMT
-	/* glibc extension */
-	format = nl_langinfo(_DATE_FMT);
-#else
-	/* fallback, e.g. musl */
-	format = "%a %b %e %H:%M:%S %Z %Y";
-#endif
+	format = "%+";
 
 	if (Rflag)
 		format = rfc2822_format;
@@ -355,18 +344,14 @@ setthetime(const char *fmt, const char *p, int jflag)
 	if (!jflag) {
 		utx.ut_type = OLD_TIME;
 		memset(utx.ut_id, 0, sizeof(utx.ut_id));
-		(void)gettimeofday(&tv, NULL);
-		utx.ut_tv.tv_sec = tv.tv_sec;
-		utx.ut_tv.tv_usec = tv.tv_usec;
+		(void)gettimeofday(&utx.ut_tv, NULL);
 		pututxline(&utx);
 		tv.tv_sec = tval;
 		tv.tv_usec = 0;
 		if (settimeofday(&tv, NULL) != 0)
 			err(1, "settimeofday (timeval)");
 		utx.ut_type = NEW_TIME;
-		(void)gettimeofday(&tv, NULL);
-		utx.ut_tv.tv_sec = tv.tv_sec;
-		utx.ut_tv.tv_usec = tv.tv_usec;
+		(void)gettimeofday(&utx.ut_tv, NULL);
 		pututxline(&utx);
 
 		if ((p = getlogin()) == NULL)

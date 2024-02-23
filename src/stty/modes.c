@@ -36,9 +36,7 @@ static char sccsid[] = "@(#)modes.c	8.3 (Berkeley) 4/2/94";
 __FBSDID("$FreeBSD$");
 
 #include <sys/types.h>
-#include <unistd.h>
 #include <string.h>
-#include <termios.h>
 #include "stty.h"
 
 int msearch(char ***, struct info *);
@@ -82,6 +80,18 @@ static const struct modes cmodes[] = {
 	{ "-clocal",	0, CLOCAL },
 	{ "crtscts",	CRTSCTS, 0 },
 	{ "-crtscts",	0, CRTSCTS },
+	{ "ctsflow",	CCTS_OFLOW, 0 },
+	{ "-ctsflow",	0, CCTS_OFLOW },
+	{ "dsrflow",	CDSR_OFLOW, 0 },
+	{ "-dsrflow",	0, CDSR_OFLOW },
+	{ "dtrflow",	CDTR_IFLOW, 0 },
+	{ "-dtrflow",	0, CDTR_IFLOW },
+	{ "rtsflow",	CRTS_IFLOW, 0 },
+	{ "-rtsflow",	0, CRTS_IFLOW },
+	{ "mdmbuf",	MDMBUF, 0 },
+	{ "-mdmbuf",	0, MDMBUF },
+	{ "rtsdtr",	0, CNO_RTSDTR },
+	{ "-rtsdtr",	CNO_RTSDTR, 0 },
 	{ NULL,		0, 0 },
 };
 
@@ -136,8 +146,8 @@ static const struct modes lmodes[] = {
 	{ "-echoke",	0, ECHOKE },
 	{ "crtkill",	ECHOKE, 0 },
 	{ "-crtkill",	0, ECHOKE },
-	{ "altwerase",	VWERASE, 0 },
-	{ "-altwerase",	0, VWERASE },
+	{ "altwerase",	ALTWERASE, 0 },
+	{ "-altwerase",	0, ALTWERASE },
 	{ "iexten",	IEXTEN, 0 },
 	{ "-iexten",	0, IEXTEN },
 	{ "echonl",	ECHONL, 0 },
@@ -166,6 +176,10 @@ static const struct modes lmodes[] = {
 	{ "-crt",	ECHOK, ECHOE|ECHOKE|ECHOCTL },
 	{ "newcrt",	ECHOE|ECHOKE|ECHOCTL, ECHOK|ECHOPRT },
 	{ "-newcrt",	ECHOK, ECHOE|ECHOKE|ECHOCTL },
+	{ "nokerninfo",	NOKERNINFO, 0 },
+	{ "-nokerninfo",0, NOKERNINFO },
+	{ "kerninfo",	0, NOKERNINFO },
+	{ "-kerninfo",	NOKERNINFO, 0 },
 	{ NULL,		0, 0 },
 };
 

@@ -241,7 +241,7 @@ needpos(size_t n)
 }
 
 static int
-b_cut(FILE *fp, const char *fname __attribute__((unused)))
+b_cut(FILE *fp, const char *fname __unused)
 {
 	int ch, col;
 	char *pos;
@@ -277,14 +277,14 @@ b_cut(FILE *fp, const char *fname __attribute__((unused)))
 static int
 b_n_cut(FILE *fp, const char *fname)
 {
-	size_t col, i, lbuflen = 0;
-	char *lbuf = NULL;
+	size_t col, i, lbuflen;
+	char *lbuf;
 	int canwrite, clen, warned;
 	mbstate_t mbs;
 
 	memset(&mbs, 0, sizeof(mbs));
 	warned = 0;
-	while (getline(&lbuf, &lbuflen, fp) != -1) {
+	while ((lbuf = fgetln(fp, &lbuflen)) != NULL) {
 		for (col = 0; lbuflen > 0; col += clen) {
 			if ((clen = mbrlen(lbuf, lbuflen, &mbs)) < 0) {
 				if (!warned) {
@@ -391,11 +391,11 @@ f_cut(FILE *fp, const char *fname)
 	int field, i, isdelim;
 	char *pos, *p;
 	int output;
-	char *lbuf = NULL, *mlbuf;
-	size_t clen, lbuflen = 0, reallen;
+	char *lbuf, *mlbuf;
+	size_t clen, lbuflen, reallen;
 
 	mlbuf = NULL;
-	while (getline(&lbuf, &lbuflen, fp) != -1) {
+	while ((lbuf = fgetln(fp, &lbuflen)) != NULL) {
 		reallen = lbuflen;
 		/* Assert EOL has a newline. */
 		if (*(lbuf + lbuflen - 1) != '\n') {
@@ -412,8 +412,7 @@ f_cut(FILE *fp, const char *fname)
 		for (isdelim = 0, p = lbuf;; p += clen) {
 			clen = mbrtowc(&ch, p, lbuf + reallen - p, NULL);
 			if (clen == (size_t)-1 || clen == (size_t)-2) {
-				errno = EILSEQ;
-				warn("%s", fname);
+				warnc(EILSEQ, "%s", fname);
 				free(mlbuf);
 				return (1);
 			}
@@ -440,8 +439,7 @@ f_cut(FILE *fp, const char *fname)
 				clen = mbrtowc(&ch, p, lbuf + reallen - p,
 				    NULL);
 				if (clen == (size_t)-1 || clen == (size_t)-2) {
-					errno = EILSEQ;
-					warn("%s", fname);
+					warnc(EILSEQ, "%s", fname);
 					free(mlbuf);
 					return (1);
 				}

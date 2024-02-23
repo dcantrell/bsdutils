@@ -51,8 +51,8 @@ __FBSDID("$FreeBSD$");
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/time.h>
+#include <sys/limits.h>
 #include <sys/resource.h>
-#include <limits.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -92,7 +92,7 @@ static char *argp, *bbp, *ebp, *inpline, *p, *replstr;
 static const char *eofstr;
 static int count, insingle, indouble, oflag, pflag, tflag, Rflag, rval, zflag;
 static int cnt, Iflag, jfound, Lflag, Sflag, wasquoted, xflag;
-static long unsigned int curprocs, maxprocs;
+static int curprocs, maxprocs;
 static pid_t *childpids;
 
 static volatile int childerr;
@@ -123,6 +123,7 @@ main(int argc, char *argv[])
 	size_t linelen;
 	struct rlimit rl;
 	char *endptr;
+	const char *errstr;
 
 	inpline = replstr = NULL;
 	ep = environ;
@@ -170,23 +171,23 @@ main(int argc, char *argv[])
 			replstr = optarg;
 			break;
 		case 'L':
-			Lflag = strtoll(optarg, NULL, 10);
-			if (errno == ERANGE || errno == EINVAL)
-				errx(1, "-L %s", optarg);
+			Lflag = strtonum(optarg, 0, INT_MAX, &errstr);
+			if (errstr)
+				errx(1, "-L %s: %s", optarg, errstr);
 			break;
 		case 'n':
 			nflag = 1;
-			nargs = strtoll(optarg, NULL, 10);
-			if (nargs < 1 || (errno == ERANGE || errno == EINVAL))
-				errx(1, "-n %s", optarg);
+			nargs = strtonum(optarg, 1, INT_MAX, &errstr);
+			if (errstr)
+				errx(1, "-n %s: %s", optarg, errstr);
 			break;
 		case 'o':
 			oflag = 1;
 			break;
 		case 'P':
-			maxprocs = strtoul(optarg, NULL, 10);
-			if (errno == ERANGE || errno == EINVAL)
-				errx(1, "-P %s", optarg);
+			maxprocs = strtonum(optarg, 0, INT_MAX, &errstr);
+			if (errstr)
+				errx(1, "-P %s: %s", optarg, errstr);
 			if (getrlimit(RLIMIT_NPROC, &rl) != 0)
 				errx(1, "getrlimit failed");
 			if (maxprocs == 0 || maxprocs > rl.rlim_cur)
@@ -209,9 +210,9 @@ main(int argc, char *argv[])
 				errx(1, "replsize must be a number");
 			break;
 		case 's':
-			nline = strtoll(optarg, NULL, 10);
-			if (errno == ERANGE || errno == EINVAL)
-				errx(1, "-s %s", optarg);
+			nline = strtonum(optarg, 0, INT_MAX, &errstr);
+			if (errstr)
+				errx(1, "-s %s: %s", optarg, errstr);
 			break;
 		case 't':
 			tflag = 1;
@@ -313,8 +314,10 @@ parse_input(int argc, char *argv[])
 	switch (ch = getchar()) {
 	case EOF:
 		/* No arguments since last exec. */
-		if (p == bbp)
-			xexit(*av, rval);
+		if (p == bbp) {
+			waitchildren(*av, 1);
+			exit(rval);
+		}
 		goto arg1;
 	case ' ':
 	case '\t':
@@ -404,8 +407,10 @@ arg2:
 					*xp++ = *avj;
 			}
 			prerun(argc, av);
-			if (ch == EOF || foundeof)
-				xexit(*av, rval);
+			if (ch == EOF || foundeof) {
+				waitchildren(*av, 1);
+				exit(rval);
+			}
 			p = bbp;
 			xp = bxp;
 			count = 0;
@@ -596,7 +601,6 @@ exec:
 	case -1:
 		warn("vfork");
 		xexit(*argv, 1);
-		break;
 	case 0:
 		if (oflag) {
 			if ((fd = open(_PATH_TTY, O_RDONLY)) == -1)
@@ -691,7 +695,7 @@ waitchildren(const char *name, int waitall)
 static void
 pids_init(void)
 {
-	long unsigned int i;
+	int i;
 
 	if ((childpids = malloc(maxprocs * sizeof(*childpids))) == NULL)
 		errx(1, "malloc failed");
@@ -750,7 +754,7 @@ findfreeslot(void)
 static int
 findslot(pid_t pid)
 {
-	long unsigned int slot;
+	int slot;
 
 	for (slot = 0; slot < maxprocs; slot++)
 		if (childpids[slot] == pid)
@@ -781,7 +785,7 @@ prompt(void)
 		return (2);	/* Indicate that the TTY failed to open. */
 	(void)fprintf(stderr, "?...");
 	(void)fflush(stderr);
-	if (getline(&response, &rsize, ttyfp) == -1 ||
+	if ((response = fgetln(ttyfp, &rsize)) == NULL ||
 	    regcomp(&cre, nl_langinfo(YESEXPR), REG_EXTENDED) != 0) {
 		(void)fclose(ttyfp);
 		return (0);

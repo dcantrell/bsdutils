@@ -36,8 +36,10 @@
 __SCCSID("@(#)setmode.c	8.2 (Berkeley) 3/25/94");
 __FBSDID("$FreeBSD$");
 
+#include "namespace.h"
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/sysctl.h>
 
 #include <ctype.h>
 #include <errno.h>
@@ -50,6 +52,8 @@ __FBSDID("$FreeBSD$");
 #ifdef SETMODE_DEBUG
 #include <stdio.h>
 #endif
+#include "un-namespace.h"
+#include "libc_private.h"
 
 #define	SET_LEN	6		/* initial # of bitcmd struct to malloc */
 #define	SET_LEN_INCR 4		/* # of bitcmd structs to add as needed */
@@ -204,12 +208,12 @@ setmode(const char *p)
 		}
 		if (errno == ERANGE && (perml == LONG_MAX || perml == LONG_MIN))
 			goto out;
-		if (perml & ~(STANDARD_BITS|S_ISVTX)) {
+		if (perml & ~(STANDARD_BITS|S_ISTXT)) {
 			errno = EINVAL;
 			goto out;
 		}
 		perm = (mode_t)perml;
-		ADDCMD('=', (STANDARD_BITS|S_ISVTX), perm, mask);
+		ADDCMD('=', (STANDARD_BITS|S_ISTXT), perm, mask);
 		set->cmd = 0;
 		return (saveset);
 	}
@@ -247,7 +251,7 @@ getop:		if ((op = *p++) != '+' && op != '-' && op != '=') {
 		if (op == '=')
 			equalopdone = 0;
 
-		who &= ~S_ISVTX;
+		who &= ~S_ISTXT;
 		for (perm = 0, permXbits = 0;; ++p) {
 			switch (*p) {
 			case 'r':
@@ -261,8 +265,8 @@ getop:		if ((op = *p++) != '+' && op != '-' && op != '=') {
 			case 't':
 				/* If only "other" bits ignore sticky. */
 				if (!who || who & ~S_IRWXO) {
-					who |= S_ISVTX;
-					perm |= S_ISVTX;
+					who |= S_ISTXT;
+					perm |= S_ISTXT;
 				}
 				break;
 			case 'w':
@@ -342,7 +346,9 @@ static mode_t
 get_current_umask(void)
 {
 	sigset_t sigset, sigoset;
+	size_t len;
 	mode_t mask;
+	u_short smask;
 
 #ifdef KERN_PROC_UMASK
 	/*
@@ -360,9 +366,9 @@ get_current_umask(void)
 	 * handler, protect them as best we can.
 	 */
 	sigfillset(&sigset);
-	(void)sigprocmask(SIG_BLOCK, &sigset, &sigoset);
+	(void)__libc_sigprocmask(SIG_BLOCK, &sigset, &sigoset);
 	(void)umask(mask = umask(0));
-	(void)sigprocmask(SIG_SETMASK, &sigoset, NULL);
+	(void)__libc_sigprocmask(SIG_SETMASK, &sigoset, NULL);
 	return (mask);
 }
 

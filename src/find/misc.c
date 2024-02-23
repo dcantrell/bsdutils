@@ -51,10 +51,6 @@ __FBSDID("$FreeBSD$");
 
 #include "find.h"
 
-#if defined(__linux__) && !defined(__GLIBC__)
-#include <rpmatch.h>
-#endif
-
 /*
  * brace_subst --
  *	Replace occurrences of {} in s1 with s2 and return the result string.
@@ -75,7 +71,7 @@ brace_subst(char *orig, char **store, char *path, size_t len)
 		newlen += plen - 2;
 	}
 	if (newlen > len) {
-		*store = realloc(*store, newlen);
+		*store = reallocf(*store, newlen);
 		if (*store == NULL)
 			err(2, NULL);
 	}

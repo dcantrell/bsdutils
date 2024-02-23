@@ -172,7 +172,7 @@ Cause
 .Nm
 to preserve the following attributes of each source
 file in the copy: modification time, access time,
-file flags, file mode, user ID, and group ID, as allowed by permissions.
+file flags, file mode, ACL, user ID, and group ID, as allowed by permissions.
 .Pp
 If the user ID and group ID cannot be preserved, no error message
 is displayed and the exit value is not altered.
@@ -252,7 +252,7 @@ command's actions are determined by the last one specified.
 If
 .Nm
 receives a
-.Dv SIGUSR1
+.Dv SIGINFO
 (see the
 .Cm status
 argument for
