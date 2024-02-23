@@ -1,6 +1,6 @@
 project('bsdutils',
         [ 'c', 'cpp' ],
-        version : '13.1',
+        version : '13.2',
         default_options : [
             'c_std=c99',
             'warning_level=2',
