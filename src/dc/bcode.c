@@ -72,7 +72,7 @@ static void		 print_err(void);
 static void		 pop_print(void);
 static void		 pop_printn(void);
 static __inline void	 print_stack(void);
-static __inline void	 dup(void);
+static __inline void	 _dup(void);
 static void		 swap(void);
 static void		 drop(void);
 
@@ -197,7 +197,7 @@ static const struct jump_entry jump_table_data[] = {
 	{ '_',	parse_number	},
 	{ 'a',	to_ascii	},
 	{ 'c',	clear_stack	},
-	{ 'd',	dup		},
+	{ 'd',	_dup		},
 	{ 'e',	print_err	},
 	{ 'f',	print_stack	},
 	{ 'i',	set_ibase	},
@@ -378,7 +378,7 @@ split_number(const struct number *n, BIGNUM *i, BIGNUM *f)
 	bn_checkp(BN_copy(i, n->number));
 
 	if (n->scale == 0 && f != NULL)
-		bn_check(BN_zero(f));
+		BN_zero(f);
 	else if (n->scale < sizeof(factors)/sizeof(factors[0])) {
 		rem = BN_div_word(i, factors[n->scale]);
 		if (f != NULL)
@@ -551,7 +551,7 @@ pop_printn(void)
 }
 
 static __inline void
-dup(void)
+_dup(void)
 {
 
 	stack_dup(&bmachine.stack);
@@ -811,7 +811,7 @@ load(void)
 		v = stack_tos(&bmachine.reg[idx]);
 		if (v == NULL) {
 			n = new_number();
-			bn_check(BN_zero(n->number));
+			BN_zero(n->number);
 			push_number(n);
 		} else
 			push(stack_dup_value(v, &copy));
@@ -896,7 +896,7 @@ load_array(void)
 			v = frame_retrieve(stack, idx);
 			if (v == NULL || v->type == BCODE_NONE) {
 				n = new_number();
-				bn_check(BN_zero(n->number));
+				BN_zero(n->number);
 				push_number(n);
 			}
 			else

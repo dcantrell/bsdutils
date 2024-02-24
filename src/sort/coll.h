@@ -105,7 +105,7 @@ struct key_value
 {
 	struct bwstring		*k; /* key string */
 	struct key_hint		 hint[0]; /* key sort hint */
-} __packed;
+} __attribute__((packed));
 
 /*
  * Set of keys container object.

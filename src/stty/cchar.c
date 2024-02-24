@@ -36,11 +36,14 @@ static char sccsid[] = "@(#)cchar.c	8.5 (Berkeley) 4/2/94";
 __FBSDID("$FreeBSD$");
 
 #include <sys/types.h>
+#include <sys/ttydefaults.h>
 
 #include <err.h>
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <termios.h>
 
 #include "stty.h"
 #include "extern.h"
@@ -56,12 +59,11 @@ static int c_cchar(const void *, const void *);
  */
 struct cchar cchars1[] = {
 	{ "discard",	VDISCARD, 	CDISCARD },
-	{ "dsusp", 	VDSUSP,		CDSUSP },
+	{ "dsusp", 	CDSUSP,		CDSUSP },
 	{ "eof",	VEOF,		CEOF },
 	{ "eol",	VEOL,		CEOL },
 	{ "eol2",	VEOL2,		CEOL },
 	{ "erase",	VERASE,		CERASE },
-	{ "erase2",	VERASE2,	CERASE2 },
 	{ "intr",	VINTR,		CINTR },
 	{ "kill",	VKILL,		CKILL },
 	{ "lnext",	VLNEXT,		CLNEXT },
@@ -69,7 +71,7 @@ struct cchar cchars1[] = {
 	{ "quit",	VQUIT,		CQUIT },
 	{ "reprint",	VREPRINT, 	CREPRINT },
 	{ "start",	VSTART,		CSTART },
-	{ "status",	VSTATUS, 	CSTATUS },
+	{ "status",	CSTATUS, 	CSTATUS },
 	{ "stop",	VSTOP,		CSTOP },
 	{ "susp",	VSUSP,		CSUSP },
 	{ "time",	VTIME,		CTIME },

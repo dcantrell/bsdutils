@@ -51,7 +51,6 @@ static const char sccsid[] = "@(#)split.c	8.2 (Berkeley) 4/16/94";
 #include <errno.h>
 #include <fcntl.h>
 #include <inttypes.h>
-#include <libutil.h>
 #include <limits.h>
 #include <locale.h>
 #include <stdbool.h>
@@ -62,6 +61,8 @@ static const char sccsid[] = "@(#)split.c	8.2 (Berkeley) 4/16/94";
 #include <unistd.h>
 #include <regex.h>
 #include <sysexits.h>
+
+#include "compat.h"
 
 #define DEFLINE	1000			/* Default num lines per file. */
 
@@ -88,6 +89,7 @@ main(int argc, char **argv)
 	int ch;
 	int error;
 	char *ep, *p;
+	uint64_t ubytecnt;
 
 	setlocale(LC_ALL, "");
 
@@ -119,7 +121,8 @@ main(int argc, char **argv)
 			break;
 		case 'b':		/* Byte count. */
 			errno = 0;
-			error = expand_number(optarg, &bytecnt);
+			ubytecnt = bytecnt;
+			error = expand_number(optarg, &ubytecnt);
 			if (error == -1)
 				errx(EX_USAGE, "%s: offset too large", optarg);
 			break;

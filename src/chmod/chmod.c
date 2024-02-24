@@ -41,7 +41,6 @@ static char sccsid[] = "@(#)chmod.c	8.8 (Berkeley) 4/1/94";
 #endif /* not lint */
 #endif
 #include <sys/cdefs.h>
-__FBSDID("$FreeBSD$");
 
 #include <sys/param.h>
 #include <sys/stat.h>
@@ -57,13 +56,14 @@ __FBSDID("$FreeBSD$");
 #include <string.h>
 #include <unistd.h>
 
+#include "compat.h"
+
 static volatile sig_atomic_t siginfo;
 
 static void usage(void);
-static int may_have_nfs4acl(const FTSENT *ent, int hflag);
 
 static void
-siginfo_handler(int sig __unused)
+siginfo_handler(int sig __attribute__((unused)))
 {
 
 	siginfo = 1;
@@ -75,14 +75,14 @@ main(int argc, char *argv[])
 	FTS *ftsp;
 	FTSENT *p;
 	mode_t *set;
-	int Hflag, Lflag, Rflag, ch, fflag, fts_options, hflag, rval;
+	int Hflag, Lflag, Rflag, ch, fflag, fts_options, rval;
 	int vflag;
 	char *mode;
 	mode_t newmode;
 
 	set = NULL;
-	Hflag = Lflag = Rflag = fflag = hflag = vflag = 0;
-	while ((ch = getopt(argc, argv, "HLPRXfghorstuvwx")) != -1)
+	Hflag = Lflag = Rflag = fflag = vflag = 0;
+	while ((ch = getopt(argc, argv, "HLPRXfgorstuvwx")) != -1)
 		switch (ch) {
 		case 'H':
 			Hflag = 1;
@@ -100,16 +100,6 @@ main(int argc, char *argv[])
 			break;
 		case 'f':
 			fflag = 1;
-			break;
-		case 'h':
-			/*
-			 * In System V the -h option causes chmod to change
-			 * the mode of the symbolic link. 4.4BSD's symbolic
-			 * links didn't have modes, so it was an undocumented
-			 * noop.  In FreeBSD 3.0, lchmod(2) is introduced and
-			 * this option does real work.
-			 */
-			hflag = 1;
 			break;
 		/*
 		 * XXX
@@ -140,9 +130,6 @@ done:	argv += optind;
 	(void)signal(SIGINFO, siginfo_handler);
 
 	if (Rflag) {
-		if (hflag)
-			errx(1, "the -R and -h options may not be "
-			    "specified together.");
 		if (Lflag) {
 			fts_options = FTS_LOGICAL;
 		} else {
@@ -152,8 +139,6 @@ done:	argv += optind;
 				fts_options |= FTS_COMFOLLOW;
 			}
 		}
-	} else if (hflag) {
-		fts_options = FTS_PHYSICAL;
 	} else {
 		fts_options = FTS_LOGICAL;
 	}
@@ -194,14 +179,6 @@ done:	argv += optind;
 			break;
 		}
 		newmode = getmode(set, p->fts_statp->st_mode);
-		/*
-		 * With NFSv4 ACLs, it is possible that applying a mode
-		 * identical to the one computed from an ACL will change
-		 * that ACL.
-		 */
-		if (may_have_nfs4acl(p, hflag) == 0 &&
-		    (newmode & ALLPERMS) == (p->fts_statp->st_mode & ALLPERMS))
-				continue;
 		if (fchmodat(AT_FDCWD, p->fts_accpath, newmode, atflag) == -1
 		    && !fflag) {
 			warn("%s", p->fts_path);
@@ -235,28 +212,4 @@ usage(void)
 	(void)fprintf(stderr,
 	    "usage: chmod [-fhv] [-R [-H | -L | -P]] mode file ...\n");
 	exit(1);
-}
-
-static int
-may_have_nfs4acl(const FTSENT *ent, int hflag)
-{
-	int ret;
-	static dev_t previous_dev = NODEV;
-	static int supports_acls = -1;
-
-	if (previous_dev != ent->fts_statp->st_dev) {
-		previous_dev = ent->fts_statp->st_dev;
-		supports_acls = 0;
-
-		if (hflag)
-			ret = lpathconf(ent->fts_accpath, _PC_ACL_NFS4);
-		else
-			ret = pathconf(ent->fts_accpath, _PC_ACL_NFS4);
-		if (ret > 0)
-			supports_acls = 1;
-		else if (ret < 0 && errno != EINVAL)
-			warn("%s", ent->fts_path);
-	}
-
-	return (supports_acls);
 }

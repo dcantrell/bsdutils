@@ -54,13 +54,16 @@ __FBSDID("$FreeBSD$");
 #include <grp.h>
 #include <locale.h>
 #include <pwd.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sysexits.h>
 #include <unistd.h>
 
-static int dflag, eval, fflag, iflag, vflag, Wflag, stdin_ok;
+#include "compat.h"
+
+static int dflag, eval, fflag, iflag, vflag, stdin_ok;
 static int rflag, Iflag, xflag;
 static uid_t uid;
 static volatile sig_atomic_t info;
@@ -71,7 +74,7 @@ static void	checkdot(char **);
 static void	checkslash(char **);
 static void	rm_file(char **);
 static void	rm_tree(char **);
-static void siginfo(int __unused);
+static void siginfo(int __attribute__((unused)));
 static void	usage(void);
 
 /*
@@ -109,7 +112,7 @@ main(int argc, char *argv[])
 	}
 
 	rflag = xflag = 0;
-	while ((ch = getopt(argc, argv, "dfiIPRrvWx")) != -1)
+	while ((ch = getopt(argc, argv, "dfiIPRrvx")) != -1)
 		switch(ch) {
 		case 'd':
 			dflag = 1;
@@ -134,9 +137,6 @@ main(int argc, char *argv[])
 			break;
 		case 'v':
 			vflag = 1;
-			break;
-		case 'W':
-			Wflag = 1;
 			break;
 		case 'x':
 			xflag = 1;
@@ -198,8 +198,6 @@ rm_tree(char **argv)
 	flags = FTS_PHYSICAL;
 	if (!needstat)
 		flags |= FTS_NOSTAT;
-	if (Wflag)
-		flags |= FTS_WHITEOUT;
 	if (xflag)
 		flags |= FTS_XDEV;
 	if (!(fts = fts_open(argv, flags, NULL))) {
@@ -238,12 +236,6 @@ rm_tree(char **argv)
 				(void)fts_set(fts, p, FTS_SKIP);
 				p->fts_number = SKIPPED;
 			}
-			else if (!uid &&
-				 (p->fts_statp->st_flags & (UF_APPEND|UF_IMMUTABLE)) &&
-				 !(p->fts_statp->st_flags & (SF_APPEND|SF_IMMUTABLE)) &&
-				 lchflags(p->fts_accpath,
-					 p->fts_statp->st_flags &= ~(UF_APPEND|UF_IMMUTABLE)) < 0)
-				goto err;
 			continue;
 		case FTS_DP:
 			/* Post-order: see if user skipped. */
@@ -256,77 +248,51 @@ rm_tree(char **argv)
 				continue;
 		}
 
-		rval = 0;
-		if (!uid &&
-		    (p->fts_statp->st_flags & (UF_APPEND|UF_IMMUTABLE)) &&
-		    !(p->fts_statp->st_flags & (SF_APPEND|SF_IMMUTABLE)))
-			rval = lchflags(p->fts_accpath,
-				       p->fts_statp->st_flags &= ~(UF_APPEND|UF_IMMUTABLE));
-		if (rval == 0) {
+		/*
+		 * If we can't read or search the directory, may still be
+		 * able to remove it.  Don't print out the un{read,search}able
+		 * message unless the remove fails.
+		 */
+		switch (p->fts_info) {
+		case FTS_DP:
+		case FTS_DNR:
+			rval = rmdir(p->fts_accpath);
+			if (rval == 0 || (fflag && errno == ENOENT)) {
+				if (rval == 0 && vflag)
+					(void)printf("%s\n",
+					    p->fts_path);
+				if (rval == 0 && info) {
+					info = 0;
+					(void)printf("%s\n",
+					    p->fts_path);
+				}
+				continue;
+			}
+			break;
+		case FTS_NS:
 			/*
-			 * If we can't read or search the directory, may still be
-			 * able to remove it.  Don't print out the un{read,search}able
-			 * message unless the remove fails.
+			 * Assume that since fts_read() couldn't stat
+			 * the file, it can't be unlinked.
 			 */
-			switch (p->fts_info) {
-			case FTS_DP:
-			case FTS_DNR:
-				rval = rmdir(p->fts_accpath);
-				if (rval == 0 || (fflag && errno == ENOENT)) {
-					if (rval == 0 && vflag)
-						(void)printf("%s\n",
-						    p->fts_path);
-					if (rval == 0 && info) {
-						info = 0;
-						(void)printf("%s\n",
-						    p->fts_path);
-					}
-					continue;
+			if (fflag)
+				continue;
+			/* FALLTHROUGH */
+		case FTS_F:
+		case FTS_NSOK:
+		default:
+			rval = unlink(p->fts_accpath);
+			if (rval == 0 || (fflag && errno == ENOENT)) {
+				if (rval == 0 && vflag)
+					(void)printf("%s\n",
+					    p->fts_path);
+				if (rval == 0 && info) {
+					info = 0;
+					(void)printf("%s\n",
+					    p->fts_path);
 				}
-				break;
-
-			case FTS_W:
-				rval = undelete(p->fts_accpath);
-				if (rval == 0 && (fflag && errno == ENOENT)) {
-					if (vflag)
-						(void)printf("%s\n",
-						    p->fts_path);
-					if (info) {
-						info = 0;
-						(void)printf("%s\n",
-						    p->fts_path);
-					}
-					continue;
-				}
-				break;
-
-			case FTS_NS:
-				/*
-				 * Assume that since fts_read() couldn't stat
-				 * the file, it can't be unlinked.
-				 */
-				if (fflag)
-					continue;
-				/* FALLTHROUGH */
-
-			case FTS_F:
-			case FTS_NSOK:
-			default:
-				rval = unlink(p->fts_accpath);
-				if (rval == 0 || (fflag && errno == ENOENT)) {
-					if (rval == 0 && vflag)
-						(void)printf("%s\n",
-						    p->fts_path);
-					if (rval == 0 && info) {
-						info = 0;
-						(void)printf("%s\n",
-						    p->fts_path);
-					}
-					continue;
-				}
+				continue;
 			}
 		}
-err:
 		warn("%s", p->fts_path);
 		eval = 1;
 	}
@@ -349,18 +315,10 @@ rm_file(char **argv)
 	while ((f = *argv++) != NULL) {
 		/* Assume if can't stat the file, can't unlink it. */
 		if (lstat(f, &sb)) {
-			if (Wflag) {
-				sb.st_mode = S_IFWHT|S_IWUSR|S_IRUSR;
-			} else {
-				if (!fflag || errno != ENOENT) {
-					warn("%s", f);
-					eval = 1;
-				}
-				continue;
+			if (!fflag || errno != ENOENT) {
+				warn("%s", f);
+				eval = 1;
 			}
-		} else if (Wflag) {
-			warnx("%s: %s", f, strerror(EEXIST));
-			eval = 1;
 			continue;
 		}
 
@@ -369,21 +327,12 @@ rm_file(char **argv)
 			eval = 1;
 			continue;
 		}
-		if (!fflag && !S_ISWHT(sb.st_mode) && !check(f, f, &sb))
+		if (!fflag && !check(f, f, &sb))
 			continue;
-		rval = 0;
-		if (!uid && !S_ISWHT(sb.st_mode) &&
-		    (sb.st_flags & (UF_APPEND|UF_IMMUTABLE)) &&
-		    !(sb.st_flags & (SF_APPEND|SF_IMMUTABLE)))
-			rval = lchflags(f, sb.st_flags & ~(UF_APPEND|UF_IMMUTABLE));
-		if (rval == 0) {
-			if (S_ISWHT(sb.st_mode))
-				rval = undelete(f);
-			else if (S_ISDIR(sb.st_mode))
-				rval = rmdir(f);
-			else
-				rval = unlink(f);
-		}
+		if (S_ISDIR(sb.st_mode))
+			rval = rmdir(f);
+		else
+			rval = unlink(f);
 		if (rval && (!fflag || errno != ENOENT)) {
 			warn("%s", f);
 			eval = 1;
@@ -401,7 +350,9 @@ static int
 check(const char *path, const char *name, struct stat *sp)
 {
 	int ch, first;
-	char modep[15], *flagsp;
+	char modep[15];
+	struct passwd *pw = NULL;
+	struct group *gr = NULL;
 
 	/* Check -i first. */
 	if (iflag)
@@ -413,21 +364,20 @@ check(const char *path, const char *name, struct stat *sp)
 		 * because their permissions are meaningless.  Check stdin_ok
 		 * first because we may not have stat'ed the file.
 		 */
-		if (!stdin_ok || S_ISLNK(sp->st_mode) ||
-		    (!access(name, W_OK) &&
-		    !(sp->st_flags & (SF_APPEND|SF_IMMUTABLE)) &&
-		    (!(sp->st_flags & (UF_APPEND|UF_IMMUTABLE)) || !uid)))
+		if (!stdin_ok || S_ISLNK(sp->st_mode) || !access(name, W_OK))
 			return (1);
 		strmode(sp->st_mode, modep);
-		if ((flagsp = fflagstostr(sp->st_flags)) == NULL)
-			err(1, "fflagstostr");
-		(void)fprintf(stderr, "override %s%s%s/%s %s%sfor %s? ",
+		pw = getpwuid(sp->st_uid);
+		if (pw == NULL)
+			err(EXIT_FAILURE, "getpwuid");
+		gr = getgrgid(sp->st_gid);
+		if (gr == NULL)
+			err(EXIT_FAILURE, "getgrgid");
+		(void)fprintf(stderr, "override %s%s%s/%s for %s? ",
 		    modep + 1, modep[10] == ' ' ? "" : " ",
-		    user_from_uid(sp->st_uid, 0),
-		    group_from_gid(sp->st_gid, 0),
-		    *flagsp ? flagsp : "", *flagsp ? " " : "",
+		    pw->pw_name,
+		    gr->gr_name,
 		    path);
-		free(flagsp);
 	}
 	(void)fflush(stderr);
 
@@ -544,7 +494,7 @@ usage(void)
 }
 
 static void
-siginfo(int sig __unused)
+siginfo(int sig __attribute__((unused)))
 {
 
 	info = 1;

@@ -68,6 +68,8 @@ static const char sccsid[] = "@(#)main.c	8.2 (Berkeley) 1/3/94";
 #include "defs.h"
 #include "extern.h"
 
+extern char *__progname;
+
 /*
  * Linked list of units (strings and files) to be compiled
  */
@@ -213,7 +215,7 @@ usage(void)
 	(void)fprintf(stderr,
 	    "usage: %s script [-Ealnru] [-i extension] [file ...]\n"
 	    "\t%s [-Ealnu] [-i extension] [-e script] ... [-f script_file]"
-	    " ... [file ...]\n", getprogname(), getprogname());
+	    " ... [file ...]\n", __progname, __progname);
 	exit(1);
 }
 

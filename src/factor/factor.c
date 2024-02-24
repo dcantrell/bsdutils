@@ -66,6 +66,7 @@ __FBSDID("$FreeBSD$");
  * If no args are given, the list of numbers are read from stdin.
  */
 
+#include <sys/types.h>
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>

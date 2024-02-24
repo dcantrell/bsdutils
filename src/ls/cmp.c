@@ -137,35 +137,6 @@ revacccmp(const FTSENT *a, const FTSENT *b)
 }
 
 int
-birthcmp(const FTSENT *a, const FTSENT *b)
-{
-
-	if (b->fts_statp->st_birthtim.tv_sec >
-	    a->fts_statp->st_birthtim.tv_sec)
-		return (1);
-	if (b->fts_statp->st_birthtim.tv_sec <
-	    a->fts_statp->st_birthtim.tv_sec)
-		return (-1);
-	if (b->fts_statp->st_birthtim.tv_nsec >
-	    a->fts_statp->st_birthtim.tv_nsec)
-		return (1);
-	if (b->fts_statp->st_birthtim.tv_nsec <
-	    a->fts_statp->st_birthtim.tv_nsec)
-		return (-1);
-	if (f_samesort)
-		return (strcoll(b->fts_name, a->fts_name));
-	else
-		return (strcoll(a->fts_name, b->fts_name));
-}
-
-int
-revbirthcmp(const FTSENT *a, const FTSENT *b)
-{
-
-	return (birthcmp(b, a));
-}
-
-int
 statcmp(const FTSENT *a, const FTSENT *b)
 {
 

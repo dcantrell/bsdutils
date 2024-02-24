@@ -45,9 +45,10 @@ __FBSDID("$FreeBSD$");
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <timeconv.h>
 #include <unistd.h>
 #include <utmpx.h>
+
+#include "compat.h"
 
 static void	heading(void);
 static void	process_utmp(void);
@@ -118,7 +119,7 @@ main(int argc, char *argv[])
 		usage();
 
 	if (*argv != NULL) {
-		if (setutxdb(UTXDB_ACTIVE, *argv) != 0)
+		if (utmpxname(*argv) == 0)
 			err(1, "%s", *argv);
 	}
 
@@ -171,8 +172,10 @@ row(const struct utmpx *ut)
 	struct tm *tm;
 	char state;
 
-	if (d_first < 0)
-		d_first = (*nl_langinfo(D_MD_ORDER) == 'd');
+	if (d_first < 0) {
+		char *s = nl_langinfo(D_FMT);
+		d_first = (strchr(s, 'd') < strchr(s, 'm'));
+	}
 
 	state = '?';
 	idle = 0;
@@ -288,7 +291,7 @@ whoami(void)
 	else
 		name = "?";
 	strlcpy(ut.ut_user, name, sizeof ut.ut_user);
-	gettimeofday(&ut.ut_tv, NULL);
+	gettimeofday((struct timeval *)&ut.ut_tv, NULL);
 	row(&ut);
 }
 

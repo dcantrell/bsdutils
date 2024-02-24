@@ -49,7 +49,7 @@ __FBSDID("$FreeBSD$");
 #include <sys/param.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
-#include <sys/mac.h>
+#include <sys/types.h>
 
 #include <ctype.h>
 #include <dirent.h>
@@ -75,6 +75,8 @@ __FBSDID("$FreeBSD$");
 #include "ls.h"
 #include "extern.h"
 
+#include "compat.h"
+
 /*
  * Upward approximation of the maximum number of characters needed to
  * represent a value of integral type t as a string, excluding the
@@ -98,7 +100,7 @@ __FBSDID("$FreeBSD$");
 	} while(0)
 
 static void	 display(const FTSENT *, FTSENT *, int);
-static int	 mastercmp(const FTSENT * const *, const FTSENT * const *);
+static int	 mastercmp(const FTSENT **, const FTSENT **);
 static void	 traverse(int, char **, int);
 
 #define	COLOR_OPT	(CHAR_MAX + 1)
@@ -117,12 +119,9 @@ int termwidth = 80;		/* default terminal width */
 
 /* flags */
        int f_accesstime;	/* use time of last access */
-       int f_birthtime;		/* use time of birth */
-       int f_flags;		/* show flags associated with a file */
        int f_humanval;		/* show human-readable file sizes */
        int f_inode;		/* print inode */
 static int f_kblocks;		/* print size in kilobytes */
-       int f_label;		/* show MAC label */
 static int f_listdir;		/* list actual directory, not contents */
 static int f_listdot;		/* list files beginning with . */
        int f_longform;		/* long listing format */
@@ -234,7 +233,6 @@ main(int argc, char *argv[])
 	struct winsize win;
 	int ch, fts_options, notused;
 	char *p;
-	const char *errstr = NULL;
 #ifdef COLORLS
 	char termcapbuf[1024];	/* termcap definition buffer */
 	char tcapbuf[512];	/* capability buffer */
@@ -246,8 +244,12 @@ main(int argc, char *argv[])
 	/* Terminal defaults to -Cq, non-terminal defaults to -1. */
 	if (isatty(STDOUT_FILENO)) {
 		termwidth = 80;
-		if ((p = getenv("COLUMNS")) != NULL && *p != '\0')
-			termwidth = strtonum(p, 0, INT_MAX, &errstr);
+		if ((p = getenv("COLUMNS")) != NULL && *p != '\0') {
+			termwidth = strtoll(p, NULL, 10);
+			if (errno == ERANGE || errno == EINVAL) {
+				termwidth = 80;
+			}
+		}
 		else if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &win) != -1 &&
 		    win.ws_col > 0)
 			termwidth = win.ws_col;
@@ -256,12 +258,13 @@ main(int argc, char *argv[])
 		f_singlecol = 1;
 		/* retrieve environment variable, in case of explicit -C */
 		p = getenv("COLUMNS");
-		if (p)
-			termwidth = strtonum(p, 0, INT_MAX, &errstr);
+		if (p) {
+			termwidth = strtoll(p, NULL, 10);
+			if (errno == ERANGE || errno == EINVAL) {
+				termwidth = 80;
+			}
+		}
 	}
-
-	if (errstr)
-		termwidth = 80;
 
 	fts_options = FTS_PHYSICAL;
 	if (getenv("LS_SAMESORT"))
@@ -276,7 +279,7 @@ main(int argc, char *argv[])
 		colorflag = COLORFLAG_AUTO;
 #endif
 	while ((ch = getopt_long(argc, argv,
-	    "+1ABCD:FGHILPRSTUWXZabcdfghiklmnopqrstuvwxy,", long_opts,
+	    "+1ABCD:FGHILPRSTWXabcdfghiklmnpqrstuvwxy,", long_opts,
 	    NULL)) != -1) {
 		switch (ch) {
 		/*
@@ -301,20 +304,13 @@ main(int argc, char *argv[])
 			f_longform = 0;
 			f_singlecol = 0;
 			break;
-		/* The -c, -u, and -U options override each other. */
+		/* The -c and -u options override each other. */
 		case 'c':
 			f_statustime = 1;
 			f_accesstime = 0;
-			f_birthtime = 0;
 			break;
 		case 'u':
 			f_accesstime = 1;
-			f_statustime = 0;
-			f_birthtime = 0;
-			break;
-		case 'U':
-			f_birthtime = 1;
-			f_accesstime = 0;
 			f_statustime = 0;
 			break;
 		case 'f':
@@ -389,9 +385,6 @@ main(int argc, char *argv[])
 		case 'W':
 			f_whiteout = 1;
 			break;
-		case 'Z':
-			f_label = 1;
-			break;
 		case 'b':
 			f_nonprint = 0;
 			f_octal = 0;
@@ -421,9 +414,6 @@ main(int argc, char *argv[])
 			break;
 		case 'n':
 			f_numericonly = 1;
-			break;
-		case 'o':
-			f_flags = 1;
 			break;
 		case 'p':
 			f_slash = 1;
@@ -578,8 +568,6 @@ main(int argc, char *argv[])
 			sortfcn = revnamecmp;
 		else if (f_accesstime)
 			sortfcn = revacccmp;
-		else if (f_birthtime)
-			sortfcn = revbirthcmp;
 		else if (f_statustime)
 			sortfcn = revstatcmp;
 		else		/* Use modification time. */
@@ -593,8 +581,6 @@ main(int argc, char *argv[])
 			sortfcn = namecmp;
 		else if (f_accesstime)
 			sortfcn = acccmp;
-		else if (f_birthtime)
-			sortfcn = birthcmp;
 		else if (f_statustime)
 			sortfcn = statcmp;
 		else		/* Use modification time. */
@@ -651,7 +637,7 @@ traverse(int argc, char *argv[], int options)
 	 * If not recursing down this tree and don't need stat info, just get
 	 * the names.
 	 */
-	ch_options = !f_recursive && !f_label &&
+	ch_options = !f_recursive &&
 	    options & FTS_NOSTAT ? FTS_NAMEONLY : 0;
 
 	while (errno = 0, (p = fts_read(ftsp)) != NULL)
@@ -702,7 +688,7 @@ traverse(int argc, char *argv[], int options)
  * points to the parent directory of the display list.
  */
 static void
-display(const FTSENT *p, FTSENT *list, int options)
+display(const FTSENT *p, FTSENT *list, int options __attribute__((unused)))
 {
 	struct stat *sp;
 	DISPLAY d;
@@ -711,8 +697,7 @@ display(const FTSENT *p, FTSENT *list, int options)
 	off_t maxsize;
 	long maxblock;
 	uintmax_t maxinode;
-	u_long btotal, labelstrlen, maxlen, maxnlink;
-	u_long maxlabelstr;
+	u_long btotal, maxlen, maxnlink;
 	u_int sizelen;
 	int maxflags;
 	gid_t maxgroup;
@@ -720,8 +705,9 @@ display(const FTSENT *p, FTSENT *list, int options)
 	size_t flen, ulen, glen;
 	char *initmax;
 	int entries, needstats;
+	struct passwd *pwentry = NULL;
+	struct group *grentry = NULL;
 	const char *user, *group;
-	char *flags, *labelstr = NULL;
 	char ngroup[STRBUF_SIZEOF(uid_t) + 1];
 	char nuser[STRBUF_SIZEOF(gid_t) + 1];
 	u_long width[9];
@@ -769,7 +755,6 @@ display(const FTSENT *p, FTSENT *list, int options)
 	maxflags = width[5];
 	maxsize = width[6];
 	maxlen = width[7];
-	maxlabelstr = width[8];
 
 	MAKENINES(maxinode);
 	MAKENINES(maxblock);
@@ -778,7 +763,6 @@ display(const FTSENT *p, FTSENT *list, int options)
 
 	d.s_size = 0;
 	sizelen = 0;
-	flags = NULL;
 	for (cur = list, entries = 0; cur; cur = cur->fts_link) {
 		if (cur->fts_info == FTS_ERR || cur->fts_info == FTS_NS) {
 			warnx("%s: %s",
@@ -833,96 +817,34 @@ display(const FTSENT *p, FTSENT *list, int options)
 					user = nuser;
 					group = ngroup;
 				} else {
-					user = user_from_uid(sp->st_uid, 0);
+					pwentry = getpwuid(sp->st_uid);
 					/*
-					 * user_from_uid(..., 0) only returns
-					 * NULL in OOM conditions.  We could
-					 * format the uid here, but (1) in
-					 * general ls(1) exits on OOM, and (2)
-					 * there is another allocation/exit
-					 * path directly below, which will
-					 * likely exit anyway.
+					 * getpwuid and getgrgid are allowed to
+					 * return NULL when the information is
+					 * not known (i.e. not in /etc/passwd)
+					 * so fall back to numeric IDs if needed
 					 */
-					if (user == NULL)
-						err(1, "user_from_uid");
-					group = group_from_gid(sp->st_gid, 0);
+					if (pwentry == NULL) {
+						(void)snprintf(nuser, sizeof(nuser),
+						    "%u", sp->st_uid);
+						user = nuser;
+					} else
+						user = pwentry->pw_name;
+					grentry = getgrgid(sp->st_gid);
 					/* Ditto. */
-					if (group == NULL)
-						err(1, "group_from_gid");
+					if (grentry == NULL) {
+						(void)snprintf(ngroup, sizeof(ngroup),
+						    "%u", sp->st_gid);
+						group = ngroup;
+					} else
+						group = grentry->gr_name;
 				}
 				if ((ulen = strlen(user)) > maxuser)
 					maxuser = ulen;
 				if ((glen = strlen(group)) > maxgroup)
 					maxgroup = glen;
-				if (f_flags) {
-					flags = fflagstostr(sp->st_flags);
-					if (flags != NULL && *flags == '\0') {
-						free(flags);
-						flags = strdup("-");
-					}
-					if (flags == NULL)
-						err(1, "fflagstostr");
-					flen = strlen(flags);
-					if (flen > (size_t)maxflags)
-						maxflags = flen;
-				} else
-					flen = 0;
-				labelstr = NULL;
-				if (f_label) {
-					char name[PATH_MAX + 1];
-					mac_t label;
-					int error;
 
-					error = mac_prepare_file_label(&label);
-					if (error == -1) {
-						warn("MAC label for %s/%s",
-						    cur->fts_parent->fts_path,
-						    cur->fts_name);
-						goto label_out;
-					}
-
-					if (cur->fts_level == FTS_ROOTLEVEL)
-						snprintf(name, sizeof(name),
-						    "%s", cur->fts_name);
-					else
-						snprintf(name, sizeof(name),
-						    "%s/%s", cur->fts_parent->
-						    fts_accpath, cur->fts_name);
-
-					if (options & FTS_LOGICAL)
-						error = mac_get_file(name,
-						    label);
-					else
-						error = mac_get_link(name,
-						    label);
-					if (error == -1) {
-						warn("MAC label for %s/%s",
-						    cur->fts_parent->fts_path,
-						    cur->fts_name);
-						mac_free(label);
-						goto label_out;
-					}
-
-					error = mac_to_text(label,
-					    &labelstr);
-					if (error == -1) {
-						warn("MAC label for %s/%s",
-						    cur->fts_parent->fts_path,
-						    cur->fts_name);
-						mac_free(label);
-						goto label_out;
-					}
-					mac_free(label);
-label_out:
-					if (labelstr == NULL)
-						labelstr = strdup("-");
-					labelstrlen = strlen(labelstr);
-					if (labelstrlen > maxlabelstr)
-						maxlabelstr = labelstrlen;
-				} else
-					labelstrlen = 0;
-
-				if ((np = malloc(sizeof(NAMES) + labelstrlen +
+				if ((np = malloc(sizeof(NAMES) +
 				    ulen + glen + flen + 4)) == NULL)
 					err(1, "malloc");
 
@@ -939,17 +861,6 @@ label_out:
 						d.s_size = sizelen;
 				}
 
-				if (f_flags) {
-					np->flags = &np->data[ulen + glen + 2];
-					(void)strcpy(np->flags, flags);
-					free(flags);
-				}
-				if (f_label) {
-					np->label = &np->data[ulen + glen + 2
-					    + (f_flags ? flen + 1 : 0)];
-					(void)strcpy(np->label, labelstr);
-					free(labelstr);
-				}
 				cur->fts_pointer = np;
 			}
 		}
@@ -972,7 +883,6 @@ label_out:
 		d.btotal = btotal;
 		d.s_block = snprintf(NULL, 0, "%lu", howmany(maxblock, blocksize));
 		d.s_flags = maxflags;
-		d.s_label = maxlabelstr;
 		d.s_group = maxgroup;
 		d.s_inode = snprintf(NULL, 0, "%ju", maxinode);
 		d.s_nlink = snprintf(NULL, 0, "%lu", maxnlink);
@@ -999,7 +909,7 @@ label_out:
  * All other levels use the sort function.  Error entries remain unsorted.
  */
 static int
-mastercmp(const FTSENT * const *a, const FTSENT * const *b)
+mastercmp(const FTSENT **a, const FTSENT **b)
 {
 	int a_info, b_info;
 

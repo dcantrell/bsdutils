@@ -221,7 +221,7 @@ usage(void)
 }
 
 static void
-handlesig(int sig __unused)
+handlesig(int sig __attribute__((unused)))
 {
 	const char msg[] = "csplit: caught signal, cleaning up\n";
 
@@ -237,8 +237,10 @@ newfile(void)
 	FILE *fp;
 
 	if ((size_t)snprintf(currfile, sizeof(currfile), "%s%0*ld", prefix,
-	    (int)sufflen, nfiles) >= sizeof(currfile))
-		errc(1, ENAMETOOLONG, NULL);
+	    (int)sufflen, nfiles) >= sizeof(currfile)) {
+		errno = ENAMETOOLONG;
+		err(1, NULL);
+	}
 	if ((fp = fopen(currfile, "w+")) == NULL)
 		err(1, "%s", currfile);
 	nfiles++;
@@ -379,7 +381,7 @@ do_rexp(const char *expr)
 	} else
 		ofs = 0;
 
-	if (regcomp(&cre, re, REG_BASIC|REG_NOSUB) != 0)
+	if (regcomp(&cre, re, REG_NOSUB) != 0)
 		errx(1, "%s: bad regular expression", re);
 
 	if (*expr == '/')
