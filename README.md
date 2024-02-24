@@ -15,47 +15,61 @@ porting the commands from FreeBSD in April 2021.
 Importing A New Release Of FreeBSD
 ----------------------------------
 
-When a new release of FreeBSD is made, the import-src.sh script should
-be used to update the source tree.  First edit upstream.conf and then
-run the import-src.sh script.  The script will fetch the new release
-source and copy in the source for the commands we have.  Any patches
-in patches/ will be applied.  These may need updating between
-releases, so keep that in mind.  The workflow is basically:
+When a new release of FreeBSD is made, the 'make import' target should
+be used.
 
-1) Change VER in upstream.conf
+1) Create a new branch to do the import work.  The convention is to make
+   the branch from main and name it after the FreeBSD release you are
+   importing from.  For example, branch 13.2-RELEASE when importing from
+   13.2-RELEASE.
 
-2) Verify URL in upstream.conf works (FreeBSD may move things around).
+2) Switch to this new branch.
 
-3) Run ./import-src.sh.
+3) Change VER in upstream.conf to match what you are importing, e.g.
+   13.2-RELEASE.
 
-4) Do an initial commit of this import and tag it as
-   X.Y-RELEASE-import.  For example, importing source from FreeBSD 13.1
-   would have a tag named 13.1-RELEASE-import in the tree.
+4) Verify URL in upstream.conf works (FreeBSD may move things around).
 
-   * NOTE: The tree should have Makefile.bsd files in it right now,
-     but those should not be committed.  Leave them in place for now.
+5) Run 'make import'
 
-5) Use git to gather the changes between the previous
-   X.[Y-1]-RELEASE-import tag and the previous commit.  Apply these to
-   the tree now.  This is mostly easy, but some patches will have to
-   be manually applied.  What I tend to do is generate a large patch
-   with git and then run splitdiff on that to get individual patches
-   for each source file.  I then have a script that tries to apply
-   each of those and for any that fail, I retain them.  If the patch
-   applied successfully, I remove the patch.  The remaining set I need
-   to apply by hand.
+NOTE: 'make import' may fail if the source tree has been reorganized.
+For example, in 13.2-RELEASE the timeout(1) command source moved from
+usr.bin/timeout to bin/timeout.  Look for these failures and modify
+utils/import-src.sh as necessary.  Do a 'git checkout -- src && git
+checkout -- compat' and run the import process again until it
+succeeds.
 
-6) After applying patches, run make.  Fix anything that fails.  This
-   is the step that updates the patches for the new FreeBSD source.
+6) Commit all these changes on the branch.  And tag the branch as the
+   import point.  e.g., for 13.2-RELEASE the tag would be:
 
-7) Now check each Makefile.bsd file to see if our meson.build files
-   need updating.  There may be new compiler flags or macros to
-   define.  Likewise there may be new source files that should be
-   listed.  Use this step to also remove any source files that no
-   longer exist (the Makefile.bsd file won't reference the file, so
-   you can remove it and update the meson.build file).
+       git tag -s 13.2-RELEASE-import
 
-8) Now commit these changes.
+   NOTE:  Be sure to not commit the Makefile.bsd files.
+
+7) Now bring all the patches forward that get it working on Linux.  To
+   do this I generate a diff from the previous import point to the tagged
+   release.  For example, for 13.1-RELEASE, I do:
+
+       git diff 13.1-RELEASE-import v13.1 > ~/patches
+       cd ~
+       mkdir p
+       cd p
+       splitdiff -a -d ../patches
+
+   From here I begin building bsdutils on the branch and bringing over
+   patches as needed.  Some may no longer be valid.  There may need to be
+   meson.build file changes too if new source files have been introduced.
+   This is the trial and error part of porting, but should not take long.
+
+8) Once bsdutils builds on the branch, commit the changes on the
+   branch.  Push to upstream.
+
+9) Now on main, merge the 13.2-RELEASE branch on to main.  Once you have
+   done that, make sure it builds again and tag it:
+
+       git tag -s v13.2
+
+   The main branch now contains the latest stable released bsdutils.
 
 Push the changes and check that CI passes.  After some testing, it's
 probably time for a release.
